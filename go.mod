@@ -1,4 +1,4 @@
-module github.com/robert.malhotra/umbra-client
+module github.com/robert.malhotra/go-sar-vendor
 
 go 1.24.2
 
