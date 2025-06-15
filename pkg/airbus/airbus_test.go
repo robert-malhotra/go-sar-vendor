@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/robert.malhotra/umbra-client/pkg/airbus"
+	"github.com/robert.malhotra/go-sar-vendor/pkg/airbus"
 )
 
 /*────────────────── helper to spin up mock server ───────────────────*/

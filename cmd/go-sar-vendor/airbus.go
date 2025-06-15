@@ -18,7 +18,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/robert.malhotra/umbra-client/pkg/airbus"
+	"github.com/robert.malhotra/go-sar-vendor/pkg/airbus"
 	"github.com/urfave/cli/v3"
 )
 

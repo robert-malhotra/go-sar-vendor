@@ -1,0 +1,3679 @@
+Repository Documentation
+This document provides a comprehensive overview of the repository's structure and contents.
+The first section, titled 'Directory/File Tree', displays the repository's hierarchy in a tree format.
+In this section, directories and files are listed using tree branches to indicate their structure and relationships.
+Following the tree representation, the 'File Content' section details the contents of each file in the repository.
+Each file's content is introduced with a '[File Begins]' marker followed by the file's relative path,
+and the content is displayed verbatim. The end of each file's content is marked with a '[File Ends]' marker.
+This format ensures a clear and orderly presentation of both the structure and the detailed contents of the repository.
+
+Directory/File Tree Begins -->
+
+go-sar-vendor/
+├── README.md
+├── cmd
+│   └── go-sar-vendor
+│       ├── airbus.go
+│       ├── capella.go
+│       ├── iceye.go
+│       ├── main.go
+│       └── umbra.go
+├── go.mod
+├── go.sum
+└── pkg
+    ├── airbus
+    │   ├── airbus.go
+    │   └── airbus_test.go
+    ├── capella
+    │   ├── capella_test.go
+    │   ├── client.go
+    │   ├── feasibility.go
+    │   └── tasking.go
+    ├── iceye
+    │   ├── iceye.go
+    │   └── iceye_test.go
+    └── umbra
+        ├── umbra.go
+        └── umbra_test.go
+
+<-- Directory/File Tree Ends
+
+File Content Begin -->
+[File Begins] README.md
+# go-sar-vendor
+
+[File Ends] README.md
+
+    [File Begins] cmd/go-sar-vendor/airbus.go
+    package main
+    
+    // Command‑line helpers for Airbus OneAtlas Radar SAR API.
+    //
+    // Follows the same structure as capellaCmd / iceyeCmd / umbraCmd already in the
+    // repository.  It supports:
+    //   * POST /feasibility      – gosar airbus feasibility < body.json
+    //   * POST /catalogue        – gosar airbus catalogue < body.json
+    //   * add + submit cart      – gosar airbus cart --item ID [...]
+    //   * GET  /orders/{id}      – gosar airbus order ORD-123
+    //
+    // The command inherits global flags (api‑key, token‑url, base‑url) so the SDK
+    // can target staging or test endpoints.
+    
+    import (
+    	"context"
+    	"encoding/json"
+    	"fmt"
+    	"os"
+    
+    	"github.com/robert.malhotra/go-sar-vendor/pkg/airbus"
+    	"github.com/urfave/cli/v3"
+    )
+    
+    /*──────────────────── helpers ──────────────────────────*/
+    
+    func abClient(cmd *cli.Command) *airbus.Client {
+    	return airbus.New(
+    		cmd.String("api-key"),
+    		nil, // default http.Client
+    		airbus.WithTokenURL(cmd.String("token-url")),
+    		airbus.WithBaseURL(cmd.String("base-url")),
+    	)
+    }
+    
+    func pretty(v any) error {
+    	enc := json.NewEncoder(os.Stdout)
+    	enc.SetIndent("", "  ")
+    	return enc.Encode(v)
+    }
+    
+    /*──────────────────── root command ────────────────────*/
+    
+    func airbusCmd() *cli.Command {
+    	return &cli.Command{
+    		Name:  "airbus",
+    		Usage: "Airbus OneAtlas Radar SAR helpers",
+    
+    		Flags: []cli.Flag{
+    			&cli.StringFlag{Name: "api-key", Required: true, Usage: "OneAtlas API key", Sources: cli.EnvVars("AIRBUS_API_KEY")},
+    			&cli.StringFlag{Name: "token-url", Value: airbus.DefaultTokenURL, Usage: "Override auth endpoint"},
+    			&cli.StringFlag{Name: "base-url", Value: airbus.DefaultBaseURL, Usage: "Override API base URL"},
+    		},
+    
+    		Commands: []*cli.Command{
+    			abFeasCmd(),
+    			abCatCmd(),
+    			abCartCmd(),
+    			abOrderCmd(),
+    		},
+    	}
+    }
+    
+    /*──────────────────── feasibility ─────────────────────*/
+    
+    func abFeasCmd() *cli.Command {
+    	return &cli.Command{
+    		Name:  "feasibility",
+    		Usage: "Create feasibility request (reads JSON from stdin)",
+    		Action: func(ctx context.Context, cmd *cli.Command) error {
+    			var body airbus.FeasibilityRequest
+    			if err := json.NewDecoder(os.Stdin).Decode(&body); err != nil {
+    				return err
+    			}
+    			res, err := abClient(cmd).SearchFeasibility(ctx, body)
+    			if err != nil {
+    				return err
+    			}
+    			return pretty(res)
+    		},
+    	}
+    }
+    
+    /*──────────────────── catalogue ───────────────────────*/
+    
+    func abCatCmd() *cli.Command {
+    	return &cli.Command{
+    		Name:  "catalogue",
+    		Usage: "Archive search (reads JSON from stdin)",
+    		Action: func(ctx context.Context, cmd *cli.Command) error {
+    			var body airbus.CatalogueRequest
+    			if err := json.NewDecoder(os.Stdin).Decode(&body); err != nil {
+    				return err
+    			}
+    			res, err := abClient(cmd).SearchCatalogue(ctx, body)
+    			if err != nil {
+    				return err
+    			}
+    			return pretty(res)
+    		},
+    	}
+    }
+    
+    /*──────────────────── cart flow ───────────────────────*/
+    
+    func abCartCmd() *cli.Command {
+    	return &cli.Command{
+    		Name:  "cart",
+    		Usage: "Add items then submit order",
+    		Flags: []cli.Flag{
+    			&cli.StringSliceFlag{Name: "item", Usage: "itemId from feasibility / catalogue (repeatable)"},
+    			&cli.StringFlag{Name: "purpose", Value: "Research"},
+    			&cli.StringFlag{Name: "product-type", Value: string(airbus.PTSSC)},
+    			&cli.StringFlag{Name: "resolution", Value: string(airbus.ResRadiometric)},
+    		},
+    		Action: func(ctx context.Context, cmd *cli.Command) error {
+    			items := cmd.StringSlice("item")
+    			if len(items) == 0 {
+    				return fmt.Errorf("at least one --item required")
+    			}
+    			cli := abClient(cmd)
+    
+    			// add items
+    			if err := cli.AddItems(ctx, airbus.AddItemsRequest{
+    				Items: items,
+    				OrderOptions: airbus.OrderOptions{
+    					ProductType:       airbus.ProductType(cmd.String("product-type")),
+    					ResolutionVariant: airbus.ResolutionVariant(cmd.String("resolution")),
+    					OrbitType:         airbus.OrbitRapid,
+    					MapProjection:     airbus.MapAuto,
+    				},
+    			}); err != nil {
+    				return err
+    			}
+    			// patch purpose
+    			if err := cli.PatchShopcart(ctx, airbus.ShopcartPatch{Purpose: airbus.Purpose(cmd.String("purpose"))}); err != nil {
+    				return err
+    			}
+    			// submit
+    			id, err := cli.SubmitShopcart(ctx)
+    			if err != nil {
+    				return err
+    			}
+    			fmt.Println(id)
+    			return nil
+    		},
+    	}
+    }
+    
+    /*──────────────────── order ───────────────────────────*/
+    
+    func abOrderCmd() *cli.Command {
+    	return &cli.Command{
+    		Name:      "order",
+    		Usage:     "Fetch order status",
+    		ArgsUsage: "<orderId>",
+    		Action: func(ctx context.Context, cmd *cli.Command) error {
+    			id := cmd.Args().First()
+    			if id == "" {
+    				return fmt.Errorf("orderId required")
+    			}
+    			res, err := abClient(cmd).Order(ctx, id)
+    			if err != nil {
+    				return err
+    			}
+    			return pretty(res)
+    		},
+    	}
+    }
+
+    [File Ends] cmd/go-sar-vendor/airbus.go
+
+    [File Begins] cmd/go-sar-vendor/capella.go
+    package main
+    
+    import (
+    	"context"
+    	"encoding/json"
+    	"fmt"
+    	"os"
+    
+    	"github.com/robert.malhotra/go-sar-vendor/pkg/capella"
+    	"github.com/urfave/cli/v3"
+    )
+    
+    // -----------------------------------------------------------------------------
+    // top-level command ------------------------------------------------------------
+    // -----------------------------------------------------------------------------
+    func capellaCmd() *cli.Command {
+    	root := &cli.Command{
+    		Name:  "capella",
+    		Usage: "Command-line helper for Capella Space Tasking & Access API",
+    
+    		// global flags
+    		Flags: []cli.Flag{
+    			&cli.StringFlag{
+    				Name:     "api-key",
+    				Usage:    "Capella API key (or set CAPELLA_API_KEY env var)",
+    				Required: true,
+    				Sources:  cli.EnvVars("CAPELLA_API_KEY"),
+    			},
+    			&cli.StringFlag{
+    				Name:  "base-url",
+    				Value: "https://api.capellaspace.com/",
+    				Usage: "Override API base URL (useful for staging/dev)",
+    			},
+    		},
+    
+    		// sub-commands
+    		Commands: []*cli.Command{
+    			accessCmd(),
+    			tasksCmd(),
+    		},
+    	}
+    	return root
+    }
+    
+    // -----------------------------------------------------------------------------
+    // helpers ---------------------------------------------------------------------
+    // -----------------------------------------------------------------------------
+    
+    func clientFromCmd(cmd *cli.Command) *capella.Client {
+    	return capella.NewClient(capella.WithBaseURL(cmd.String("base-url")))
+    }
+    
+    // -----------------------------------------------------------------------------
+    // Access-request sub-tree ------------------------------------------------------
+    // -----------------------------------------------------------------------------
+    
+    func accessCmd() *cli.Command {
+    	return &cli.Command{
+    		Name:  "access",
+    		Usage: "Create & inspect access-requests (Feasibility Studies)",
+    		Commands: []*cli.Command{
+    			{
+    				Name:   "create",
+    				Usage:  "Create an access request (reads JSON from stdin, prints result)",
+    				Action: accessCreateAction,
+    			},
+    			{
+    				Name:      "get",
+    				Usage:     "Fetch an access request by ID",
+    				ArgsUsage: "<accessRequestId>",
+    				Action:    accessGetAction,
+    			},
+    		},
+    	}
+    }
+    
+    func accessCreateAction(ctx context.Context, cmd *cli.Command) error {
+    	var req capella.AccessRequest
+    	if err := json.NewDecoder(os.Stdin).Decode(&req); err != nil {
+    		return fmt.Errorf("decode JSON: %w", err)
+    	}
+    	cli := clientFromCmd(cmd)
+    	resp, err := cli.CreateAccessRequest(cmd.String("api-key"), req)
+    	if err != nil {
+    		return err
+    	}
+    	return printJSON(resp)
+    }
+    
+    func accessGetAction(ctx context.Context, cmd *cli.Command) error {
+    	id := cmd.Args().Get(0)
+    	if id == "" {
+    		return fmt.Errorf("accessRequestId required")
+    	}
+    	cli := clientFromCmd(cmd)
+    	resp, err := cli.GetAccessRequest(cmd.String("api-key"), id)
+    	if err != nil {
+    		return err
+    	}
+    	return printJSON(resp)
+    }
+    
+    // -----------------------------------------------------------------------------
+    // Tasking-request sub-tree ----------------------------------------------------
+    // -----------------------------------------------------------------------------
+    
+    func tasksCmd() *cli.Command {
+    	return &cli.Command{
+    		Name:  "tasks",
+    		Usage: "Create, approve, list & search tasking-requests",
+    		Commands: []*cli.Command{
+    			{
+    				Name:   "create",
+    				Usage:  "Create a tasking request (reads JSON from stdin)",
+    				Action: tasksCreateAction,
+    			},
+    			{
+    				Name:      "get",
+    				Usage:     "Fetch a tasking request by ID",
+    				ArgsUsage: "<taskingRequestId>",
+    				Action:    tasksGetAction,
+    			},
+    			{
+    				Name:      "approve",
+    				Usage:     "Approve a tasking request (cost review)",
+    				ArgsUsage: "<taskingRequestId>",
+    				Action:    tasksApproveAction,
+    			},
+    			{
+    				Name:  "list",
+    				Usage: "Stream request list as newline-delimited JSON (paged API)",
+    				Flags: []cli.Flag{
+    					&cli.StringFlag{Name: "customer-id"},
+    					&cli.StringFlag{Name: "organization-id"},
+    					&cli.IntFlag{Name: "limit", Value: 25},
+    				},
+    				Action: tasksListAction,
+    			},
+    			{ // NEW: /tasks/search ------------------------------------------
+    				Name:   "search",
+    				Usage:  "Advanced search (reads JSON from stdin, prints paged result)",
+    				Action: tasksSearchAction,
+    			},
+    		},
+    	}
+    }
+    
+    func tasksCreateAction(ctx context.Context, cmd *cli.Command) error {
+    	var req capella.TaskingRequest
+    	if err := json.NewDecoder(os.Stdin).Decode(&req); err != nil {
+    		return err
+    	}
+    	cli := clientFromCmd(cmd)
+    	resp, err := cli.CreateTaskingRequest(cmd.String("api-key"), req)
+    	if err != nil {
+    		return err
+    	}
+    	return printJSON(resp)
+    }
+    
+    func tasksGetAction(ctx context.Context, cmd *cli.Command) error {
+    	id := cmd.Args().Get(0)
+    	if id == "" {
+    		return fmt.Errorf("taskingRequestId required")
+    	}
+    	cli := clientFromCmd(cmd)
+    	resp, err := cli.GetTaskingRequest(cmd.String("api-key"), id)
+    	if err != nil {
+    		return err
+    	}
+    	return printJSON(resp)
+    }
+    
+    func tasksApproveAction(ctx context.Context, cmd *cli.Command) error {
+    	id := cmd.Args().Get(0)
+    	if id == "" {
+    		return fmt.Errorf("taskingRequestId required")
+    	}
+    	cli := clientFromCmd(cmd)
+    	resp, err := cli.ApproveTaskingRequest(cmd.String("api-key"), id)
+    	if err != nil {
+    		return err
+    	}
+    	return printJSON(resp)
+    }
+    
+    func tasksListAction(ctx context.Context, cmd *cli.Command) error {
+    	params := capella.PagedTasksParams{
+    		CustomerID:     cmd.String("customer-id"),
+    		OrganizationID: cmd.String("organization-id"),
+    		Limit:          cmd.Int("limit"),
+    	}
+    	cli := clientFromCmd(cmd)
+    	for t, err := range cli.ListTasksPaged(cmd.String("api-key"), params) {
+    		if err != nil {
+    			return err
+    		}
+    		if err := printJSON(t); err != nil {
+    			return err
+    		}
+    	}
+    	return nil
+    }
+    
+    // -------- NEW: tasksSearchAction ---------------------------------------------
+    
+    func tasksSearchAction(ctx context.Context, cmd *cli.Command) error {
+    	var req capella.TaskSearchRequest
+    	if err := json.NewDecoder(os.Stdin).Decode(&req); err != nil {
+    		return fmt.Errorf("decode JSON: %w", err)
+    	}
+    	cli := clientFromCmd(cmd)
+    	resp, err := cli.SearchTasks(cmd.String("api-key"), req)
+    	if err != nil {
+    		return err
+    	}
+    	return printJSON(resp)
+    }
+
+    [File Ends] cmd/go-sar-vendor/capella.go
+
+    [File Begins] cmd/go-sar-vendor/iceye.go
+    // cmd/iceye.go
+    package main
+    
+    import (
+    	"context"
+    	"encoding/json"
+    	"fmt"
+    	"os"
+    
+    	"github.com/robert.malhotra/go-sar-vendor/pkg/iceye"
+    	"github.com/urfave/cli/v3"
+    )
+    
+    func iceyeCmd() *cli.Command {
+    	return &cli.Command{
+    		Name:  "iceye",
+    		Usage: "ICEYE Tasking v2 helpers",
+    
+    		Flags: []cli.Flag{
+    			&cli.StringFlag{Name: "base-url", Value: "https://api.iceye.com/api"},
+    			&cli.StringFlag{Name: "token-url", Value: "https://auth.iceye.com/oauth2/token"},
+    			&cli.StringFlag{Name: "client-id", Required: true, Sources: cli.EnvVars("ICEYE_CLIENT_ID")},
+    			&cli.StringFlag{Name: "client-secret", Required: true, Sources: cli.EnvVars("ICEYE_CLIENT_SECRET")},
+    		},
+    
+    		Commands: []*cli.Command{
+    			iceyeContractsCmd(),
+    			iceyeTasksCmd(),
+    		},
+    	}
+    }
+    
+    /* ---------- helper ---------- */
+    
+    func iceyeClient(cmd *cli.Command) *iceye.Client {
+    	return iceye.NewClient(iceye.Config{
+    		BaseURL:      cmd.String("base-url"),
+    		TokenURL:     cmd.String("token-url"),
+    		ClientID:     cmd.String("client-id"),
+    		ClientSecret: cmd.String("client-secret"),
+    	})
+    }
+    
+    func print(v any) error {
+    	enc := json.NewEncoder(os.Stdout)
+    	enc.SetIndent("", "  ")
+    	return enc.Encode(v)
+    }
+    
+    /* ---------- contracts ---------- */
+    
+    func iceyeContractsCmd() *cli.Command {
+    	return &cli.Command{
+    		Name:  "contracts",
+    		Usage: "List contracts (paged iterator)",
+    		Flags: []cli.Flag{&cli.IntFlag{Name: "limit", Value: 50}},
+    		Action: func(ctx context.Context, cmd *cli.Command) error {
+    			cli := iceyeClient(cmd)
+    			limit := cmd.Int("limit")
+    			seq := cli.ListContracts(ctx, limit)
+    			for page, err := range seq {
+    				if err != nil {
+    					return err
+    				}
+    				for _, c := range page.Data {
+    					if err := print(c); err != nil {
+    						return err
+    					}
+    				}
+    			}
+    			return nil
+    		},
+    	}
+    }
+    
+    /* ---------- tasks ---------- */
+    
+    func iceyeTasksCmd() *cli.Command {
+    	return &cli.Command{
+    		Name:  "tasks",
+    		Usage: "Create / get / cancel / list tasks + scene, price, products",
+    		Commands: []*cli.Command{
+    			{
+    				Name:   "create",
+    				Usage:  "Create a task (reads JSON from stdin, prints Task)",
+    				Action: iceyeCreateTask,
+    			},
+    			{
+    				Name:      "get",
+    				Usage:     "Fetch a task by ID",
+    				ArgsUsage: "<taskId>",
+    				Action:    iceyeGetTask,
+    			},
+    			{
+    				Name:      "cancel",
+    				Usage:     "Cancel a task",
+    				ArgsUsage: "<taskId>",
+    				Action:    iceyeCancelTask,
+    			},
+    			{
+    				Name:   "list",
+    				Usage:  "List tasks paged",
+    				Flags:  []cli.Flag{&cli.IntFlag{Name: "limit", Value: 50}},
+    				Action: iceyeListTasks,
+    			},
+    			{
+    				Name:      "scene",
+    				Usage:     "Get delivered scene metadata",
+    				ArgsUsage: "<taskId>",
+    				Action:    iceyeGetScene,
+    			},
+    			{
+    				Name:      "products",
+    				Usage:     "List delivered products",
+    				ArgsUsage: "<taskId>",
+    				Flags:     []cli.Flag{&cli.IntFlag{Name: "limit", Value: 100}},
+    				Action:    iceyeGetProducts,
+    			},
+    			{
+    				Name:   "price",
+    				Usage:  "Quote a task price (reads JSON CreateTaskRequest from stdin)",
+    				Action: iceyeGetPrice,
+    			},
+    		},
+    	}
+    }
+    
+    /* ---- task actions ---- */
+    
+    func iceyeCreateTask(ctx context.Context, cmd *cli.Command) error {
+    	var req iceye.CreateTaskRequest
+    	if err := json.NewDecoder(os.Stdin).Decode(&req); err != nil {
+    		return err
+    	}
+    	cli := iceyeClient(cmd)
+    	resp, err := cli.CreateTask(ctx, req)
+    	if err != nil {
+    		return err
+    	}
+    	return print(resp)
+    }
+    
+    func iceyeGetTask(ctx context.Context, cmd *cli.Command) error {
+    	id := cmd.Args().First()
+    	if id == "" {
+    		return fmt.Errorf("taskId required")
+    	}
+    	cli := iceyeClient(cmd)
+    	resp, err := cli.GetTask(ctx, id)
+    	if err != nil {
+    		return err
+    	}
+    	return print(resp)
+    }
+    
+    func iceyeCancelTask(ctx context.Context, cmd *cli.Command) error {
+    	id := cmd.Args().First()
+    	if id == "" {
+    		return fmt.Errorf("taskId required")
+    	}
+    	cli := iceyeClient(cmd)
+    	return cli.CancelTask(ctx, id)
+    }
+    
+    func iceyeListTasks(ctx context.Context, cmd *cli.Command) error {
+    	cli := iceyeClient(cmd)
+    	limit := cmd.Int("limit")
+    	seq := cli.ListTasks(ctx, limit, nil)
+    	for page, err := range seq {
+    		if err != nil {
+    			return err
+    		}
+    		for _, t := range page {
+    			if err := print(t); err != nil {
+    				return err
+    			}
+    		}
+    	}
+    	return nil
+    }
+    
+    func iceyeGetScene(ctx context.Context, cmd *cli.Command) error {
+    	id := cmd.Args().First()
+    	if id == "" {
+    		return fmt.Errorf("taskId required")
+    	}
+    	cli := iceyeClient(cmd)
+    	resp, err := cli.GetTaskScene(ctx, id)
+    	if err != nil {
+    		return err
+    	}
+    	return print(resp)
+    }
+    
+    func iceyeGetProducts(ctx context.Context, cmd *cli.Command) error {
+    	id := cmd.Args().First()
+    	if id == "" {
+    		return fmt.Errorf("taskId required")
+    	}
+    	cli := iceyeClient(cmd)
+    	limit := cmd.Int("limit")
+    	seq := cli.GetTaskProducts(ctx, id, limit)
+    	for page, err := range seq {
+    		if err != nil {
+    			return err
+    		}
+    		for _, p := range page {
+    			if err := print(p); err != nil {
+    				return err
+    			}
+    		}
+    	}
+    	return nil
+    }
+    
+    func iceyeGetPrice(ctx context.Context, cmd *cli.Command) error {
+    	var req iceye.CreateTaskRequest
+    	if err := json.NewDecoder(os.Stdin).Decode(&req); err != nil {
+    		return err
+    	}
+    	cli := iceyeClient(cmd)
+    	resp, err := cli.GetTaskPrice(ctx, req)
+    	if err != nil {
+    		return err
+    	}
+    	return print(resp)
+    }
+
+    [File Ends] cmd/go-sar-vendor/iceye.go
+
+    [File Begins] cmd/go-sar-vendor/main.go
+    package main
+    
+    import (
+    	"context"
+    	"encoding/json"
+    	"log"
+    	"os"
+    
+    	"github.com/urfave/cli/v3"
+    )
+    
+    // -----------------------------------------------------------------------------
+    // top-level command ------------------------------------------------------------
+    // -----------------------------------------------------------------------------
+    func main() {
+    	root := &cli.Command{
+    		Name:  "gosar",
+    		Usage: "Command-line helper for Capella Space Tasking & Access API",
+    
+    		// global flags (still visible in every sub-command)
+    
+    		// sub-commands (property renamed Subcommands → Commands)
+    		Commands: []*cli.Command{
+    			umbraCmd(),
+    			capellaCmd(),
+    			iceyeCmd(),
+    			airbusCmd(),
+    		},
+    	}
+    
+    	if err := root.Run(context.Background(), os.Args); err != nil {
+    		log.Fatal(err)
+    	}
+    }
+    
+    func printJSON(v any) error {
+    	enc := json.NewEncoder(os.Stdout)
+    	enc.SetIndent("", "  ")
+    	return enc.Encode(v)
+    }
+
+    [File Ends] cmd/go-sar-vendor/main.go
+
+    [File Begins] cmd/go-sar-vendor/umbra.go
+    package main
+    
+    import (
+    	"context"
+    	"encoding/json"
+    	"fmt"
+    	"os"
+    
+    	"github.com/robert.malhotra/go-sar-vendor/pkg/umbra"
+    	"github.com/urfave/cli/v3"
+    )
+    
+    /*──────────────── root "umbra" command ──────────────────────────────────────*/
+    
+    func umbraCmd() *cli.Command {
+    	return &cli.Command{
+    		Name:  "umbra",
+    		Usage: "Umbra Space tasking API helpers",
+    
+    		Flags: []cli.Flag{
+    			&cli.StringFlag{
+    				Name:  "vendor-base-url",
+    				Value: "https://api.umbra.space/",
+    				Usage: "Override Umbra API base URL",
+    			},
+    			&cli.StringFlag{
+    				Name:     "api-key",
+    				Required: true,
+    				Usage:    "Umbra bearer token",
+    			},
+    		},
+    
+    		Commands: []*cli.Command{
+    			feasibilityCmd(),
+    			taskCmd(),
+    			collectsCmd(), // NEW
+    		},
+    	}
+    }
+    
+    /*──────────────── feasibility commands ──────────────────────────────────────*/
+    
+    func feasibilityCmd() *cli.Command {
+    	return &cli.Command{
+    		Name:  "feasibility",
+    		Usage: "Feasibility operations (create / get)",
+    
+    		Commands: []*cli.Command{
+    			{
+    				Name:   "create",
+    				Usage:  "Create a feasibility request (reads JSON from stdin)",
+    				Action: umbraCreateFeasAction,
+    			},
+    			{
+    				Name:      "get",
+    				Usage:     "Fetch a feasibility by ID",
+    				ArgsUsage: "<feasibilityId>",
+    				Action:    umbraGetFeasAction,
+    			},
+    		},
+    	}
+    }
+    
+    /*──────────────── task commands ─────────────────────────────────────────────*/
+    
+    func taskCmd() *cli.Command {
+    	return &cli.Command{
+    		Name:  "task",
+    		Usage: "Task operations (create / get / cancel / search)",
+    
+    		Commands: []*cli.Command{
+    			{
+    				Name:   "create",
+    				Usage:  "Create a task (reads JSON from stdin)",
+    				Action: umbraCreateTaskAction,
+    			},
+    			{
+    				Name:      "get",
+    				Usage:     "Fetch a task by ID",
+    				ArgsUsage: "<taskId>",
+    				Action:    umbraGetTaskAction,
+    			},
+    			{
+    				Name:      "cancel",
+    				Usage:     "Cancel a task by ID",
+    				ArgsUsage: "<taskId>",
+    				Action:    umbraCancelTaskAction,
+    			},
+    			{
+    				Name:   "search",
+    				Usage:  "Search tasks (reads JSON TaskSearchRequest from stdin)",
+    				Action: umbraSearchTaskAction,
+    			},
+    		},
+    	}
+    }
+    
+    /*──────────────── collects commands ─────────────────────────────────────────*/
+    
+    func collectsCmd() *cli.Command {
+    	return &cli.Command{
+    		Name:  "collects",
+    		Usage: "Collect operations (get / search)",
+    
+    		Commands: []*cli.Command{
+    			{
+    				Name:      "get",
+    				Usage:     "Fetch a collect by ID",
+    				ArgsUsage: "<collectId>",
+    				Action:    umbraGetCollectAction,
+    			},
+    			{
+    				Name:   "search",
+    				Usage:  "Search collects (reads JSON CollectSearchRequest from stdin)",
+    				Action: umbraSearchCollectAction,
+    			},
+    		},
+    	}
+    }
+    
+    /*──────────────── helpers ───────────────────────────────────────────────────*/
+    
+    func umbraClientFromCmd(cmd *cli.Command) (*umbra.Client, error) {
+    	return umbra.NewClient(cmd.String("vendor-base-url"))
+    }
+    
+    /*──────────────── feasibility actions ───────────────────────────────────────*/
+    
+    func umbraCreateFeasAction(ctx context.Context, cmd *cli.Command) error {
+    	var req umbra.TaskingRequest
+    	if err := json.NewDecoder(os.Stdin).Decode(&req); err != nil {
+    		return fmt.Errorf("decode JSON: %w", err)
+    	}
+    
+    	cli, err := umbraClientFromCmd(cmd)
+    	if err != nil {
+    		return err
+    	}
+    
+    	resp, err := cli.CreateFeasibility(cmd.String("api-key"), &req)
+    	if err != nil {
+    		return err
+    	}
+    	return printJSON(resp)
+    }
+    
+    func umbraGetFeasAction(ctx context.Context, cmd *cli.Command) error {
+    	id := cmd.Args().Get(0)
+    	if id == "" {
+    		return fmt.Errorf("feasibilityId required")
+    	}
+    
+    	cli, err := umbraClientFromCmd(cmd)
+    	if err != nil {
+    		return err
+    	}
+    
+    	resp, err := cli.GetFeasibility(cmd.String("api-key"), id)
+    	if err != nil {
+    		return err
+    	}
+    	return printJSON(resp)
+    }
+    
+    /*──────────────── task actions ──────────────────────────────────────────────*/
+    
+    func umbraCreateTaskAction(ctx context.Context, cmd *cli.Command) error {
+    	var req umbra.TaskRequest
+    	if err := json.NewDecoder(os.Stdin).Decode(&req); err != nil {
+    		return fmt.Errorf("decode JSON: %w", err)
+    	}
+    
+    	cli, err := umbraClientFromCmd(cmd)
+    	if err != nil {
+    		return err
+    	}
+    
+    	resp, err := cli.CreateTask(cmd.String("api-key"), &req)
+    	if err != nil {
+    		return err
+    	}
+    	return printJSON(resp)
+    }
+    
+    func umbraGetTaskAction(ctx context.Context, cmd *cli.Command) error {
+    	id := cmd.Args().Get(0)
+    	if id == "" {
+    		return fmt.Errorf("taskId required")
+    	}
+    
+    	cli, err := umbraClientFromCmd(cmd)
+    	if err != nil {
+    		return err
+    	}
+    
+    	resp, err := cli.GetTask(cmd.String("api-key"), id)
+    	if err != nil {
+    		return err
+    	}
+    	return printJSON(resp)
+    }
+    
+    func umbraCancelTaskAction(ctx context.Context, cmd *cli.Command) error {
+    	id := cmd.Args().Get(0)
+    	if id == "" {
+    		return fmt.Errorf("taskId required")
+    	}
+    
+    	cli, err := umbraClientFromCmd(cmd)
+    	if err != nil {
+    		return err
+    	}
+    
+    	resp, err := cli.CancelTask(cmd.String("api-key"), id)
+    	if err != nil {
+    		return err
+    	}
+    	return printJSON(resp)
+    }
+    
+    func umbraSearchTaskAction(ctx context.Context, cmd *cli.Command) error {
+    	var req umbra.TaskSearchRequest
+    	if err := json.NewDecoder(os.Stdin).Decode(&req); err != nil {
+    		return fmt.Errorf("decode JSON: %w", err)
+    	}
+    
+    	cli, err := umbraClientFromCmd(cmd)
+    	if err != nil {
+    		return err
+    	}
+    
+    	seq := cli.SearchTasks(cmd.String("api-key"), req)
+    	for task, err := range seq {
+    		if err != nil {
+    			return err
+    		}
+    		if err := printJSON(task); err != nil {
+    			return err
+    		}
+    	}
+    	return nil
+    }
+    
+    /*──────────────── collect actions ───────────────────────────────────────────*/
+    
+    func umbraGetCollectAction(ctx context.Context, cmd *cli.Command) error {
+    	id := cmd.Args().Get(0)
+    	if id == "" {
+    		return fmt.Errorf("collectId required")
+    	}
+    
+    	cli, err := umbraClientFromCmd(cmd)
+    	if err != nil {
+    		return err
+    	}
+    
+    	resp, err := cli.GetCollect(cmd.String("api-key"), id)
+    	if err != nil {
+    		return err
+    	}
+    	return printJSON(resp)
+    }
+    
+    func umbraSearchCollectAction(ctx context.Context, cmd *cli.Command) error {
+    	var req umbra.CollectSearchRequest
+    	if err := json.NewDecoder(os.Stdin).Decode(&req); err != nil {
+    		return fmt.Errorf("decode JSON: %w", err)
+    	}
+    
+    	cli, err := umbraClientFromCmd(cmd)
+    	if err != nil {
+    		return err
+    	}
+    
+    	seq := cli.SearchCollects(cmd.String("api-key"), req)
+    	for col, err := range seq {
+    		if err != nil {
+    			return err
+    		}
+    		if err := printJSON(col); err != nil {
+    			return err
+    		}
+    	}
+    	return nil
+    }
+
+    [File Ends] cmd/go-sar-vendor/umbra.go
+
+[File Begins] go.mod
+module github.com/robert.malhotra/umbra-client
+
+go 1.24.2
+
+require github.com/urfave/cli/v3 v3.3.8
+
+[File Ends] go.mod
+
+[File Begins] go.sum
+github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
+github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
+github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
+github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
+github.com/stretchr/testify v1.10.0 h1:Xv5erBjTwe/5IxqUQTdXv5kgmIvbHo3QQyRwhJsOfJA=
+github.com/stretchr/testify v1.10.0/go.mod h1:r2ic/lqez/lEtzL7wO/rwa5dbSLXVDPFyf8C91i36aY=
+github.com/urfave/cli/v3 v3.3.8 h1:BzolUExliMdet9NlJ/u4m5vHSotJ3PzEqSAZ1oPMa/E=
+github.com/urfave/cli/v3 v3.3.8/go.mod h1:FJSKtM/9AiiTOJL4fJ6TbMUkxBXn7GO9guZqoZtpYpo=
+gopkg.in/yaml.v3 v3.0.1 h1:fxVm/GzAzEWqLHuvctI91KS9hhNmmWOoWu0XTYJS7CA=
+gopkg.in/yaml.v3 v3.0.1/go.mod h1:K4uyk7z7BCEPqu6E+C64Yfv1cQ7kz7rIZviUmN+EgEM=
+
+[File Ends] go.sum
+
+    [File Begins] pkg/airbus/airbus.go
+    package airbus
+    
+    // Airbus OneAtlas Radar SAR – Go SDK (typed version)
+    //
+    // The client supports **configurable endpoints** at both the package and the
+    // instance level:
+    //
+    //     // global override (affects all new clients)
+    //     airbus.TokenURL = mock.URL + "/token"
+    //     airbus.BaseURL  = mock.URL + "/sar"
+    //
+    //     // per‑client override
+    //     cli := airbus.New("APIKEY", nil,
+    //         airbus.WithTokenURL("https://stage.auth/token"),
+    //         airbus.WithBaseURL("https://stage.sar/v1/sar"))
+    //
+    // The code is intentionally dependency‑free (std‑lib only) and can be tested
+    // with `httptest.Server`.
+    
+    import (
+    	"bytes"
+    	"context"
+    	"encoding/json"
+    	"errors"
+    	"fmt"
+    	"io"
+    	"net/http"
+    	"net/url"
+    	"path"
+    	"sync"
+    	"time"
+    )
+    
+    /*──────────────────── default endpoints (overrideable) ───────────────*/
+    
+    const (
+    	DefaultTokenURL = "https://authenticate.foundation.api.oneatlas.airbus.com/auth/realms/IDP/protocol/openid-connect/token"
+    	DefaultBaseURL  = "https://sar.api.oneatlas.airbus.com/v1/sar"
+    )
+    
+    /*──────────────────── geometry & helpers ─────────────────────────────*/
+    
+    type GeoJSONGeometry struct {
+    	Type        string `json:"type"`
+    	Coordinates any    `json:"coordinates"`
+    }
+    
+    type TimeRange struct {
+    	From time.Time `json:"from"`
+    	To   time.Time `json:"to"`
+    }
+    
+    /*──────────────────── enumerations (subset) ──────────────────────────*/
+    
+    type (
+    	ProductType       string
+    	SensorMode        string
+    	OrbitType         string
+    	ResolutionVariant string
+    	MapProjection     string
+    	Purpose           string
+    	Polarization      string
+    	PathDirection     string
+    )
+    
+    const (
+    	PTSSC ProductType = "SSC"
+    	PTEEC ProductType = "EEC"
+    
+    	OrbitRapid OrbitType = "rapid"
+    
+    	ResRadiometric ResolutionVariant = "RE"
+    
+    	MapAuto MapProjection = "auto"
+    )
+    
+    /*──────────────────── request models ─────────────────────────────────*/
+    
+    type FeasibilityRequest struct {
+    	AOI              GeoJSONGeometry `json:"aoi"`
+    	Time             TimeRange       `json:"time"`
+    	FeasibilityLevel string          `json:"feasibilityLevel"`
+    	SensorMode       SensorMode      `json:"sensorMode"`
+    	ProductType      ProductType     `json:"productType"`
+    	OrbitType        OrbitType       `json:"orbitType"`
+    
+    	Polarization      *Polarization      `json:"polarizationChannels,omitempty"`
+    	ResolutionVariant *ResolutionVariant `json:"resolutionVariant,omitempty"`
+    	PathDirection     *PathDirection     `json:"pathDirection,omitempty"`
+    }
+    
+    type CatalogueRequest struct {
+    	AOI  *GeoJSONGeometry `json:"aoi,omitempty"`
+    	Time *TimeRange       `json:"time,omitempty"`
+    }
+    
+    /*──────────────────── order workflow structs ─────────────────────────*/
+    
+    type OrderOptions struct {
+    	ProductType       ProductType       `json:"productType"`
+    	ResolutionVariant ResolutionVariant `json:"resolutionVariant"`
+    	OrbitType         OrbitType         `json:"orbitType"`
+    	MapProjection     MapProjection     `json:"mapProjection"`
+    	GainAttenuation   int               `json:"gainAttenuation"`
+    }
+    
+    type AddItemsRequest struct {
+    	Items        []string     `json:"items"`
+    	OrderOptions OrderOptions `json:"orderOptions"`
+    }
+    
+    type ShopcartPatch struct {
+    	Purpose Purpose `json:"purpose"`
+    }
+    
+    /*──────────────────── response models ───────────────────────────────*/
+    
+    type FeatureCollection[T any] struct {
+    	Type     string `json:"type"`
+    	Features []T    `json:"features"`
+    }
+    
+    type AcquisitionFeature struct {
+    	Type       string                `json:"type"`
+    	Geometry   GeoJSONGeometry       `json:"geometry"`
+    	Properties AcquisitionProperties `json:"properties"`
+    }
+    
+    type AcquisitionProperties struct {
+    	ItemID      string      `json:"itemId"`
+    	SensorMode  SensorMode  `json:"sensorMode"`
+    	ProductType ProductType `json:"productType"`
+    	OrbitType   OrbitType   `json:"orbitType"`
+    	Status      string      `json:"status"`
+    }
+    
+    type Order struct {
+    	OrderID string `json:"orderId"`
+    	Status  string `json:"status"`
+    }
+    
+    /*──────────────────── client & options ───────────────────────────────*/
+    
+    type Client struct {
+    	apiKey     string
+    	httpClient *http.Client
+    
+    	tokenURL string
+    	baseURL  string
+    
+    	mu    sync.Mutex
+    	token string
+    	exp   time.Time
+    }
+    
+    type ClientOption func(*Client)
+    
+    func WithBaseURL(u string) ClientOption  { return func(c *Client) { c.baseURL = u } }
+    func WithTokenURL(u string) ClientOption { return func(c *Client) { c.tokenURL = u } }
+    
+    // New returns a configured client; hc==nil uses a 15 s timeout http.Client.
+    func New(apiKey string, hc *http.Client, opts ...ClientOption) *Client {
+    	if hc == nil {
+    		hc = &http.Client{Timeout: 15 * time.Second}
+    	}
+    	c := &Client{
+    		apiKey:     apiKey,
+    		httpClient: hc,
+    		tokenURL:   DefaultTokenURL,
+    		baseURL:    DefaultBaseURL,
+    	}
+    	for _, f := range opts {
+    		f(c)
+    	}
+    	return c
+    }
+    
+    /*──────────────────── auth & low‑level HTTP ───────────────────────────*/
+    
+    func (c *Client) ensureToken(ctx context.Context) error {
+    	c.mu.Lock()
+    	valid := time.Until(c.exp) > 5*time.Minute
+    	c.mu.Unlock()
+    	if valid {
+    		return nil
+    	}
+    
+    	data := url.Values{
+    		"apikey":     {c.apiKey},
+    		"grant_type": {"api_key"},
+    		"client_id":  {"IDP"},
+    	}
+    	req, _ := http.NewRequestWithContext(ctx, http.MethodPost, c.tokenURL, bytes.NewBufferString(data.Encode()))
+    	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+    	req.Header.Set("Accept", "application/json")
+    
+    	resp, err := c.httpClient.Do(req)
+    	if err != nil {
+    		return err
+    	}
+    	defer resp.Body.Close()
+    	if resp.StatusCode != http.StatusOK {
+    		return fmt.Errorf("airbus auth: %s", resp.Status)
+    	}
+    	var tok struct {
+    		AccessToken string `json:"access_token"`
+    		ExpiresIn   int    `json:"expires_in"`
+    	}
+    	if json.NewDecoder(resp.Body).Decode(&tok) != nil || tok.AccessToken == "" {
+    		return errors.New("airbus auth: bad JSON")
+    	}
+    
+    	c.mu.Lock()
+    	c.token = tok.AccessToken
+    	c.exp = time.Now().Add(time.Duration(tok.ExpiresIn) * time.Second)
+    	c.mu.Unlock()
+    	return nil
+    }
+    
+    func (c *Client) do(ctx context.Context, method, rel string, in, out any) error {
+    	if err := c.ensureToken(ctx); err != nil {
+    		return err
+    	}
+    	var body io.Reader
+    	if in != nil {
+    		b, _ := json.Marshal(in)
+    		body = bytes.NewReader(b)
+    	}
+    	req, _ := http.NewRequestWithContext(ctx, method, c.baseURL+rel, body)
+    	req.Header.Set("Authorization", "Bearer "+c.token)
+    	req.Header.Set("Accept", "application/json")
+    	if in != nil {
+    		req.Header.Set("Content-Type", "application/json")
+    	}
+    	resp, err := c.httpClient.Do(req)
+    	if err != nil {
+    		return err
+    	}
+    	defer resp.Body.Close()
+    	if resp.StatusCode >= 300 {
+    		return fmt.Errorf("airbus %s %s: %s", method, rel, resp.Status)
+    	}
+    	if out != nil {
+    		return json.NewDecoder(resp.Body).Decode(out)
+    	}
+    	return nil
+    }
+    
+    /*──────────────────── high‑level API helpers ─────────────────────────*/
+    
+    func (c *Client) SearchFeasibility(ctx context.Context, r FeasibilityRequest) (FeatureCollection[AcquisitionFeature], error) {
+    	var fc FeatureCollection[AcquisitionFeature]
+    	err := c.do(ctx, http.MethodPost, "/feasibility", r, &fc)
+    	return fc, err
+    }
+    
+    func (c *Client) SearchCatalogue(ctx context.Context, r CatalogueRequest) (FeatureCollection[AcquisitionFeature], error) {
+    	var fc FeatureCollection[AcquisitionFeature]
+    	err := c.do(ctx, http.MethodPost, "/catalogue", r, &fc)
+    	return fc, err
+    }
+    
+    // AddItems adds archive or feasibility itemIds to the current shopcart.
+    func (c *Client) AddItems(ctx context.Context, body AddItemsRequest) error {
+    	return c.do(ctx, http.MethodPost, "/shopcart/addItems", body, nil)
+    }
+    
+    // PatchShopcart sets the legally‑required purchase purpose.
+    func (c *Client) PatchShopcart(ctx context.Context, body ShopcartPatch) error {
+    	return c.do(ctx, http.MethodPatch, "/shopcart", body, nil)
+    }
+    
+    // SubmitShopcart finalises the order and returns the orderId.
+    func (c *Client) SubmitShopcart(ctx context.Context) (string, error) {
+    	var resp struct {
+    		OrderID string `json:"orderId"`
+    	}
+    	err := c.do(ctx, http.MethodPost, "/shopcart/submit", nil, &resp)
+    	return resp.OrderID, err
+    }
+    
+    // Order fetches an order by id and returns its status & item list.
+    func (c *Client) Order(ctx context.Context, id string) (*Order, error) {
+    	var o Order
+    	err := c.do(ctx, http.MethodGet, path.Join("/orders", id), nil, &o)
+    	return &o, err
+    }
+
+    [File Ends] pkg/airbus/airbus.go
+
+    [File Begins] pkg/airbus/airbus_test.go
+    package airbus_test
+    
+    import (
+    	"bytes"
+    	"context"
+    	"encoding/json"
+    	"io"
+    	"net/http"
+    	"net/http/httptest"
+    	"sync/atomic"
+    	"testing"
+    	"time"
+    
+    	"github.com/robert.malhotra/go-sar-vendor/pkg/airbus"
+    )
+    
+    /*────────────────── helper to spin up mock server ───────────────────*/
+    
+    type mockEnv struct {
+    	srv      *httptest.Server
+    	authHits atomic.Int32
+    	apiHits  atomic.Int32
+    }
+    
+    func newEnv(t *testing.T, mux func(w http.ResponseWriter, r *http.Request, env *mockEnv)) (*airbus.Client, *mockEnv) {
+    	env := &mockEnv{}
+    	h := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+    		switch r.URL.Path {
+    		case "/token": // mock Keycloak
+    			env.authHits.Add(1)
+    			json.NewEncoder(w).Encode(map[string]any{"access_token": "tok", "expires_in": 2})
+    		default:
+    			env.apiHits.Add(1)
+    			mux(w, r, env)
+    		}
+    	})
+    	env.srv = httptest.NewServer(h)
+    	t.Cleanup(env.srv.Close)
+    
+    	// Redirect SDK URLs
+    	tokenUrl := env.srv.URL + "/token"
+    	baseUrl := env.srv.URL + "/sar"
+    
+    	cli := airbus.New("key", env.srv.Client(), airbus.WithBaseURL(baseUrl), airbus.WithTokenURL(tokenUrl))
+    	return cli, env
+    }
+    
+    /*────────────────── tests ───────────────────────────────────────────*/
+    
+    func TestTokenRefresh(t *testing.T) {
+    	cli, env := newEnv(t, func(w http.ResponseWriter, r *http.Request, _ *mockEnv) {
+    		w.Write([]byte(`{"ok":true}`))
+    	})
+    
+    	ctx := context.Background()
+    	req := airbus.FeasibilityRequest{
+    		AOI:              airbus.GeoJSONGeometry{Type: "Point", Coordinates: []float64{0, 0}},
+    		Time:             airbus.TimeRange{From: time.Now(), To: time.Now()},
+    		FeasibilityLevel: "complete",
+    		SensorMode:       "SAR_SM_S",
+    		ProductType:      airbus.PTSSC,
+    		OrbitType:        airbus.OrbitRapid,
+    	}
+    	if _, err := cli.SearchFeasibility(ctx, req); err != nil {
+    		t.Fatal(err)
+    	}
+    	if env.authHits.Load() != 1 {
+    		t.Fatalf("want 1 token call, got %d", env.authHits.Load())
+    	}
+    	time.Sleep(3 * time.Second) // token expired → refresh
+    	if _, err := cli.SearchFeasibility(ctx, req); err != nil {
+    		t.Fatal(err)
+    	}
+    	if env.authHits.Load() < 2 {
+    		t.Fatalf("token not refreshed, calls=%d", env.authHits.Load())
+    	}
+    }
+    
+    func TestAddItemsSubmitOrder(t *testing.T) {
+    	cli, _ := newEnv(t, func(w http.ResponseWriter, r *http.Request, _ *mockEnv) {
+    		switch r.URL.Path {
+    		case "/sar/shopcart/addItems":
+    			var body airbus.AddItemsRequest
+    			json.NewDecoder(r.Body).Decode(&body)
+    			if len(body.Items) != 1 || body.Items[0] != "itm" {
+    				t.Fatalf("bad items: %+v", body)
+    			}
+    			w.WriteHeader(200)
+    		case "/sar/shopcart":
+    			w.WriteHeader(200)
+    		case "/sar/shopcart/submit":
+    			json.NewEncoder(w).Encode(map[string]string{"orderId": "ORD"})
+    		case "/sar/orders/ORD":
+    			json.NewEncoder(w).Encode(map[string]any{"orderId": "ORD", "status": "completed"})
+    		default:
+    			http.NotFound(w, r)
+    		}
+    	})
+    
+    	ctx := context.Background()
+    	err := cli.AddItems(ctx, airbus.AddItemsRequest{
+    		Items: []string{"itm"},
+    		OrderOptions: airbus.OrderOptions{
+    			ProductType:       airbus.PTSSC,
+    			ResolutionVariant: airbus.ResRadiometric,
+    			OrbitType:         airbus.OrbitRapid,
+    			MapProjection:     airbus.MapAuto,
+    			GainAttenuation:   0,
+    		},
+    	})
+    	if err != nil {
+    		t.Fatalf("addItems: %v", err)
+    	}
+    	if err := cli.PatchShopcart(ctx, airbus.ShopcartPatch{Purpose: "Research"}); err != nil {
+    		t.Fatalf("patch: %v", err)
+    	}
+    	id, err := cli.SubmitShopcart(ctx)
+    	if err != nil || id != "ORD" {
+    		t.Fatalf("submit failed: %v id=%s", err, id)
+    	}
+    	ord, err := cli.Order(ctx, id)
+    	if err != nil || ord.Status != "completed" {
+    		t.Fatalf("order fetch: %v %+v", err, ord)
+    	}
+    }
+    
+    func TestFeasibilityRequestBody(t *testing.T) {
+    	var captured []byte
+    	cli, _ := newEnv(t, func(w http.ResponseWriter, r *http.Request, _ *mockEnv) {
+    		if r.URL.Path == "/sar/feasibility" {
+    			captured, _ = io.ReadAll(r.Body)
+    			w.Write([]byte(`{"type":"FeatureCollection","features":[]}`))
+    		}
+    	})
+    
+    	req := airbus.FeasibilityRequest{
+    		AOI:              airbus.GeoJSONGeometry{Type: "Point", Coordinates: []float64{1, 2}},
+    		Time:             airbus.TimeRange{From: time.Now(), To: time.Now().Add(1 * time.Hour)},
+    		FeasibilityLevel: "complete",
+    		SensorMode:       "SAR_SM_S",
+    		ProductType:      airbus.PTEEC,
+    		OrbitType:        airbus.OrbitRapid,
+    	}
+    	if _, err := cli.SearchFeasibility(context.Background(), req); err != nil {
+    		t.Fatalf("call failed: %v", err)
+    	}
+    	if !bytes.Contains(captured, []byte("\"feasibilityLevel\":\"complete\"")) {
+    		t.Error("missing key field in body")
+    	}
+    }
+
+    [File Ends] pkg/airbus/airbus_test.go
+
+    [File Begins] pkg/capella/capella_test.go
+    package capella
+    
+    import (
+    	"bytes"
+    	"encoding/json"
+    	"io"
+    	"net/http"
+    	"net/http/httptest"
+    	"reflect"
+    	"strings"
+    	"testing"
+    	"time"
+    )
+    
+    // helper to spin up a mock HTTP server and a client wired to it.
+    func newMockClient(handler http.HandlerFunc) (*Client, func()) {
+    	srv := httptest.NewServer(handler)
+    	cli := NewClient(WithBaseURL(srv.URL + "/")) // keep trailing slash so path.Join behaves
+    	return cli, srv.Close
+    }
+    
+    // -----------------------------------------------------------------------------
+    // Access‑request tests
+    // -----------------------------------------------------------------------------
+    
+    func TestCreateAccessRequest_Success(t *testing.T) {
+    	respBody := `{
+            "type": "Feature",
+            "geometry": {"type": "Point", "coordinates": [10.0, 20.0]},
+            "properties": {
+                "accessrequestId": "ar-123",
+                "orgId": "org-1",
+                "userId": "u-1",
+                "windowOpen": "2025-06-15T00:00:00Z",
+                "windowClose": "2025-06-15T12:00:00Z",
+                "processingStatus": "queued",
+                "accessibilityStatus": "unknown"
+            }
+        }`
+    
+    	handler := func(w http.ResponseWriter, r *http.Request) {
+    		if r.Method != http.MethodPost {
+    			t.Fatalf("unexpected method: %s", r.Method)
+    		}
+    		if r.URL.Path != "/ma/accessrequests" {
+    			t.Fatalf("unexpected path: %s", r.URL.Path)
+    		}
+    		if got := r.Header.Get("Authorization"); got != "ApiKey test-key" {
+    			t.Fatalf("missing / wrong auth header: %q", got)
+    		}
+    		w.Header().Set("Content-Type", "application/json")
+    		w.WriteHeader(http.StatusCreated)
+    		w.Write([]byte(respBody))
+    	}
+    
+    	cli, closeFn := newMockClient(handler)
+    	defer closeFn()
+    
+    	req := AccessRequest{
+    		Type:     "Feature",
+    		Geometry: GeoJSONGeometry{Type: Point, Coordinates: []float64{10, 20}},
+    		Properties: AccessRequestProperties{
+    			OrgID:       "org-1",
+    			UserID:      "u-1",
+    			WindowOpen:  time.Date(2025, 6, 15, 0, 0, 0, 0, time.UTC),
+    			WindowClose: time.Date(2025, 6, 15, 12, 0, 0, 0, time.UTC),
+    		},
+    	}
+    
+    	got, err := cli.CreateAccessRequest("test-key", req)
+    	if err != nil {
+    		t.Fatalf("CreateAccessRequest returned error: %v", err)
+    	}
+    	if got.Properties.AccessRequestID != "ar-123" {
+    		t.Errorf("unexpected accessrequestId: %s", got.Properties.AccessRequestID)
+    	}
+    	if got.Properties.ProcessingStatus != Queued {
+    		t.Errorf("unexpected processingStatus: %v", got.Properties.ProcessingStatus)
+    	}
+    }
+    
+    func TestCreateAccessRequest_ValidationError(t *testing.T) {
+    	errBody := `{"detail":[{"loc":["body","properties","windowOpen"],"msg":"field required","type":"value_error.missing"}]}`
+    
+    	handler := func(w http.ResponseWriter, r *http.Request) {
+    		w.Header().Set("Content-Type", "application/json")
+    		w.WriteHeader(http.StatusUnprocessableEntity)
+    		w.Write([]byte(errBody))
+    	}
+    
+    	cli, closeFn := newMockClient(handler)
+    	defer closeFn()
+    
+    	var req AccessRequest
+    	_, err := cli.CreateAccessRequest("key", req)
+    	if err == nil {
+    		t.Fatal("expected error, got nil")
+    	}
+    	apiErr, ok := err.(*APIError)
+    	if !ok {
+    		t.Fatalf("expected *APIError, got %T", err)
+    	}
+    	if apiErr.StatusCode != http.StatusUnprocessableEntity {
+    		t.Errorf("unexpected status code: %d", apiErr.StatusCode)
+    	}
+    	if apiErr.Validation == nil || len(apiErr.Validation.Detail) == 0 {
+    		t.Fatalf("expected validation details, got %+v", apiErr.Validation)
+    	}
+    	if msg := apiErr.Validation.Detail[0].Msg; msg != "field required" {
+    		t.Errorf("unexpected validation msg: %q", msg)
+    	}
+    }
+    
+    func TestGetAccessRequest_Success(t *testing.T) {
+    	respBody := `{
+            "type": "Feature",
+            "geometry": {"type": "Point", "coordinates": [10.0, 20.0]},
+            "properties": {
+                "accessrequestId": "ar-123",
+                "orgId": "org-1",
+                "userId": "u-1",
+                "windowOpen": "2025-06-15T00:00:00Z",
+                "windowClose": "2025-06-15T12:00:00Z",
+                "processingStatus": "completed",
+                "accessibilityStatus": "accessible"
+            }
+        }`
+    
+    	handler := func(w http.ResponseWriter, r *http.Request) {
+    		if r.Method != http.MethodGet {
+    			t.Fatalf("unexpected method: %s", r.Method)
+    		}
+    		if r.URL.Path != "/ma/accessrequests/ar-123" {
+    			t.Fatalf("unexpected path: %s", r.URL.Path)
+    		}
+    		if got := r.Header.Get("Authorization"); got != "ApiKey test-key" {
+    			t.Fatalf("missing / wrong auth header: %q", got)
+    		}
+    		w.Header().Set("Content-Type", "application/json")
+    		w.WriteHeader(http.StatusOK)
+    		w.Write([]byte(respBody))
+    	}
+    
+    	cli, closeFn := newMockClient(handler)
+    	defer closeFn()
+    
+    	got, err := cli.GetAccessRequest("test-key", "ar-123")
+    	if err != nil {
+    		t.Fatalf("GetAccessRequest returned error: %v", err)
+    	}
+    	if got.Properties.AccessRequestID != "ar-123" {
+    		t.Errorf("unexpected accessrequestId: %s", got.Properties.AccessRequestID)
+    	}
+    	if got.Properties.ProcessingStatus != Completed {
+    		t.Errorf("unexpected processingStatus: %v", got.Properties.ProcessingStatus)
+    	}
+    	if got.Geometry.Type != Point {
+    		t.Errorf("unexpected geometry type: %s", got.Geometry.Type)
+    	}
+    }
+    
+    // -----------------------------------------------------------------------------
+    // Tasking‑request tests
+    // -----------------------------------------------------------------------------
+    
+    func TestCreateTaskingRequest_Success(t *testing.T) {
+    	respBody := `{
+            "type": "Feature",
+            "geometry": {"type": "Point", "coordinates": [0,0]},
+            "properties": {
+                "taskingrequestId": "tr-1",
+                "orgId": "org-1",
+                "userId": "u-1",
+                "windowOpen": "2025-06-20T00:00:00Z",
+                "windowClose": "2025-06-21T00:00:00Z",
+                "collectionTier": "urgent",
+                "collectionType": "spotlight",
+                "processingStatus": "queued"
+            }
+        }`
+    
+    	handler := func(w http.ResponseWriter, r *http.Request) {
+    		if r.Method != http.MethodPost {
+    			t.Fatalf("unexpected method: %s", r.Method)
+    		}
+    		if r.URL.Path != "/task" {
+    			t.Fatalf("unexpected path: %s", r.URL.Path)
+    		}
+    		body, _ := io.ReadAll(r.Body)
+    		if !strings.Contains(string(body), "\"collectionTier\":\"urgent\"") {
+    			t.Fatalf("request body missing collectionTier: %s", body)
+    		}
+    		w.Header().Set("Content-Type", "application/json")
+    		w.WriteHeader(http.StatusCreated)
+    		w.Write([]byte(respBody))
+    	}
+    
+    	cli, closeFn := newMockClient(handler)
+    	defer closeFn()
+    
+    	tr := TaskingRequest{
+    		Type:     "Feature",
+    		Geometry: GeoJSONGeometry{Type: Point, Coordinates: []float64{0, 0}},
+    		Properties: TaskingRequestProperties{
+    			OrgID:          "org-1",
+    			UserID:         "u-1",
+    			WindowOpen:     time.Date(2025, 6, 20, 0, 0, 0, 0, time.UTC),
+    			WindowClose:    time.Date(2025, 6, 21, 0, 0, 0, 0, time.UTC),
+    			CollectionTier: TierUrgent,
+    			CollectionType: "spotlight",
+    		},
+    	}
+    
+    	got, err := cli.CreateTaskingRequest("key", tr)
+    	if err != nil {
+    		t.Fatalf("CreateTaskingRequest error: %v", err)
+    	}
+    	if got.Properties.TaskingRequestID != "tr-1" {
+    		t.Errorf("unexpected taskingrequestId: %s", got.Properties.TaskingRequestID)
+    	}
+    	if got.Properties.CollectionTier != TierUrgent {
+    		t.Errorf("unexpected collectionTier: %s", got.Properties.CollectionTier)
+    	}
+    }
+    
+    func TestApproveTaskingRequest_Success(t *testing.T) {
+    	respBody := `{"properties":{"taskingrequestId":"tr-1","processingStatus":"approved"}}`
+    
+    	handler := func(w http.ResponseWriter, r *http.Request) {
+    		if r.Method != http.MethodPatch {
+    			t.Fatalf("unexpected method: %s", r.Method)
+    		}
+    		if r.URL.Path != "/task/tr-1" {
+    			t.Fatalf("unexpected path: %s", r.URL.Path)
+    		}
+    		// ensure body contains status approved
+    		body, _ := io.ReadAll(r.Body)
+    		if !bytes.Contains(body, []byte("\"approved\"")) {
+    			t.Fatalf("patch body incorrect: %s", body)
+    		}
+    		w.Header().Set("Content-Type", "application/json")
+    		w.Write([]byte(respBody))
+    	}
+    
+    	cli, closeFn := newMockClient(handler)
+    	defer closeFn()
+    
+    	got, err := cli.ApproveTaskingRequest("key", "tr-1")
+    	if err != nil {
+    		t.Fatalf("ApproveTaskingRequest error: %v", err)
+    	}
+    	if got.Properties.ProcessingStatus != "approved" {
+    		t.Errorf("unexpected status: %v", got.Properties.ProcessingStatus)
+    	}
+    }
+    
+    func TestSearchTasks_Success(t *testing.T) {
+    	respBody := `{"results":[],"currentPage":1,"totalPages":1}`
+    
+    	handler := func(w http.ResponseWriter, r *http.Request) {
+    		if r.Method != http.MethodPost {
+    			t.Fatalf("unexpected method: %s", r.Method)
+    		}
+    		if r.URL.Path != "/tasks/search" {
+    			t.Fatalf("unexpected path: %s", r.URL.Path)
+    		}
+    		body, _ := io.ReadAll(r.Body)
+    		if !strings.Contains(string(body), "\"query\"") {
+    			t.Fatalf("missing query in body: %s", body)
+    		}
+    		w.Header().Set("Content-Type", "application/json")
+    		w.Write([]byte(respBody))
+    	}
+    
+    	cli, closeFn := newMockClient(handler)
+    	defer closeFn()
+    
+    	resp, err := cli.SearchTasks("key", TaskSearchRequest{Query: map[string]any{"status": "queued"}})
+    	if err != nil {
+    		t.Fatalf("SearchTasks error: %v", err)
+    	}
+    	if resp.TotalPages != 1 {
+    		t.Errorf("unexpected totalPages: %d", resp.TotalPages)
+    	}
+    }
+    
+    // -----------------------------------------------------------------------------
+    // Pagination iterator edge‑cases
+    // -----------------------------------------------------------------------------
+    
+    func TestListTasksPaged_ErrorPropagates(t *testing.T) {
+    	handler := func(w http.ResponseWriter, r *http.Request) {
+    		w.WriteHeader(http.StatusInternalServerError)
+    	}
+    
+    	cli, closeFn := newMockClient(handler)
+    	defer closeFn()
+    
+    	seq := cli.ListTasksPaged("k", PagedTasksParams{})
+    	for _, err := range seq {
+    		// first yield should contain error and break loop implicitly
+    		if err == nil {
+    			t.Fatal("expected error from iterator, got nil")
+    		}
+    		return // success – we saw an error
+    	}
+    	t.Fatal("iterator produced no values")
+    }
+    
+    // -----------------------------------------------------------------------------
+    // Pagination / iterator happy‑path test retained from earlier (now at bottom)
+    // -----------------------------------------------------------------------------
+    
+    func TestListTasksPaged_IteratesAcrossPages(t *testing.T) {
+    	page1 := TaskingRequestsPagedResponse{
+    		Results: []TaskingRequestResponse{
+    			{Properties: TaskingRequestPropertiesResponse{TaskingRequestID: "task-1", ProcessingStatus: Queued}},
+    		},
+    		CurrentPage: 1,
+    		TotalPages:  2,
+    	}
+    	page2 := TaskingRequestsPagedResponse{
+    		Results: []TaskingRequestResponse{
+    			{Properties: TaskingRequestPropertiesResponse{TaskingRequestID: "task-2", ProcessingStatus: Queued}},
+    		},
+    		CurrentPage: 2,
+    		TotalPages:  2,
+    	}
+    
+    	handler := func(w http.ResponseWriter, r *http.Request) {
+    		w.Header().Set("Content-Type", "application/json")
+    		if r.URL.Query().Get("page") == "2" {
+    			json.NewEncoder(w).Encode(page2)
+    		} else {
+    			json.NewEncoder(w).Encode(page1)
+    		}
+    	}
+    
+    	cli, closeFn := newMockClient(handler)
+    	defer closeFn()
+    
+    	seq := cli.ListTasksPaged("api-key", PagedTasksParams{})
+    	var gotIDs []string
+    	for task, err := range seq {
+    		if err != nil {
+    			t.Fatalf("iterator yielded error: %v", err)
+    		}
+    		gotIDs = append(gotIDs, task.Properties.TaskingRequestID)
+    	}
+    
+    	want := []string{"task-1", "task-2"}
+    	if !reflect.DeepEqual(gotIDs, want) {
+    		t.Errorf("unexpected task IDs: got %v, want %v", gotIDs, want)
+    	}
+    }
+
+    [File Ends] pkg/capella/capella_test.go
+
+    [File Begins] pkg/capella/client.go
+    package capella
+    
+    import (
+    	"bytes"
+    	"context"
+    	"encoding/json"
+    	"fmt"
+    	"io"
+    	"net/http"
+    	"net/url"
+    	"path"
+    	"time"
+    )
+    
+    const (
+    	defaultBaseURL = "https://api.capellaspace.com/"
+    )
+    
+    //--- API Error ---
+    
+    type APIError struct {
+    	StatusCode int
+    	Body       string
+    	Validation *HTTPValidationError
+    }
+    
+    func (e *APIError) Error() string {
+    	if e.Validation != nil && len(e.Validation.Detail) > 0 {
+    		return fmt.Sprintf("API error: status %d - %s", e.StatusCode, e.Validation.Detail[0].Msg)
+    	}
+    	return fmt.Sprintf("API error: status %d - %s", e.StatusCode, e.Body)
+    }
+    
+    //--- Client ---
+    
+    // Client is a stateless client for the Capella Tasking Service API.
+    // It does not hold an API key; the key must be provided with each call.
+    type Client struct {
+    	baseURL    string
+    	httpClient *http.Client
+    	apiKey     string //unused for now
+    }
+    
+    // ClientOption is a function that configures a Client.
+    type ClientOption func(*Client)
+    
+    // WithBaseURL sets the base URL for API requests.
+    func WithBaseURL(baseURL string) ClientOption {
+    	return func(c *Client) {
+    		c.baseURL = baseURL
+    	}
+    }
+    
+    // WithHTTPClient sets a custom HTTP client for the API client.
+    func WithHTTPClient(httpClient *http.Client) ClientOption {
+    	return func(c *Client) {
+    		c.httpClient = httpClient
+    	}
+    }
+    
+    func WithApiKey(key string) ClientOption {
+    	return func(c *Client) {
+    		c.apiKey = key
+    	}
+    }
+    
+    // NewClient creates a new Tasking Service client.
+    // It uses sensible defaults which can be overridden with functional options.
+    func NewClient(opts ...ClientOption) *Client {
+    	c := &Client{
+    		baseURL:    defaultBaseURL,
+    		httpClient: &http.Client{Timeout: 15 * time.Second},
+    	}
+    
+    	for _, opt := range opts {
+    		opt(c)
+    	}
+    
+    	return c
+    }
+    
+    //--- Helper Methods ---
+    
+    // newRequest creates an http.Request with the necessary headers.
+    // Note: It uses context.Background() as context is no longer passed from the caller.
+    func (c *Client) newRequest(apiKey, method, endpoint string, body []byte) (*http.Request, error) {
+    	u, err := url.Parse(c.baseURL)
+    	if err != nil {
+    		return nil, fmt.Errorf("failed to parse base URL: %w", err)
+    	}
+    	u.Path = path.Join(u.Path, endpoint)
+    
+    	data := bytes.NewReader(body)
+    
+    	// A non-cancellable context is used as it's not part of the public API.
+    	req, err := http.NewRequestWithContext(context.Background(), method, u.String(), data)
+    	if err != nil {
+    		return nil, fmt.Errorf("failed to create new request: %w", err)
+    	}
+    
+    	req.Header.Set("Authorization", "ApiKey "+apiKey)
+    	req.Header.Set("Accept", "application/json")
+    	if body != nil {
+    		req.Header.Set("Content-Type", "application/json")
+    	}
+    
+    	return req, nil
+    }
+    
+    // do sends an API request and handles the response.
+    func (c *Client) do(req *http.Request, v any) error {
+    	resp, err := c.httpClient.Do(req)
+    	if err != nil {
+    		return fmt.Errorf("failed to execute request: %w", err)
+    	}
+    	defer resp.Body.Close()
+    
+    	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+    		return c.handleError(resp)
+    	}
+    
+    	if v != nil {
+    		if err = json.NewDecoder(resp.Body).Decode(v); err != nil {
+    			return fmt.Errorf("failed to decode successful response: %w", err)
+    		}
+    	}
+    
+    	return nil
+    }
+    
+    // handleError parses an error response and returns a detailed APIError.
+    func (c *Client) handleError(resp *http.Response) error {
+    	bodyBytes, err := io.ReadAll(resp.Body)
+    	if err != nil {
+    		return fmt.Errorf("failed to read error response body: %w", err)
+    	}
+    
+    	apiErr := &APIError{
+    		StatusCode: resp.StatusCode,
+    		Body:       string(bodyBytes),
+    	}
+    
+    	if resp.StatusCode == http.StatusUnprocessableEntity {
+    		var validationError HTTPValidationError
+    		if json.Unmarshal(bodyBytes, &validationError) == nil {
+    			apiErr.Validation = &validationError
+    		}
+    	}
+    
+    	return apiErr
+    }
+    
+    // Feature represents a single GeoJSON feature whose Properties are
+    // compile-time typed by the generic parameter P.
+    type Feature[T any] struct {
+    	Type       string `json:"type"`       // always "Feature"
+    	Geometry   any    `json:"geometry"`   // any GeoJSON Geometry type
+    	Properties T      `json:"properties"` // user-supplied metadata
+    }
+
+    [File Ends] pkg/capella/client.go
+
+    [File Begins] pkg/capella/feasibility.go
+    package capella
+    
+    import (
+    	"encoding/json"
+    	"fmt"
+    	"net/http"
+    	"path"
+    	"time"
+    )
+    
+    //--- Enums ---
+    
+    type GeoJSONGeometryType string
+    
+    const (
+    	Point        GeoJSONGeometryType = "Point"
+    	Polygon      GeoJSONGeometryType = "Polygon"
+    	MultiPolygon GeoJSONGeometryType = "MultiPolygon"
+    )
+    
+    type ProcessingStatus string
+    
+    const (
+    	Queued     ProcessingStatus = "queued"
+    	Processing ProcessingStatus = "processing"
+    	Completed  ProcessingStatus = "completed"
+    	Error      ProcessingStatus = "error"
+    )
+    
+    type AccessibilityStatus string
+    
+    const (
+    	Unknown      AccessibilityStatus = "unknown"
+    	Accessible   AccessibilityStatus = "accessible"
+    	Inaccessible AccessibilityStatus = "inaccessible"
+    	Rejected     AccessibilityStatus = "rejected"
+    )
+    
+    //--- Data Models ---
+    // These are unchanged from the previous refactoring
+    
+    // AccessRequest represents the payload for creating an access request.
+    type AccessRequest Feature[AccessRequestProperties]
+    
+    // AccessRequestResponse represents the API response for an access request.
+    type AccessRequestResponse struct {
+    	Type       string                          `json:"type"`
+    	Geometry   GeoJSONGeometry                 `json:"geometry"`
+    	Properties AccessRequestPropertiesResponse `json:"properties"`
+    }
+    
+    // GeoJSONGeometry represents a GeoJSON geometry object.
+    type GeoJSONGeometry struct {
+    	Type        GeoJSONGeometryType `json:"type"`
+    	Coordinates any                 `json:"coordinates"`
+    }
+    
+    // AccessRequestProperties defines the properties of an access request.
+    type AccessRequestProperties struct {
+    	AccessRequestName        string             `json:"accessrequestName,omitempty"`
+    	AccessRequestDescription string             `json:"accessrequestDescription,omitempty"`
+    	AccessRequestType        string             `json:"accessrequestType,omitempty"`
+    	OrgID                    string             `json:"orgId"`
+    	UserID                   string             `json:"userId"`
+    	WindowOpen               time.Time          `json:"windowOpen"`
+    	WindowClose              time.Time          `json:"windowClose"`
+    	AccessConstraints        *AccessConstraints `json:"accessConstraints,omitempty"`
+    }
+    
+    // AccessRequestPropertiesResponse extends properties with API-generated fields.
+    type AccessRequestPropertiesResponse struct {
+    	AccessRequestProperties
+    	AccessRequestID      string              `json:"accessrequestId"`
+    	ProcessingStatus     ProcessingStatus    `json:"processingStatus"`
+    	AccessibilityStatus  AccessibilityStatus `json:"accessibilityStatus"`
+    	AccessibilityMessage string              `json:"accessibilityMessage,omitempty"`
+    }
+    
+    // AccessConstraints defines the constraints for an access request.
+    type AccessConstraints struct {
+    	// Cardinal look direction of the sensor: "left", "right", or "either".
+    	LookDirection *string `json:"lookDirection,omitempty"`
+    
+    	// Pass direction: "asc", "dsc", or "either".
+    	AscDsc *string `json:"ascDsc,omitempty"`
+    
+    	// Constrained set of orbital planes (e.g. ["A", "C"]).  Empty slice means
+    	// “no preference”.
+    	OrbitalPlanes []string `json:"orbitalPlanes,omitempty"`
+    
+    	// One-or-more local-solar-time windows expressed as seconds-since-midnight,
+    	// e.g. [[0, 86400]] for “any time of day”.
+    	LocalTime [][]int `json:"localTime,omitempty"`
+    
+    	// Sensor-to-nadir angle constraints (degrees).
+    	OffNadirMin *float64 `json:"offNadirMin,omitempty"`
+    	OffNadirMax *float64 `json:"offNadirMax,omitempty"`
+    
+    	// Grazing-angle constraints (degrees).
+    	GrazingAngleMin *float64 `json:"grazingAngleMin,omitempty"`
+    	GrazingAngleMax *float64 `json:"grazingAngleMax,omitempty"`
+    
+    	// Azimuth-angle constraints (degrees).
+    	AzimuthAngleMin *float64 `json:"azimuthAngleMin,omitempty"`
+    	AzimuthAngleMax *float64 `json:"azimuthAngleMax,omitempty"`
+    
+    	// Desired scene dimensions (meters).
+    	ImageLength *int `json:"imageLength,omitempty"`
+    	ImageWidth  *int `json:"imageWidth,omitempty"`
+    }
+    
+    // HTTPValidationError is the structure for a 422 response.
+    type HTTPValidationError struct {
+    	Detail []ValidationError `json:"detail"`
+    }
+    
+    // ValidationError provides details about a specific validation failure.
+    type ValidationError struct {
+    	Loc  []string `json:"loc"`
+    	Msg  string   `json:"msg"`
+    	Type string   `json:"type"`
+    }
+    
+    //--- API Methods ---
+    
+    // CreateAccessRequest submits a new access request, authenticated by the provided API key.
+    func (c *Client) CreateAccessRequest(apiKey string, request AccessRequest) (*AccessRequestResponse, error) {
+    	endpoint := "/ma/accessrequests/"
+    
+    	reqBody, err := json.Marshal(request)
+    	if err != nil {
+    		return nil, fmt.Errorf("failed to marshal request body: %w", err)
+    	}
+    
+    	httpReq, err := c.newRequest(apiKey, http.MethodPost, endpoint, reqBody)
+    	if err != nil {
+    		return nil, err
+    	}
+    
+    	var accessResponse AccessRequestResponse
+    	if err := c.do(httpReq, &accessResponse); err != nil {
+    		return nil, err
+    	}
+    
+    	return &accessResponse, nil
+    }
+    
+    // GetAccessRequest retrieves a specific access request, authenticated by the provided API key.
+    func (c *Client) GetAccessRequest(apiKey, accessRequestID string) (*AccessRequestResponse, error) {
+    	endpoint := path.Join("/ma/accessrequests/", accessRequestID)
+    
+    	httpReq, err := c.newRequest(apiKey, http.MethodGet, endpoint, nil)
+    	if err != nil {
+    		return nil, err
+    	}
+    
+    	var accessResponse AccessRequestResponse
+    	if err := c.do(httpReq, &accessResponse); err != nil {
+    		return nil, err
+    	}
+    
+    	return &accessResponse, nil
+    }
+
+    [File Ends] pkg/capella/feasibility.go
+
+    [File Begins] pkg/capella/tasking.go
+    package capella
+    
+    import (
+    	"encoding/json"
+    	"fmt"
+    	"iter"
+    	"net/http"
+    	"net/url"
+    	"path"
+    	"strconv"
+    	"time"
+    )
+    
+    // ---------------------------------------------------------------
+    // Tasking – data models, listing & searching helpers
+    // ---------------------------------------------------------------
+    
+    // ---------- ENUMS ------------------------------------------------
+    
+    type CollectionTier string
+    
+    const (
+    	TierUrgent   CollectionTier = "urgent"
+    	TierPriority CollectionTier = "priority"
+    	TierStandard CollectionTier = "standard"
+    	TierFlexible CollectionTier = "flexible"
+    	TierRoutine  CollectionTier = "routine"
+    )
+    
+    type ArchiveHoldback string
+    
+    const (
+    	ArchiveNone      ArchiveHoldback = "none"
+    	Archive30Day     ArchiveHoldback = "30_day"
+    	Archive1Year     ArchiveHoldback = "1_year"
+    	ArchivePermanent ArchiveHoldback = "permanent"
+    )
+    
+    type TaskStatus string
+    
+    const (
+    	StatusReceived  TaskStatus = "received"
+    	StatusReview    TaskStatus = "review"
+    	StatusSubmitted TaskStatus = "submitted"
+    	StatusActive    TaskStatus = "active"
+    	StatusAccepted  TaskStatus = "accepted"
+    	StatusRejected  TaskStatus = "rejected"
+    	StatusExpired   TaskStatus = "expired"
+    	StatusCompleted TaskStatus = "completed"
+    	StatusCanceled  TaskStatus = "canceled"
+    	StatusError     TaskStatus = "error"
+    	StatusAnomaly   TaskStatus = "anomaly"
+    	StatusRetrying  TaskStatus = "retrying"
+    	StatusApproved  TaskStatus = "approved" // cost-review transition
+    )
+    
+    // ---------- PRODUCT TYPES ---------------------------------------
+    
+    type ProductType string
+    
+    const (
+    	ProductSLC  ProductType = "SLC"
+    	ProductGEO  ProductType = "GEO"
+    	ProductGEC  ProductType = "GEC"
+    	ProductSICD ProductType = "SICD"
+    	ProductSIDD ProductType = "SIDD"
+    	ProductCPHD ProductType = "CPHD"
+    	ProductVC   ProductType = "VC"
+    )
+    
+    // ---------- CONSTRAINTS / PROCESSING ----------------------------
+    
+    type CollectConstraints struct {
+    	LookDirection   *string  `json:"lookDirection,omitempty"`
+    	AscDesc         *string  `json:"ascDesc,omitempty"`
+    	OrbitalPlanes   []int    `json:"orbitalPlanes,omitempty"`
+    	OffNadirMin     *float64 `json:"offNadirMin,omitempty"`
+    	OffNadirMax     *float64 `json:"offNadirMax,omitempty"`
+    	AzimuthAngleMin *float64 `json:"azimuthAngleMin,omitempty"`
+    	AzimuthAngleMax *float64 `json:"azimuthAngleMax,omitempty"`
+    	GrazingAngleMin *float64 `json:"grazingAngleMin,omitempty"`
+    	GrazingAngleMax *float64 `json:"grazingAngleMax,omitempty"`
+    	Squint          *string  `json:"squint,omitempty"`
+    	MaxSquintAngle  *int     `json:"maxSquintAngle,omitempty"`
+    }
+    
+    type ProcessingConfig struct {
+    	ProductTypes []ProductType `json:"productTypes,omitempty"`
+    }
+    
+    // ---------- REQUEST / RESPONSE MODELS ---------------------------
+    
+    type TaskingRequestProperties struct {
+    	TaskingRequestName        string              `json:"taskingrequestName,omitempty"`
+    	TaskingRequestDescription string              `json:"taskingrequestDescription,omitempty"`
+    	OrgID                     string              `json:"orgId"`
+    	UserID                    string              `json:"userId"`
+    	WindowOpen                time.Time           `json:"windowOpen"`
+    	WindowClose               time.Time           `json:"windowClose"`
+    	CollectionTier            CollectionTier      `json:"collectionTier"`
+    	ArchiveHoldback           ArchiveHoldback     `json:"archiveHoldback,omitempty"`
+    	CollectConstraints        *CollectConstraints `json:"collectConstraints,omitempty"`
+    	CollectionType            string              `json:"collectionType"`
+    	ProcessingConfig          *ProcessingConfig   `json:"processingConfig,omitempty"`
+    	PreApproval               *bool               `json:"preApproval,omitempty"`
+    	CustomAttribute1          string              `json:"customAttribute1,omitempty"`
+    	CustomAttribute2          string              `json:"customAttribute2,omitempty"`
+    }
+    
+    type TaskingRequest struct {
+    	Type       string                   `json:"type"` // always "Feature"
+    	Geometry   GeoJSONGeometry          `json:"geometry"`
+    	Properties TaskingRequestProperties `json:"properties"`
+    }
+    
+    type StatusEntry struct {
+    	Time    time.Time  `json:"time"`
+    	Code    TaskStatus `json:"code"`
+    	Message string     `json:"message"`
+    }
+    
+    type ConflictingTask struct {
+    	TaskingRequestID   string         `json:"taskingrequestId"`
+    	TaskingRequestName string         `json:"taskingrequestName"`
+    	RepeatRequestID    string         `json:"repeatrequestId"`
+    	CollectionTier     CollectionTier `json:"collectionTier"`
+    	WindowOpen         time.Time      `json:"windowOpen"`
+    	WindowClose        time.Time      `json:"windowClose"`
+    }
+    
+    type TaskingRequestPropertiesResponse struct {
+    	TaskingRequestProperties
+    
+    	TaskingRequestID    string              `json:"taskingrequestId"`
+    	ProcessingStatus    ProcessingStatus    `json:"processingStatus"`
+    	AccessibilityStatus AccessibilityStatus `json:"accessibilityStatus,omitempty"`
+    	CollectionStatus    string              `json:"collectionStatus,omitempty"`
+    }
+    
+    type TaskingRequestResponse struct {
+    	Type             string                           `json:"type"`
+    	Geometry         GeoJSONGeometry                  `json:"geometry"`
+    	Properties       TaskingRequestPropertiesResponse `json:"properties"`
+    	StatusHistory    []StatusEntry                    `json:"statusHistory,omitempty"`
+    	ConflictingTasks *[]ConflictingTask               `json:"conflictingTasks,omitempty"`
+    }
+    
+    type TaskingRequestsPagedResponse struct {
+    	Results     []TaskingRequestResponse `json:"results"`
+    	CurrentPage int                      `json:"currentPage"`
+    	TotalPages  int                      `json:"totalPages"`
+    }
+    
+    // ----------------------------------------------------------------
+    // BASIC CRUD HELPERS
+    // ----------------------------------------------------------------
+    
+    func (c *Client) CreateTaskingRequest(apiKey string, req TaskingRequest) (*TaskingRequestResponse, error) {
+    	body, err := json.Marshal(req)
+    	if err != nil {
+    		return nil, fmt.Errorf("marshal: %w", err)
+    	}
+    	h, err := c.newRequest(apiKey, http.MethodPost, "/task", body)
+    	if err != nil {
+    		return nil, err
+    	}
+    	var resp TaskingRequestResponse
+    	return &resp, c.do(h, &resp)
+    }
+    
+    func (c *Client) GetTaskingRequest(apiKey, id string) (*TaskingRequestResponse, error) {
+    	h, err := c.newRequest(apiKey, http.MethodGet, path.Join("/task", id), nil)
+    	if err != nil {
+    		return nil, err
+    	}
+    	var resp TaskingRequestResponse
+    	return &resp, c.do(h, &resp)
+    }
+    
+    func (c *Client) ApproveTaskingRequest(apiKey, id string) (*TaskingRequestResponse, error) {
+    	payload := struct {
+    		Status TaskStatus `json:"status"`
+    	}{Status: StatusApproved}
+    	body, err := json.Marshal(&payload)
+    	if err != nil {
+    		return nil, err
+    	}
+    	h, err := c.newRequest(apiKey, http.MethodPatch, path.Join("/task", id), body)
+    	if err != nil {
+    		return nil, err
+    	}
+    	var resp TaskingRequestResponse
+    	return &resp, c.do(h, &resp)
+    }
+    
+    // ----------------------------------------------------------------
+    // PAGED LISTING – PAGE FETCH UTILITY
+    // ----------------------------------------------------------------
+    
+    type PagedTasksParams struct {
+    	CustomerID     string
+    	OrganizationID string
+    	ResellerID     string
+    	Page           int
+    	Limit          int
+    	Sort           string
+    	Order          string
+    }
+    
+    func (c *Client) fetchTasksPage(apiKey string, p PagedTasksParams) (*TaskingRequestsPagedResponse, error) {
+    	v := url.Values{}
+    	if p.CustomerID != "" {
+    		v.Set("customerId", p.CustomerID)
+    	}
+    	if p.OrganizationID != "" {
+    		v.Set("organizationId", p.OrganizationID)
+    	}
+    	if p.ResellerID != "" {
+    		v.Set("resellerId", p.ResellerID)
+    	}
+    	if p.Page > 0 {
+    		v.Set("page", strconv.Itoa(p.Page))
+    	}
+    	if p.Limit > 0 {
+    		v.Set("limit", strconv.Itoa(p.Limit))
+    	}
+    	if p.Sort != "" {
+    		v.Set("sort", p.Sort)
+    	}
+    	if p.Order != "" {
+    		v.Set("order", p.Order)
+    	}
+    
+    	h, err := c.newRequest(apiKey, http.MethodGet, "/tasks/paged", nil)
+    	if err != nil {
+    		return nil, err
+    	}
+    	h.URL.RawQuery = v.Encode()
+    
+    	var resp TaskingRequestsPagedResponse
+    	return &resp, c.do(h, &resp)
+    }
+    
+    // ----------------------------------------------------------------
+    // STREAMING ITERATOR USING iter.Seq2
+    // ----------------------------------------------------------------
+    //
+    // ListTasksPaged returns an iter.Seq2 that lazily emits
+    // (TaskingRequestResponse, error) pairs:
+    //
+    //	seq := cli.ListTasksPaged(apiKey, capella.PagedTasksParams{CustomerID: "cust-1"})
+    //	for t, err := range iter.Pull2(seq) { … }
+    //
+    // *  The generator transparently walks through /tasks/paged until all
+    //    pages are exhausted.
+    // *  If an API call fails, it yields a nil-task with the error.
+    // *  Stop early by breaking the `range`; no clean-up required.
+    
+    func (c *Client) ListTasksPaged(apiKey string, p PagedTasksParams) iter.Seq2[TaskingRequestResponse, error] {
+    	// Provide sensible defaults
+    	if p.Page <= 0 {
+    		p.Page = 1
+    	}
+    	if p.Limit <= 0 {
+    		p.Limit = 25
+    	}
+    
+    	return iter.Seq2[TaskingRequestResponse, error](func(yield func(TaskingRequestResponse, error) bool) {
+    		page := p.Page
+    		for {
+    			p.Page = page
+    
+    			resp, err := c.fetchTasksPage(apiKey, p)
+    			if err != nil {
+    				yield(TaskingRequestResponse{}, err)
+    				return
+    			}
+    
+    			for _, t := range resp.Results {
+    				if !yield(t, nil) { // caller said “stop”
+    					return
+    				}
+    			}
+    
+    			if page >= resp.TotalPages {
+    				return // no more pages
+    			}
+    			page++
+    		}
+    	})
+    }
+    
+    // ----------------------------------------------------------------
+    // ADVANCED SEARCH  (POST /tasks/search)
+    // ----------------------------------------------------------------
+    
+    type TaskSearchRequest struct {
+    	Sort  string      `json:"sort,omitempty"`
+    	Order string      `json:"order,omitempty"` // asc|desc
+    	Page  int         `json:"page,omitempty"`
+    	Limit int         `json:"limit,omitempty"`
+    	Query interface{} `json:"query,omitempty"`
+    }
+    
+    func (c *Client) SearchTasks(apiKey string, body TaskSearchRequest) (*TaskingRequestsPagedResponse, error) {
+    	b, err := json.Marshal(body)
+    	if err != nil {
+    		return nil, fmt.Errorf("marshal search body: %w", err)
+    	}
+    	h, err := c.newRequest(apiKey, http.MethodPost, "/tasks/search", b)
+    	if err != nil {
+    		return nil, err
+    	}
+    	var resp TaskingRequestsPagedResponse
+    	return &resp, c.do(h, &resp)
+    }
+
+    [File Ends] pkg/capella/tasking.go
+
+    [File Begins] pkg/iceye/iceye.go
+    // Package iceye provides a minimal yet extensible Go SDK for the ICEYE Tasking API.
+    //
+    // Key features:
+    //   - OAuth 2 Client‑Credentials token management with auto‑refresh.
+    //   - Idiomatic Go types mirroring ICEYE v2 company / tasking / price / products paths.
+    //   - DRY lazy pagination helpers using Go 1.23+ `iter.Seq2`.
+    //   - Zero non‑std‑lib runtime dependencies.
+    //   - Thread‑safe; safe for concurrent goroutines.
+    //   - RFC 7807 errors mapped to *iceye.Error.
+    //
+    // Version history
+    //
+    //	v0.1.0  – initial skeleton (contracts, basic tasking)
+    //	v0.2.0  – ListContracts iterator
+    //	v1.0.0  – full Tasking API coverage (price, scene, products, cancel/patch)
+    //	v1.0.1  – Align iterator signatures with Go 1.23 `iter` (fixes compiler errors)
+    //	v1.1.1  – GetTaskProducts converted to iterator (iter.Seq2)
+    //	v1.2.0  – Introduce shared paginator (compile issue fixed by moving it to a standalone generic func)
+    //
+    // Docs: https://docs.iceye.com/api/tasking-v2  (June 2025 release)
+    // ----------------------------------------------------------------------------
+    // Quick example (Go 1.23+)
+    // ----------------------------------------------------------------------------
+    //
+    //	for tasks, err := range cli.ListTasks(ctx, 100, nil) {
+    //	    if err != nil { log.Fatal(err) }
+    //	    log.Printf("page with %d tasks", len(tasks))
+    //	}
+    package iceye
+    
+    import (
+    	"bytes"
+    	"context"
+    	"encoding/base64"
+    	"encoding/json"
+    	"errors"
+    	"fmt"
+    	"io"
+    	"net/http"
+    	"net/url"
+    	"sync"
+    	"time"
+    
+    	"iter" // std‑lib as of Go 1.23
+    )
+    
+    // ----------------------------------------------------------------------------
+    // Config & Client
+    // ----------------------------------------------------------------------------
+    
+    type Config struct {
+    	BaseURL      string // ex: https://api.iceye.com/api
+    	TokenURL     string // ex: https://auth.iceye.com/oauth2/token
+    	ClientID     string
+    	ClientSecret string
+    	HTTPClient   *http.Client // defaults to http.DefaultClient
+    }
+    
+    type Client struct {
+    	cfg   Config
+    	mu    sync.Mutex // guards token+exp
+    	token string
+    	exp   time.Time
+    }
+    
+    func NewClient(cfg Config) *Client {
+    	if cfg.HTTPClient == nil {
+    		cfg.HTTPClient = http.DefaultClient
+    	}
+    	return &Client{cfg: cfg}
+    }
+    
+    // ----------------------------------------------------------------------------
+    // Token management (OAuth2 Client‑Credentials)
+    // ----------------------------------------------------------------------------
+    
+    func (c *Client) authenticate(ctx context.Context) error {
+    	c.mu.Lock()
+    	if time.Until(c.exp) > 30*time.Second {
+    		c.mu.Unlock()
+    		return nil // still valid
+    	}
+    	c.mu.Unlock()
+    
+    	body := []byte("grant_type=client_credentials")
+    	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.cfg.TokenURL, bytes.NewReader(body))
+    	if err != nil {
+    		return err
+    	}
+    	b64 := base64.StdEncoding.EncodeToString([]byte(c.cfg.ClientID + ":" + c.cfg.ClientSecret))
+    	req.Header.Set("Authorization", "Basic "+b64)
+    	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+    	req.Header.Set("Accept", "application/json, application/problem+json")
+    
+    	resp, err := c.cfg.HTTPClient.Do(req)
+    	if err != nil {
+    		return err
+    	}
+    	defer resp.Body.Close()
+    	if resp.StatusCode != http.StatusOK {
+    		return parseError(resp)
+    	}
+    
+    	var tok struct {
+    		AccessToken string `json:"access_token"`
+    		ExpiresIn   int    `json:"expires_in"`
+    	}
+    	if err := json.NewDecoder(resp.Body).Decode(&tok); err != nil {
+    		return err
+    	}
+    	if tok.AccessToken == "" {
+    		return errors.New("iceye: empty access_token")
+    	}
+    
+    	c.mu.Lock()
+    	c.token = tok.AccessToken
+    	c.exp = time.Now().Add(time.Duration(tok.ExpiresIn) * time.Second)
+    	c.mu.Unlock()
+    	return nil
+    }
+    
+    // do wraps HTTP with auth + JSON encode/decode.
+    func (c *Client) do(ctx context.Context, method, path string, in any, out any) error {
+    	if err := c.authenticate(ctx); err != nil {
+    		return err
+    	}
+    
+    	var body io.Reader
+    	if in != nil {
+    		b, err := json.Marshal(in)
+    		if err != nil {
+    			return err
+    		}
+    		body = bytes.NewReader(b)
+    	}
+    
+    	req, err := http.NewRequestWithContext(ctx, method, c.cfg.BaseURL+path, body)
+    	if err != nil {
+    		return err
+    	}
+    	req.Header.Set("Authorization", "Bearer "+c.token)
+    	req.Header.Set("Accept", "application/json, application/problem+json")
+    	if in != nil {
+    		req.Header.Set("Content-Type", "application/json")
+    	}
+    
+    	resp, err := c.cfg.HTTPClient.Do(req)
+    	if err != nil {
+    		return err
+    	}
+    	defer resp.Body.Close()
+    	if resp.StatusCode >= 300 {
+    		return parseError(resp)
+    	}
+    
+    	if out != nil {
+    		return json.NewDecoder(resp.Body).Decode(out)
+    	}
+    	return nil
+    }
+    
+    // ----------------------------------------------------------------------------
+    // Generic pagination helper (stand‑alone generic function)
+    // ----------------------------------------------------------------------------
+    
+    // paginate generates an `iter.Seq2` for endpoints following ICEYE's common
+    // `{ "data": [...], "cursor": "..." }` pattern. Callers supply a `fetch` closure
+    // receiving the previous cursor (nil on first page) and returning the next slice,
+    // the next cursor (nil/empty when no more pages), and an error.
+    func paginate[T any](fetch func(cur *string) ([]T, *string, error)) iter.Seq2[[]T, error] {
+    	return func(yield func([]T, error) bool) {
+    		var cur *string
+    		for {
+    			data, next, err := fetch(cur)
+    			if !yield(data, err) {
+    				return
+    			}
+    			if err != nil || next == nil || *next == "" {
+    				return
+    			}
+    			cur = next
+    		}
+    	}
+    }
+    
+    // ----------------------------------------------------------------------------
+    // Company API (Contracts)
+    // ----------------------------------------------------------------------------
+    
+    type ContractsResponse struct {
+    	Data   []Contract `json:"data"`
+    	Cursor string     `json:"cursor,omitempty"`
+    }
+    
+    type Contract struct {
+    	ID           string            `json:"id"`
+    	Name         string            `json:"name"`
+    	Start        time.Time         `json:"start"`
+    	End          time.Time         `json:"end"`
+    	ImagingModes ModePolicy        `json:"imagingModes"`
+    	Priority     PriorityPolicy    `json:"priority"`
+    	Exclusivity  ExclusivityPolicy `json:"exclusivity"`
+    }
+    
+    type ModePolicy struct {
+    	Allowed []string `json:"allowed"`
+    	Default string   `json:"default"`
+    }
+    
+    type PriorityPolicy struct {
+    	Allowed []string `json:"allowed"`
+    	Default string   `json:"default"`
+    }
+    
+    type ExclusivityPolicy struct {
+    	Allowed []string `json:"allowed"`
+    	Default string   `json:"default"`
+    }
+    
+    func (c *Client) ListContracts(ctx context.Context, pageSize int) iter.Seq2[ContractsResponse, error] {
+    	return func(yield func(ContractsResponse, error) bool) {
+    		seq := paginate[Contract](func(cur *string) ([]Contract, *string, error) {
+    			path := "/company/v1/contracts"
+    			sep := "?"
+    			if pageSize > 0 {
+    				path += fmt.Sprintf("%slimit=%d", sep, pageSize)
+    				sep = "&"
+    			}
+    			if cur != nil {
+    				path += fmt.Sprintf("%scursor=%s", sep, url.QueryEscape(*cur))
+    			}
+    			var resp ContractsResponse
+    			err := c.do(ctx, http.MethodGet, path, nil, &resp)
+    			return resp.Data, &resp.Cursor, err
+    		})
+    		for data, err := range seq {
+    			if !yield(ContractsResponse{Data: data}, err) {
+    				return
+    			}
+    		}
+    	}
+    }
+    
+    // ----------------------------------------------------------------------------
+    // Tasking API – structs
+    // ----------------------------------------------------------------------------
+    
+    type Point struct{ Lat, Lon float64 }
+    
+    type Window struct{ Start, End time.Time }
+    
+    type ImagingMode string
+    
+    const (
+    	IMSpotlight     ImagingMode = "SPOTLIGHT"
+    	IMSpotlightFine ImagingMode = "SPOTLIGHT_FINE"
+    	IMStripmap      ImagingMode = "STRIPMAP"
+    	IMScan          ImagingMode = "SCAN"
+    )
+    
+    type CreateTaskRequest struct {
+    	AcquisitionWindow Window      `json:"acquisitionWindow"`
+    	ContractID        string      `json:"contractID"`
+    	ImagingMode       ImagingMode `json:"imagingMode"`
+    	PointOfInterest   Point       `json:"pointOfInterest"`
+    
+    	Reference      *string                 `json:"reference,omitempty"`
+    	Exclusivity    *string                 `json:"exclusivity,omitempty"`
+    	Priority       *string                 `json:"priority,omitempty"`
+    	SLA            *string                 `json:"sla,omitempty"`
+    	IncidenceAngle *struct{ Min, Max int } `json:"incidenceAngle,omitempty"`
+    	LookSide       *string                 `json:"lookSide,omitempty"`
+    	PassDirection  *string                 `json:"passDirection,omitempty"`
+    }
+    
+    type Task struct {
+    	ID                string      `json:"id"`
+    	ContractID        string      `json:"contractID"`
+    	PointOfInterest   Point       `json:"pointOfInterest"`
+    	AcquisitionWindow Window      `json:"acquisitionWindow"`
+    	ImagingMode       ImagingMode `json:"imagingMode"`
+    	Status            string      `json:"status"`
+    	CreatedAt         time.Time   `json:"createdAt"`
+    	UpdatedAt         time.Time   `json:"updatedAt"`
+    }
+    
+    type PriceResponse struct {
+    	Amount   float64            `json:"amount"`
+    	Currency string             `json:"currency"`
+    	Items    map[string]float64 `json:"items"`
+    }
+    
+    type Scene struct {
+    	ID           string `json:"id"`
+    	Start, End   time.Time
+    	FootprintWKT string `json:"footprintWkt"`
+    }
+    
+    type Product struct {
+    	Type   string  `json:"type"`
+    	Assets []Asset `json:"assets"`
+    }
+    
+    type Asset struct {
+    	Name, Href string
+    	Size       int64
+    }
+    
+    // ----------------------------------------------------------------------------
+    // Tasking API methods
+    // ----------------------------------------------------------------------------
+    
+    func (c *Client) GetTaskPrice(ctx context.Context, req CreateTaskRequest) (*PriceResponse, error) {
+    	var resp PriceResponse
+    	if err := c.do(ctx, http.MethodPost, "/tasking/v2/price", req, &resp); err != nil {
+    		return nil, err
+    	}
+    	return &resp, nil
+    }
+    
+    func (c *Client) CreateTask(ctx context.Context, req CreateTaskRequest) (*Task, error) {
+    	var resp Task
+    	if err := c.do(ctx, http.MethodPost, "/tasking/v2/tasks", req, &resp); err != nil {
+    		return nil, err
+    	}
+    	return &resp, nil
+    }
+    
+    func (c *Client) GetTask(ctx context.Context, taskID string) (*Task, error) {
+    	var resp Task
+    	if err := c.do(ctx, http.MethodGet, "/tasking/v2/tasks/"+url.PathEscape(taskID), nil, &resp); err != nil {
+    		return nil, err
+    	}
+    	return &resp, nil
+    }
+    
+    func (c *Client) CancelTask(ctx context.Context, taskID string) error {
+    	return c.do(ctx, http.MethodPatch, "/tasking/v2/tasks/"+url.PathEscape(taskID), map[string]string{"status": "CANCELED"}, nil)
+    }
+    
+    func (c *Client) ListTasks(ctx context.Context, pageSize int, contractID *string) iter.Seq2[[]Task, error] {
+    	return paginate[Task](func(cur *string) ([]Task, *string, error) {
+    		path := "/tasking/v2/tasks"
+    		sep := "?"
+    		if pageSize > 0 {
+    			path += fmt.Sprintf("%slimit=%d", sep, pageSize)
+    			sep = "&"
+    		}
+    		if contractID != nil {
+    			path += fmt.Sprintf("%scontractID=%s", sep, url.QueryEscape(*contractID))
+    			sep = "&"
+    		}
+    		if cur != nil {
+    			path += fmt.Sprintf("%scursor=%s", sep, url.QueryEscape(*cur))
+    		}
+    		var resp struct {
+    			Data   []Task  `json:"data"`
+    			Cursor *string `json:"cursor"`
+    		}
+    		err := c.do(ctx, http.MethodGet, path, nil, &resp)
+    		return resp.Data, resp.Cursor, err
+    	})
+    }
+    
+    func (c *Client) GetTaskScene(ctx context.Context, taskID string) (*Scene, error) {
+    	var resp Scene
+    	if err := c.do(ctx, http.MethodGet, "/tasking/v2/tasks/"+url.PathEscape(taskID)+"/scene", nil, &resp); err != nil {
+    		return nil, err
+    	}
+    	return &resp, nil
+    }
+    
+    func (c *Client) GetTaskProducts(ctx context.Context, taskID string, pageSize int) iter.Seq2[[]Product, error] {
+    	return paginate[Product](func(cur *string) ([]Product, *string, error) {
+    		path := fmt.Sprintf("/tasking/v2/tasks/%s/products", url.PathEscape(taskID))
+    		sep := "?"
+    		if pageSize > 0 {
+    			path += fmt.Sprintf("%slimit=%d", sep, pageSize)
+    			sep = "&"
+    		}
+    		if cur != nil {
+    			path += fmt.Sprintf("%scursor=%s", sep, url.QueryEscape(*cur))
+    		}
+    		var resp struct {
+    			Data   []Product `json:"data"`
+    			Cursor *string   `json:"cursor"`
+    		}
+    		err := c.do(ctx, http.MethodGet, path, nil, &resp)
+    		return resp.Data, resp.Cursor, err
+    	})
+    }
+    
+    // ----------------------------------------------------------------------------
+    // Error handling
+    // ----------------------------------------------------------------------------
+    
+    type Error struct {
+    	Status int    `json:"status"`
+    	Code   string `json:"code"`
+    	Detail string `json:"detail"`
+    }
+    
+    func (e *Error) Error() string {
+    	return fmt.Sprintf("iceye: %s (%d) – %s", e.Code, e.Status, e.Detail)
+    }
+    
+    func parseError(resp *http.Response) error {
+    	var e Error
+    	e.Status = resp.StatusCode
+    	if json.NewDecoder(resp.Body).Decode(&e) != nil || e.Code == "" {
+    		e.Code = http.StatusText(resp.StatusCode)
+    	}
+    	return &e
+    }
+
+    [File Ends] pkg/iceye/iceye.go
+
+    [File Begins] pkg/iceye/iceye_test.go
+    // Comprehensive unit tests for the iceye SDK. They use `httptest.Server` to mock
+    // the ICEYE OAuth and REST endpoints, so no network calls leave the process.
+    //
+    // Focus areas:
+    //   - Token acquisition & refresh logic.
+    //   - Error handling (RFC-7807 parsing).
+    //   - Paginator correctness across Contracts, Tasks, and Products.
+    //   - JSON request/response correctness for create, get, cancel, price.
+    //
+    // The tests avoid 3rd-party deps; only std-lib is used.
+    //
+    // Run: `go test -tags=unit ./...` (requires Go 1.23+ for `iter` generics).
+    package iceye
+    
+    import (
+    	"context"
+    	"encoding/json"
+    	"net/http"
+    	"net/http/httptest"
+    	"sync/atomic"
+    	"testing"
+    	"time"
+    )
+    
+    // helper to create a mock auth+API server pair and configured client.
+    func newTestClient(t *testing.T, mux func(mux *http.ServeMux, authHits *atomic.Int32)) (*Client, *httptest.Server, *atomic.Int32) {
+    	t.Helper()
+    	authHits := &atomic.Int32{}
+    	muxrouter := http.NewServeMux()
+    	mux(muxrouter, authHits)
+    
+    	srv := httptest.NewServer(muxrouter)
+    	t.Cleanup(srv.Close)
+    
+    	cli := NewClient(Config{
+    		BaseURL:      srv.URL, // same host for API
+    		TokenURL:     srv.URL + "/oauth2/token",
+    		ClientID:     "test",
+    		ClientSecret: "secret",
+    		HTTPClient:   srv.Client(),
+    	})
+    	return cli, srv, authHits
+    }
+    
+    // ---------------- Token logic ----------------
+    func TestAuthenticateSuccess(t *testing.T) {
+    	cli, _, hits := newTestClient(t, func(mux *http.ServeMux, authHits *atomic.Int32) {
+    		mux.HandleFunc("/oauth2/token", func(w http.ResponseWriter, r *http.Request) {
+    			authHits.Add(1)
+    			_ = r.ParseForm()
+    			if r.FormValue("grant_type") != "client_credentials" {
+    				http.Error(w, "bad grant", 400)
+    				return
+    			}
+    			json.NewEncoder(w).Encode(map[string]any{
+    				"access_token": "abc123",
+    				"expires_in":   3600,
+    			})
+    		})
+    	})
+    
+    	ctx := context.Background()
+    	if err := cli.authenticate(ctx); err != nil {
+    		t.Fatalf("authenticate failed: %v", err)
+    	}
+    	if cli.token != "abc123" {
+    		t.Fatalf("unexpected token: %s", cli.token)
+    	}
+    	if hits.Load() != 1 {
+    		t.Fatalf("auth endpoint not hit exactly once, got %d", hits.Load())
+    	}
+    
+    	// second authenticate should be a no-op (<30 s skew)
+    	if err := cli.authenticate(ctx); err != nil {
+    		t.Fatal(err)
+    	}
+    	if hits.Load() != 1 {
+    		t.Fatalf("token refreshed unexpectedly: %d calls", hits.Load())
+    	}
+    }
+    
+    // ---------------- Error handling ----------------
+    func TestDoParsesProblemJSON(t *testing.T) {
+    	cli, _, _ := newTestClient(t, func(mux *http.ServeMux, _ *atomic.Int32) {
+    		mux.HandleFunc("/oauth2/token", func(w http.ResponseWriter, r *http.Request) {
+    			json.NewEncoder(w).Encode(map[string]any{"access_token": "x", "expires_in": 1})
+    		})
+    		mux.HandleFunc("/boom", func(w http.ResponseWriter, r *http.Request) {
+    			w.WriteHeader(400)
+    			json.NewEncoder(w).Encode(map[string]any{"code": "ERR_BAD", "detail": "kaput"})
+    		})
+    	})
+    	ctx := context.Background()
+    	err := cli.do(ctx, http.MethodGet, "/boom", nil, nil)
+    	if err == nil {
+    		t.Fatal("expected error")
+    	}
+    	if e, ok := err.(*Error); !ok || e.Code != "ERR_BAD" {
+    		t.Fatalf("unexpected error type/value: %#v", err)
+    	}
+    }
+    
+    // ---------------- Pagination helpers ----------------
+    func TestListContractsPagination(t *testing.T) {
+    	cli, _, _ := newTestClient(t, func(mux *http.ServeMux, _ *atomic.Int32) {
+    		mux.HandleFunc("/oauth2/token", func(w http.ResponseWriter, r *http.Request) {
+    			json.NewEncoder(w).Encode(map[string]any{"access_token": "x", "expires_in": 1})
+    		})
+    
+    		pages := []ContractsResponse{
+    			{Data: []Contract{{ID: "c1"}}, Cursor: "next"},
+    			{Data: []Contract{{ID: "c2"}}, Cursor: ""},
+    		}
+    		mux.HandleFunc("/company/v1/contracts", func(w http.ResponseWriter, r *http.Request) {
+    			switch r.URL.Query().Get("cursor") {
+    			case "":
+    				json.NewEncoder(w).Encode(pages[0])
+    			case "next":
+    				json.NewEncoder(w).Encode(pages[1])
+    			default:
+    				t.Fatalf("unexpected cursor %s", r.URL.Query().Get("cursor"))
+    			}
+    		})
+    	})
+    
+    	var ids []string
+    	for resp, err := range cli.ListContracts(context.Background(), 1) {
+    		if err != nil {
+    			t.Fatalf("iter error: %v", err)
+    		}
+    		for _, c := range resp.Data {
+    			ids = append(ids, c.ID)
+    		}
+    	}
+    	if len(ids) != 2 || ids[0] != "c1" || ids[1] != "c2" {
+    		t.Fatalf("unexpected ids: %v", ids)
+    	}
+    }
+    
+    func TestListTasksPagination(t *testing.T) {
+    	cli, _, _ := newTestClient(t, func(mux *http.ServeMux, _ *atomic.Int32) {
+    		mux.HandleFunc("/oauth2/token", func(w http.ResponseWriter, r *http.Request) {
+    			json.NewEncoder(w).Encode(map[string]any{"access_token": "x", "expires_in": 1})
+    		})
+    		mux.HandleFunc("/tasking/v2/tasks", func(w http.ResponseWriter, r *http.Request) {
+    			cur := r.URL.Query().Get("cursor")
+    			switch cur {
+    			case "":
+    				json.NewEncoder(w).Encode(map[string]any{"data": []Task{{ID: "t1"}}, "cursor": "n"})
+    			case "n":
+    				json.NewEncoder(w).Encode(map[string]any{"data": []Task{{ID: "t2"}}, "cursor": nil})
+    			default:
+    				t.Fatalf("unexpected cursor %s", cur)
+    			}
+    		})
+    	})
+    
+    	got := 0
+    	for tasks, err := range cli.ListTasks(context.Background(), 1, nil) {
+    		if err != nil {
+    			t.Fatalf("iter err: %v", err)
+    		}
+    		got += len(tasks)
+    	}
+    	if got != 2 {
+    		t.Fatalf("expected 2 tasks, got %d", got)
+    	}
+    }
+    
+    // ---------------- CRUD helpers ----------------
+    func TestCreateAndGetTaskHappyPath(t *testing.T) {
+    	cli, _, _ := newTestClient(t, func(mux *http.ServeMux, _ *atomic.Int32) {
+    		mux.HandleFunc("/oauth2/token", func(w http.ResponseWriter, r *http.Request) {
+    			json.NewEncoder(w).Encode(map[string]any{"access_token": "x", "expires_in": 1})
+    		})
+    		mux.HandleFunc("/tasking/v2/tasks", func(w http.ResponseWriter, r *http.Request) {
+    			if r.Method != http.MethodPost {
+    				t.Fatalf("unexpected method %s", r.Method)
+    			}
+    			var crt CreateTaskRequest
+    			json.NewDecoder(r.Body).Decode(&crt)
+    			w.WriteHeader(200)
+    			json.NewEncoder(w).Encode(map[string]any{"id": "T-123", "contractID": crt.ContractID})
+    		})
+    		mux.HandleFunc("/tasking/v2/tasks/T-123", func(w http.ResponseWriter, r *http.Request) {
+    			json.NewEncoder(w).Encode(map[string]any{"id": "T-123", "status": "SUBMITTED"})
+    		})
+    	})
+    
+    	ctx := context.Background()
+    	tsk, err := cli.CreateTask(ctx, CreateTaskRequest{ContractID: "C"})
+    	if err != nil || tsk.ID != "T-123" {
+    		t.Fatalf("create task failed: %v %+v", err, tsk)
+    	}
+    	got, err := cli.GetTask(ctx, "T-123")
+    	if err != nil || got.ID != "T-123" || got.Status != "SUBMITTED" {
+    		t.Fatalf("get task failed: %v %+v", err, got)
+    	}
+    }
+    
+    func TestCancelTask(t *testing.T) {
+    	cli, _, _ := newTestClient(t, func(mux *http.ServeMux, _ *atomic.Int32) {
+    		mux.HandleFunc("/oauth2/token", func(w http.ResponseWriter, r *http.Request) {
+    			json.NewEncoder(w).Encode(map[string]any{"access_token": "x", "expires_in": 1})
+    		})
+    		mux.HandleFunc("/tasking/v2/tasks/T-1", func(w http.ResponseWriter, r *http.Request) {
+    			if r.Method != http.MethodPatch {
+    				t.Fatalf("expected PATCH, got %s", r.Method)
+    			}
+    			var body map[string]string
+    			json.NewDecoder(r.Body).Decode(&body)
+    			if body["status"] != "CANCELED" {
+    				t.Fatalf("body mismatch: %+v", body)
+    			}
+    			w.WriteHeader(204)
+    		})
+    	})
+    	if err := cli.CancelTask(context.Background(), "T-1"); err != nil {
+    		t.Fatalf("cancel failed: %v", err)
+    	}
+    }
+    
+    // ---------------- Products paginator ----------------
+    func TestGetTaskProductsPagination(t *testing.T) {
+    	cli, _, _ := newTestClient(t, func(mux *http.ServeMux, _ *atomic.Int32) {
+    		mux.HandleFunc("/oauth2/token", func(w http.ResponseWriter, r *http.Request) {
+    			json.NewEncoder(w).Encode(map[string]any{"access_token": "x", "expires_in": 1})
+    		})
+    		mux.HandleFunc("/tasking/v2/tasks/T/products", func(w http.ResponseWriter, r *http.Request) {
+    			cur := r.URL.Query().Get("cursor")
+    			switch cur {
+    			case "":
+    				json.NewEncoder(w).Encode(map[string]any{"data": []Product{{Type: "GRD"}}, "cursor": "next"})
+    			case "next":
+    				json.NewEncoder(w).Encode(map[string]any{"data": []Product{{Type: "SLC"}}, "cursor": nil})
+    			}
+    		})
+    	})
+    	total := 0
+    	for prods, err := range cli.GetTaskProducts(context.Background(), "T", 1) {
+    		if err != nil {
+    			t.Fatal(err)
+    		}
+    		total += len(prods)
+    	}
+    	if total != 2 {
+    		t.Fatalf("expected 2 products, got %d", total)
+    	}
+    }
+    
+    // ensure paginator stops on error
+    func TestPaginatorStopsOnError(t *testing.T) {
+    	cli, _, _ := newTestClient(t, func(mux *http.ServeMux, _ *atomic.Int32) {
+    		mux.HandleFunc("/oauth2/token", func(w http.ResponseWriter, r *http.Request) {
+    			json.NewEncoder(w).Encode(map[string]any{"access_token": "x", "expires_in": 1})
+    		})
+    		mux.HandleFunc("/tasking/v2/tasks", func(w http.ResponseWriter, r *http.Request) {
+    			w.WriteHeader(500)
+    			json.NewEncoder(w).Encode(map[string]any{"code": "FATAL", "detail": "no"})
+    		})
+    	})
+    	tasks := cli.ListTasks(context.Background(), 1, nil)
+    	for _, err := range tasks {
+    		if err == nil {
+    			t.Fatal("expected error on first page")
+    		}
+    	}
+    }
+    
+    // fast-forward time to test auto-refresh logic
+    func TestTokenRefreshAfterExpiry(t *testing.T) {
+    	var tokenCalls atomic.Int32
+    	cli, _, _ := newTestClient(t, func(mux *http.ServeMux, _ *atomic.Int32) {
+    		mux.HandleFunc("/oauth2/token", func(w http.ResponseWriter, r *http.Request) {
+    			tokenCalls.Add(1)
+    			json.NewEncoder(w).Encode(map[string]any{"access_token": "tok", "expires_in": 1})
+    		})
+    		mux.HandleFunc("/ping", func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(200) })
+    	})
+    	ctx := context.Background()
+    	_ = cli.do(ctx, http.MethodGet, "/ping", nil, nil)
+    	time.Sleep(2 * time.Second) // wait for expiry
+    	_ = cli.do(ctx, http.MethodGet, "/ping", nil, nil)
+    	if tokenCalls.Load() < 2 {
+    		t.Fatalf("expected token refresh, got %d calls", tokenCalls.Load())
+    	}
+    }
+
+    [File Ends] pkg/iceye/iceye_test.go
+
+    [File Begins] pkg/umbra/umbra.go
+    package umbra
+    
+    import (
+    	"bytes"
+    	"encoding/json"
+    	"fmt"
+    	"io"
+    	"net/http"
+    	"net/url"
+    	"time"
+    
+    	"iter"
+    )
+    
+    /*──────────────── ENUMS & BASICS ───────────────*/
+    
+    type ImagingMode string
+    
+    const (
+    	SPOTLIGHT_MODE ImagingMode = "SPOTLIGHT"
+    )
+    
+    type Client struct {
+    	HTTPClient *http.Client
+    	baseURL    *url.URL
+    }
+    
+    func NewClient(rawURL string) (*Client, error) {
+    	u, err := url.Parse(rawURL)
+    	if err != nil {
+    		return nil, err
+    	}
+    	return &Client{
+    		HTTPClient: &http.Client{Timeout: 10 * time.Second},
+    		baseURL:    u,
+    	}, nil
+    }
+    
+    /*──────────────── LOW-LEVEL HTTP ──────────────*/
+    
+    func (c *Client) doRequest(token, method string, u *url.URL, body io.Reader, want int, out any) error {
+    	req, err := http.NewRequest(method, u.String(), body)
+    	if err != nil {
+    		return fmt.Errorf("create request: %w", err)
+    	}
+    	req.Header.Set("Authorization", "Bearer "+token)
+    	req.Header.Set("Accept", "application/json")
+    	if method == http.MethodPost || method == http.MethodPatch {
+    		req.Header.Set("Content-Type", "application/json")
+    	}
+    
+    	resp, err := c.HTTPClient.Do(req)
+    	if err != nil {
+    		return fmt.Errorf("do: %w", err)
+    	}
+    	defer resp.Body.Close()
+    
+    	buf, err := io.ReadAll(resp.Body)
+    	if err != nil {
+    		return fmt.Errorf("read: %w", err)
+    	}
+    	if resp.StatusCode != want {
+    		return fmt.Errorf("unexpected status %s – %s", resp.Status, buf)
+    	}
+    	if out != nil {
+    		if err := json.Unmarshal(buf, out); err != nil {
+    			return fmt.Errorf("decode: %w", err)
+    		}
+    	}
+    	return nil
+    }
+    
+    /*──────────────── GENERIC PAGINATION ──────────
+      Seq2[K,V] → yield(K, V) bool , returns bool.
+      We yield each value with a nil-error. If the page
+      fetch fails, we yield the zero value and the error
+      once, then stop.                                       */
+    
+    func pagedSeq[T any](
+    	startSkip, limit int,
+    	fetch func(skip, limit int) ([]T, error),
+    ) iter.Seq2[T, error] {
+    
+    	if limit <= 0 {
+    		limit = 100 // Default limit
+    	}
+    
+    	return func(yield func(T, error) bool) {
+    		var zero T
+    		skip := startSkip
+    
+    		for {
+    			page, err := fetch(skip, limit)
+    			if err != nil {
+    				yield(zero, err) // Propagate error once and stop.
+    				return
+    			}
+    
+    			for _, v := range page {
+    				if !yield(v, nil) {
+    					return // Consumer ended the iteration.
+    				}
+    			}
+    
+    			// If the page is empty or returned fewer items than the limit,
+    			// it must be the last page.
+    			if len(page) < limit {
+    				return // End of data.
+    			}
+    			skip += len(page)
+    		}
+    	}
+    }
+    
+    /*──────────────── DOMAIN TYPES (unchanged) ───*/
+    
+    type PointGeometry struct {
+    	Type        string    `json:"type"`
+    	Coordinates []float64 `json:"coordinates"`
+    }
+    
+    type SpotlightConstraints struct {
+    	ImagingMode                    ImagingMode   `json:"imagingMode,omitempty"`
+    	Geometry                       PointGeometry `json:"geometry"`
+    	Polarization                   string        `json:"polarization,omitempty"`
+    	RangeResolutionMinMeters       float64       `json:"rangeResolutionMinMeters,omitempty"`
+    	MultilookFactor                int           `json:"multilookFactor,omitempty"`
+    	GrazingAngleMinDegrees         int           `json:"grazingAngleMinDegrees,omitempty"`
+    	GrazingAngleMaxDegrees         int           `json:"grazingAngleMaxDegrees,omitempty"`
+    	TargetAzimuthAngleStartDegrees int           `json:"targetAzimuthAngleStartDegrees,omitempty"`
+    	TargetAzimuthAngleEndDegrees   int           `json:"targetAzimuthAngleEndDegrees,omitempty"`
+    	SceneSize                      string        `json:"sceneSize,omitempty"`
+    }
+    
+    type TaskingRequest struct {
+    	ImagingMode          ImagingMode          `json:"imagingMode,omitempty"`
+    	SpotlightConstraints SpotlightConstraints `json:"spotlightConstraints"`
+    	WindowStartAt        time.Time            `json:"windowStartAt"`
+    	WindowEndAt          time.Time            `json:"windowEndAt"`
+    }
+    
+    type TaskRequest struct {
+    	TaskingRequest
+    	ProductTypes []string `json:"productTypes,omitempty"`
+    	Priority     int      `json:"priority,omitempty"`
+    }
+    
+    type TaskStatus string
+    
+    const (
+    	TaskActive    TaskStatus = "ACTIVE"
+    	TaskSubmitted TaskStatus = "SUBMITTED"
+    	TaskScheduled TaskStatus = "SCHEDULED"
+    	TaskCanceled  TaskStatus = "CANCELED"
+    )
+    
+    type StatusEvent struct {
+    	Status    TaskStatus `json:"status"`
+    	Timestamp time.Time  `json:"timestamp"`
+    }
+    
+    type Task struct {
+    	ID           string         `json:"id"`
+    	Status       TaskStatus     `json:"status"`
+    	CollectIDs   []string       `json:"collectIds,omitempty"`
+    	Request      TaskRequest    `json:"taskRequest"`
+    	CreatedAt    time.Time      `json:"createdAt"`
+    	UpdatedAt    time.Time      `json:"updatedAt"`
+    	StatusEvents []StatusEvent  `json:"statusHistory,omitempty"`
+    	Extra        map[string]any `json:"-"`
+    }
+    
+    type Collect struct {
+    	ID        string         `json:"id"`
+    	TaskID    string         `json:"taskId"`
+    	Status    string         `json:"status"`
+    	Geometry  PointGeometry  `json:"geometry"`
+    	Satellite string         `json:"satelliteId"`
+    	CreatedAt time.Time      `json:"createdAt"`
+    	Extra     map[string]any `json:"-"`
+    }
+    
+    type ProductConstraint struct {
+    	ProductType       string  `json:"productType"`
+    	SceneSize         string  `json:"sceneSize"`
+    	MinGrazingDegrees float64 `json:"minGrazingAngle"`
+    	MaxGrazingDegrees float64 `json:"maxGrazingAngle"`
+    	RecommendedLooks  int     `json:"recommendedLooks"`
+    }
+    
+    /*──────────────── SEARCH REQUEST STRUCTS ─────*/
+    
+    type SearchRequest[T any] struct {
+    	Limit  *int      `json:"limit,omitempty"`
+    	Skip   *int      `json:"skip,omitempty"`
+    	SortBy *[]string `json:"sortBy,omitempty"`
+    	Query  T         `json:"query"`
+    }
+    
+    type TaskSearchRequest SearchRequest[map[string]any]
+    type CollectSearchRequest SearchRequest[map[string]any]
+    
+    /*──────────────── FEASIBILITY (methods unchanged) ─*/
+    
+    type FeasibilityResponse struct {
+    	ID      string         `json:"id"`
+    	Status  string         `json:"status"`
+    	Request TaskingRequest `json:"feasibilityRequest"`
+    	Results []Opportunity  `json:"opportunities"`
+    }
+    
+    type Opportunity struct {
+    	WindowStartAt                      time.Time `json:"windowStartAt"`
+    	WindowEndAt                        time.Time `json:"windowEndAt"`
+    	DurationSec                        int       `json:"durationSec"`
+    	GrazingAngleStartDegrees           float64   `json:"grazingAngleStartDegrees"`
+    	GrazingAngleEndDegrees             float64   `json:"grazingAngleEndDegrees"`
+    	TargetAzimuthAngleStartDegrees     float64   `json:"targetAzimuthAngleStartDegrees"`
+    	TargetAzimuthAngleEndDegrees       float64   `json:"targetAzimuthAngleEndDegrees"`
+    	SquintAngleStartDegrees            float64   `json:"squintAngleStartDegrees"`
+    	SquintAngleEndDegrees              float64   `json:"squintAngleEndDegrees"`
+    	SquintAngleEngineeringDegreesStart float64   `json:"squintAngleEngineeringDegreesStart"`
+    	SquintAngleEngineeringDegreesEnd   float64   `json:"squintAngleEngineeringDegreesEnd"`
+    	SlantRangeStartKm                  float64   `json:"slantRangeStartKm"`
+    	SlantRangeEndKm                    float64   `json:"slantRangeEndKm"`
+    	GroundRangeStartKm                 float64   `json:"groundRangeStartKm"`
+    	GroundRangeEndKm                   float64   `json:"groundRangeEndKm"`
+    	SatelliteId                        string    `json:"satelliteId"`
+    }
+    
+    func (c *Client) CreateFeasibility(tok string, req *TaskingRequest) (*FeasibilityResponse, error) {
+    	b, _ := json.Marshal(req)
+    	var out FeasibilityResponse
+    	err := c.doRequest(tok, http.MethodPost, c.baseURL.JoinPath("tasking", "feasibilities"), bytes.NewBuffer(b), http.StatusCreated, &out)
+    	return &out, err
+    }
+    func (c *Client) GetFeasibility(tok, id string) (*FeasibilityResponse, error) {
+    	var out FeasibilityResponse
+    	err := c.doRequest(tok, http.MethodGet, c.baseURL.JoinPath("tasking", "feasibilities", id), nil, http.StatusOK, &out)
+    	return &out, err
+    }
+    
+    /*──────────────── TASK helpers ───────────────*/
+    
+    func (c *Client) CreateTask(tok string, req *TaskRequest) (*Task, error) {
+    	b, _ := json.Marshal(req)
+    	var t Task
+    	err := c.doRequest(tok, http.MethodPost, c.baseURL.JoinPath("tasking", "tasks"), bytes.NewBuffer(b), http.StatusCreated, &t)
+    	return &t, err
+    }
+    func (c *Client) GetTask(tok, id string) (*Task, error) {
+    	var t Task
+    	err := c.doRequest(tok, http.MethodGet, c.baseURL.JoinPath("tasking", "tasks", id), nil, http.StatusOK, &t)
+    	return &t, err
+    }
+    func (c *Client) CancelTask(tok, id string) (*Task, error) {
+    	var t Task
+    	err := c.doRequest(tok, http.MethodPatch, c.baseURL.JoinPath("tasking", "tasks", id, "cancel"), nil, http.StatusOK, &t)
+    	return &t, err
+    }
+    
+    /*──────────────── SEARCH (Seq2) ──────────────*/
+    
+    func (c *Client) SearchTasks(tok string, req TaskSearchRequest) iter.Seq2[Task, error] {
+    	fetch := func(skip, limit int) ([]Task, error) {
+    		b, err := json.Marshal(req)
+    		if err != nil {
+    			return nil, err
+    		}
+    		var page []Task
+    		err = c.doRequest(tok, http.MethodPost, c.baseURL.JoinPath("tasking", "tasks", "search"), bytes.NewBuffer(b), http.StatusOK, &page)
+    		return page, err
+    	}
+    	return pagedSeq(*req.Skip, *req.Limit, fetch)
+    }
+    
+    func (c *Client) SearchCollects(tok string, req CollectSearchRequest) iter.Seq2[Collect, error] {
+    	fetch := func(skip, limit int) ([]Collect, error) {
+    		b, err := json.Marshal(req)
+    		if err != nil {
+    			return nil, err
+    		}
+    		var page []Collect
+    		err = c.doRequest(tok, http.MethodPost, c.baseURL.JoinPath("tasking", "collects", "search"), bytes.NewBuffer(b), http.StatusOK, &page)
+    		return page, err
+    	}
+    	return pagedSeq(*req.Skip, *req.Limit, fetch)
+    }
+    
+    /*──────────────── COLLECT & PRODUCT helpers ──*/
+    
+    func (c *Client) GetCollect(tok, id string) (*Collect, error) {
+    	var col Collect
+    	err := c.doRequest(tok, http.MethodGet, c.baseURL.JoinPath("tasking", "collects", id), nil, http.StatusOK, &col)
+    	return &col, err
+    }
+    
+    func (c *Client) GetProductConstraints(tok string, mode ImagingMode) ([]ProductConstraint, error) {
+    	var pc []ProductConstraint
+    	err := c.doRequest(tok, http.MethodGet, c.baseURL.JoinPath("tasking", "products", string(mode), "constraints"), nil, http.StatusOK, &pc)
+    	return pc, err
+    }
+
+    [File Ends] pkg/umbra/umbra.go
+
+    [File Begins] pkg/umbra/umbra_test.go
+    package umbra_test
+    
+    import (
+    	"encoding/json"
+    	"iter"
+    	"net/http"
+    	"net/http/httptest"
+    	"strings"
+    	"testing"
+    	"time"
+    
+    	"github.com/robert.malhotra/go-sar-vendor/pkg/umbra"
+    )
+    
+    // ---------------------- helpers ----------------------
+    func setupMockServer(t *testing.T, expectedMethod, expectedPath string, expectedStatus int, response any) *httptest.Server {
+    	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+    		if r.Method != expectedMethod {
+    			t.Fatalf("Expected method %s, got %s", expectedMethod, r.Method)
+    		}
+    		if !strings.HasSuffix(r.URL.Path, expectedPath) {
+    			t.Fatalf("Expected path suffix %s, got %s", expectedPath, r.URL.Path)
+    		}
+    		w.WriteHeader(expectedStatus)
+    		_ = json.NewEncoder(w).Encode(response)
+    	}))
+    }
+    
+    func setupErrorServer(t *testing.T, status int, body string) *httptest.Server {
+    	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+    		w.WriteHeader(status)
+    		_, _ = w.Write([]byte(body))
+    	}))
+    }
+    
+    // generic helper to drain iter.Seq2 into slice
+    func seqToSlice[T any](seq iter.Seq2[T, error]) ([]T, error) {
+    	var out []T
+    	for v, err := range seq {
+    		if err != nil {
+    			return nil, err
+    		}
+    		out = append(out, v)
+    	}
+    	return out, nil
+    }
+    
+    // ---------------------- task -------------------------
+    func TestCreateTask(t *testing.T) {
+    	mock := umbra.Task{ID: "task123", Status: umbra.TaskActive}
+    	srv := setupMockServer(t, http.MethodPost, "/tasking/tasks", http.StatusCreated, mock)
+    	defer srv.Close()
+    
+    	c, _ := umbra.NewClient(srv.URL)
+    	got, err := c.CreateTask("tok", &umbra.TaskRequest{})
+    	if err != nil || got.ID != "task123" {
+    		t.Fatalf("unexpected: %+v %v", got, err)
+    	}
+    }
+    
+    func TestGetTask(t *testing.T) {
+    	mock := umbra.Task{ID: "t-123", Status: umbra.TaskScheduled}
+    	srv := setupMockServer(t, http.MethodGet, "/tasking/tasks/t-123", http.StatusOK, mock)
+    	defer srv.Close()
+    
+    	c, _ := umbra.NewClient(srv.URL)
+    	got, err := c.GetTask("tok", "t-123")
+    	if err != nil || got.Status != umbra.TaskScheduled {
+    		t.Fatalf("mismatch: %+v %v", got, err)
+    	}
+    }
+    
+    func TestCancelTask(t *testing.T) {
+    	mock := umbra.Task{ID: "t-123", Status: umbra.TaskCanceled}
+    	srv := setupMockServer(t, http.MethodPatch, "/tasking/tasks/t-123/cancel", http.StatusOK, mock)
+    	defer srv.Close()
+    
+    	c, _ := umbra.NewClient(srv.URL)
+    	got, err := c.CancelTask("tok", "t-123")
+    	if err != nil || got.Status != umbra.TaskCanceled {
+    		t.Fatalf("cancel failed: %+v %v", got, err)
+    	}
+    }
+    
+    // ---------------------- collect ----------------------
+    func TestGetCollect(t *testing.T) {
+    	mock := umbra.Collect{ID: "col123", Status: "DELIVERED"}
+    	srv := setupMockServer(t, http.MethodGet, "/tasking/collects/col123", http.StatusOK, mock)
+    	defer srv.Close()
+    
+    	c, _ := umbra.NewClient(srv.URL)
+    	got, err := c.GetCollect("tok", "col123")
+    	if err != nil || got.ID != "col123" {
+    		t.Fatalf("unexpected: %+v %v", got, err)
+    	}
+    }
+    
+    func TestSearchCollects(t *testing.T) {
+    	mock := []umbra.Collect{{ID: "c1", Status: "DELIVERED"}, {ID: "c2", Status: "PROCESSING"}}
+    	srv := setupMockServer(t, http.MethodPost, "/tasking/collects/search", http.StatusOK, mock)
+    	defer srv.Close()
+    
+    	c, _ := umbra.NewClient(srv.URL)
+    	limit, skip := 10, 0
+    	req := umbra.CollectSearchRequest{Limit: &limit, Skip: &skip, Query: map[string]any{"taskIds": []string{"t-123"}}}
+    	seq := c.SearchCollects("tok", req)
+    
+    	out, err := seqToSlice(seq)
+    	if err != nil || len(out) != 2 {
+    		t.Fatalf("search failed: %+v %v", out, err)
+    	}
+    }
+    
+    // ---------------------- task search ------------------
+    func TestSearchTasks(t *testing.T) {
+    	mock := []umbra.Task{{ID: "t1", Status: umbra.TaskActive}, {ID: "t2", Status: umbra.TaskSubmitted}}
+    	srv := setupMockServer(t, http.MethodPost, "/tasking/tasks/search", http.StatusOK, mock)
+    	defer srv.Close()
+    
+    	c, _ := umbra.NewClient(srv.URL)
+    	limit, skip := 5, 0
+    	req := umbra.TaskSearchRequest{Limit: &limit, Skip: &skip, Query: map[string]any{"status": []string{"ACTIVE"}}}
+    	seq := c.SearchTasks("tok", req)
+    
+    	out, err := seqToSlice(seq)
+    	if err != nil || len(out) != 2 {
+    		t.Fatalf("search tasks failed: %+v %v", out, err)
+    	}
+    }
+    
+    // ---------------------- feasibility ------------------
+    func TestCreateFeasibility(t *testing.T) {
+    	req := &umbra.TaskingRequest{
+    		ImagingMode: umbra.SPOTLIGHT_MODE,
+    		SpotlightConstraints: umbra.SpotlightConstraints{
+    			Geometry: umbra.PointGeometry{Type: "Point", Coordinates: []float64{12.34, 56.78}},
+    		},
+    		WindowStartAt: time.Now(),
+    		WindowEndAt:   time.Now().Add(30 * time.Minute),
+    	}
+    
+    	mock := umbra.FeasibilityResponse{ID: "mock-id", Status: "CREATED", Request: *req}
+    	srv := setupMockServer(t, http.MethodPost, "/tasking/feasibilities", http.StatusCreated, mock)
+    	defer srv.Close()
+    
+    	c, _ := umbra.NewClient(srv.URL)
+    	got, err := c.CreateFeasibility("tok", req)
+    	if err != nil || got.ID != "mock-id" {
+    		t.Fatalf("CreateFeasibility failed: %+v %v", got, err)
+    	}
+    }
+    
+    func TestGetFeasibility(t *testing.T) {
+    	mock := umbra.FeasibilityResponse{ID: "mock-id", Status: "PROCESSING"}
+    	srv := setupMockServer(t, http.MethodGet, "/tasking/feasibilities/mock-id", http.StatusOK, mock)
+    	defer srv.Close()
+    
+    	c, _ := umbra.NewClient(srv.URL)
+    	got, err := c.GetFeasibility("tok", "mock-id")
+    	if err != nil || got.Status != "PROCESSING" {
+    		t.Fatalf("GetFeasibility failed: %+v %v", got, err)
+    	}
+    }
+    
+    // ---------------------- error path -------------------
+    func TestCreateTaskError(t *testing.T) {
+    	srv := setupErrorServer(t, http.StatusInternalServerError, "boom")
+    	defer srv.Close()
+    
+    	c, _ := umbra.NewClient(srv.URL)
+    	_, err := c.CreateTask("tok", &umbra.TaskRequest{})
+    	if err == nil || !strings.Contains(err.Error(), "unexpected status") {
+    		t.Fatalf("expected error, got %v", err)
+    	}
+    }
+
+    [File Ends] pkg/umbra/umbra_test.go
+
+
+<-- File Content Ends
+

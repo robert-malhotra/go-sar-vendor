@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/robert.malhotra/umbra-client/pkg/umbra"
+	"github.com/robert.malhotra/go-sar-vendor/pkg/umbra"
 	"github.com/urfave/cli/v3"
 )
 
