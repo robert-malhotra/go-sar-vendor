@@ -1,0 +1,678 @@
+Repository Documentation
+This document provides a comprehensive overview of the repository's structure and contents.
+The first section, titled 'Directory/File Tree', displays the repository's hierarchy in a tree format.
+In this section, directories and files are listed using tree branches to indicate their structure and relationships.
+Following the tree representation, the 'File Content' section details the contents of each file in the repository.
+Each file's content is introduced with a '[File Begins]' marker followed by the file's relative path,
+and the content is displayed verbatim. The end of each file's content is marked with a '[File Ends]' marker.
+This format ensures a clear and orderly presentation of both the structure and the detailed contents of the repository.
+
+Directory/File Tree Begins -->
+
+capella/
+├── capella_test.go
+├── client.go
+├── feasibility.go
+└── tasking.go
+
+<-- Directory/File Tree Ends
+
+File Content Begin -->
+[File Begins] capella_test.go
+package capella_test
+
+[File Ends] capella_test.go
+
+[File Begins] client.go
+package capella
+
+import (
+	"bytes"
+	"context"
+	"encoding/json"
+	"fmt"
+	"io"
+	"net/http"
+	"net/url"
+	"path"
+	"time"
+)
+
+const (
+	defaultBaseURL = "https://api.capellaspace.com/"
+)
+
+//--- API Error ---
+
+type APIError struct {
+	StatusCode int
+	Body       string
+	Validation *HTTPValidationError
+}
+
+func (e *APIError) Error() string {
+	if e.Validation != nil && len(e.Validation.Detail) > 0 {
+		return fmt.Sprintf("API error: status %d - %s", e.StatusCode, e.Validation.Detail[0].Msg)
+	}
+	return fmt.Sprintf("API error: status %d - %s", e.StatusCode, e.Body)
+}
+
+//--- Client ---
+
+// Client is a stateless client for the Capella Tasking Service API.
+// It does not hold an API key; the key must be provided with each call.
+type Client struct {
+	baseURL    string
+	httpClient *http.Client
+	apiKey     string //unused for now
+}
+
+// ClientOption is a function that configures a Client.
+type ClientOption func(*Client)
+
+// WithBaseURL sets the base URL for API requests.
+func WithBaseURL(baseURL string) ClientOption {
+	return func(c *Client) {
+		c.baseURL = baseURL
+	}
+}
+
+// WithHTTPClient sets a custom HTTP client for the API client.
+func WithHTTPClient(httpClient *http.Client) ClientOption {
+	return func(c *Client) {
+		c.httpClient = httpClient
+	}
+}
+
+func WithApiKey(key string) ClientOption {
+	return func(c *Client) {
+		c.apiKey = key
+	}
+}
+
+// NewClient creates a new Tasking Service client.
+// It uses sensible defaults which can be overridden with functional options.
+func NewClient(opts ...ClientOption) *Client {
+	c := &Client{
+		baseURL:    defaultBaseURL,
+		httpClient: &http.Client{Timeout: 15 * time.Second},
+	}
+
+	for _, opt := range opts {
+		opt(c)
+	}
+
+	return c
+}
+
+//--- Helper Methods ---
+
+// newRequest creates an http.Request with the necessary headers.
+// Note: It uses context.Background() as context is no longer passed from the caller.
+func (c *Client) newRequest(apiKey, method, endpoint string, body []byte) (*http.Request, error) {
+	u, err := url.Parse(c.baseURL)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse base URL: %w", err)
+	}
+	u.Path = path.Join(u.Path, endpoint)
+
+	data := bytes.NewReader(body)
+
+	// A non-cancellable context is used as it's not part of the public API.
+	req, err := http.NewRequestWithContext(context.Background(), method, u.String(), data)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create new request: %w", err)
+	}
+
+	req.Header.Set("Authorization", "ApiKey "+apiKey)
+	req.Header.Set("Accept", "application/json")
+	if body != nil {
+		req.Header.Set("Content-Type", "application/json")
+	}
+
+	return req, nil
+}
+
+// do sends an API request and handles the response.
+func (c *Client) do(req *http.Request, v any) error {
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("failed to execute request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return c.handleError(resp)
+	}
+
+	if v != nil {
+		if err = json.NewDecoder(resp.Body).Decode(v); err != nil {
+			return fmt.Errorf("failed to decode successful response: %w", err)
+		}
+	}
+
+	return nil
+}
+
+// handleError parses an error response and returns a detailed APIError.
+func (c *Client) handleError(resp *http.Response) error {
+	bodyBytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return fmt.Errorf("failed to read error response body: %w", err)
+	}
+
+	apiErr := &APIError{
+		StatusCode: resp.StatusCode,
+		Body:       string(bodyBytes),
+	}
+
+	if resp.StatusCode == http.StatusUnprocessableEntity {
+		var validationError HTTPValidationError
+		if json.Unmarshal(bodyBytes, &validationError) == nil {
+			apiErr.Validation = &validationError
+		}
+	}
+
+	return apiErr
+}
+
+// Feature represents a single GeoJSON feature whose Properties are
+// compile-time typed by the generic parameter P.
+type Feature[T any] struct {
+	Type       string `json:"type"`       // always "Feature"
+	Geometry   any    `json:"geometry"`   // any GeoJSON Geometry type
+	Properties T      `json:"properties"` // user-supplied metadata
+}
+
+[File Ends] client.go
+
+[File Begins] feasibility.go
+package capella
+
+import (
+	"encoding/json"
+	"fmt"
+	"net/http"
+	"path"
+	"time"
+)
+
+//--- Enums ---
+
+type GeoJSONGeometryType string
+
+const (
+	Point        GeoJSONGeometryType = "Point"
+	Polygon      GeoJSONGeometryType = "Polygon"
+	MultiPolygon GeoJSONGeometryType = "MultiPolygon"
+)
+
+type ProcessingStatus string
+
+const (
+	Queued     ProcessingStatus = "queued"
+	Processing ProcessingStatus = "processing"
+	Completed  ProcessingStatus = "completed"
+	Error      ProcessingStatus = "error"
+)
+
+type AccessibilityStatus string
+
+const (
+	Unknown      AccessibilityStatus = "unknown"
+	Accessible   AccessibilityStatus = "accessible"
+	Inaccessible AccessibilityStatus = "inaccessible"
+	Rejected     AccessibilityStatus = "rejected"
+)
+
+//--- Data Models ---
+// These are unchanged from the previous refactoring
+
+// AccessRequest represents the payload for creating an access request.
+type AccessRequest Feature[AccessRequestProperties]
+
+// AccessRequestResponse represents the API response for an access request.
+type AccessRequestResponse struct {
+	Type       string                          `json:"type"`
+	Geometry   GeoJSONGeometry                 `json:"geometry"`
+	Properties AccessRequestPropertiesResponse `json:"properties"`
+}
+
+// GeoJSONGeometry represents a GeoJSON geometry object.
+type GeoJSONGeometry struct {
+	Type        GeoJSONGeometryType `json:"type"`
+	Coordinates any                 `json:"coordinates"`
+}
+
+// AccessRequestProperties defines the properties of an access request.
+type AccessRequestProperties struct {
+	AccessRequestName        string             `json:"accessrequestName,omitempty"`
+	AccessRequestDescription string             `json:"accessrequestDescription,omitempty"`
+	AccessRequestType        string             `json:"accessrequestType,omitempty"`
+	OrgID                    string             `json:"orgId"`
+	UserID                   string             `json:"userId"`
+	WindowOpen               time.Time          `json:"windowOpen"`
+	WindowClose              time.Time          `json:"windowClose"`
+	AccessConstraints        *AccessConstraints `json:"accessConstraints,omitempty"`
+}
+
+// AccessRequestPropertiesResponse extends properties with API-generated fields.
+type AccessRequestPropertiesResponse struct {
+	AccessRequestProperties
+	AccessRequestID      string              `json:"accessrequestId"`
+	ProcessingStatus     ProcessingStatus    `json:"processingStatus"`
+	AccessibilityStatus  AccessibilityStatus `json:"accessibilityStatus"`
+	AccessibilityMessage string              `json:"accessibilityMessage,omitempty"`
+}
+
+// AccessConstraints defines the constraints for an access request.
+type AccessConstraints struct {
+	// Cardinal look direction of the sensor: "left", "right", or "either".
+	LookDirection *string `json:"lookDirection,omitempty"`
+
+	// Pass direction: "asc", "dsc", or "either".
+	AscDsc *string `json:"ascDsc,omitempty"`
+
+	// Constrained set of orbital planes (e.g. ["A", "C"]).  Empty slice means
+	// “no preference”.
+	OrbitalPlanes []string `json:"orbitalPlanes,omitempty"`
+
+	// One-or-more local-solar-time windows expressed as seconds-since-midnight,
+	// e.g. [[0, 86400]] for “any time of day”.
+	LocalTime [][]int `json:"localTime,omitempty"`
+
+	// Sensor-to-nadir angle constraints (degrees).
+	OffNadirMin *float64 `json:"offNadirMin,omitempty"`
+	OffNadirMax *float64 `json:"offNadirMax,omitempty"`
+
+	// Grazing-angle constraints (degrees).
+	GrazingAngleMin *float64 `json:"grazingAngleMin,omitempty"`
+	GrazingAngleMax *float64 `json:"grazingAngleMax,omitempty"`
+
+	// Azimuth-angle constraints (degrees).
+	AzimuthAngleMin *float64 `json:"azimuthAngleMin,omitempty"`
+	AzimuthAngleMax *float64 `json:"azimuthAngleMax,omitempty"`
+
+	// Desired scene dimensions (meters).
+	ImageLength *int `json:"imageLength,omitempty"`
+	ImageWidth  *int `json:"imageWidth,omitempty"`
+}
+
+// HTTPValidationError is the structure for a 422 response.
+type HTTPValidationError struct {
+	Detail []ValidationError `json:"detail"`
+}
+
+// ValidationError provides details about a specific validation failure.
+type ValidationError struct {
+	Loc  []string `json:"loc"`
+	Msg  string   `json:"msg"`
+	Type string   `json:"type"`
+}
+
+//--- API Methods ---
+
+// CreateAccessRequest submits a new access request, authenticated by the provided API key.
+func (c *Client) CreateAccessRequest(apiKey string, request AccessRequest) (*AccessRequestResponse, error) {
+	endpoint := "/ma/accessrequests/"
+
+	reqBody, err := json.Marshal(request)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal request body: %w", err)
+	}
+
+	httpReq, err := c.newRequest(apiKey, http.MethodPost, endpoint, reqBody)
+	if err != nil {
+		return nil, err
+	}
+
+	var accessResponse AccessRequestResponse
+	if err := c.do(httpReq, &accessResponse); err != nil {
+		return nil, err
+	}
+
+	return &accessResponse, nil
+}
+
+// GetAccessRequest retrieves a specific access request, authenticated by the provided API key.
+func (c *Client) GetAccessRequest(apiKey, accessRequestID string) (*AccessRequestResponse, error) {
+	endpoint := path.Join("/ma/accessrequests/", accessRequestID)
+
+	httpReq, err := c.newRequest(apiKey, http.MethodGet, endpoint, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	var accessResponse AccessRequestResponse
+	if err := c.do(httpReq, &accessResponse); err != nil {
+		return nil, err
+	}
+
+	return &accessResponse, nil
+}
+
+[File Ends] feasibility.go
+
+[File Begins] tasking.go
+package capella
+
+import (
+	"encoding/json"
+	"fmt"
+	"iter" // <-- NEW: std-lib generator helpers
+	"net/http"
+	"net/url"
+	"path"
+	"strconv"
+	"time"
+)
+
+// ---------------------------------------------------------------
+// Tasking – data models, listing & searching helpers
+// ---------------------------------------------------------------
+
+// ---------- ENUMS ------------------------------------------------
+
+type CollectionTier string
+
+const (
+	TierUrgent   CollectionTier = "urgent"
+	TierPriority CollectionTier = "priority"
+	TierStandard CollectionTier = "standard"
+	TierFlexible CollectionTier = "flexible"
+	TierRoutine  CollectionTier = "routine"
+)
+
+type ArchiveHoldback string
+
+const (
+	ArchiveNone      ArchiveHoldback = "none"
+	Archive30Day     ArchiveHoldback = "30_day"
+	Archive1Year     ArchiveHoldback = "1_year"
+	ArchivePermanent ArchiveHoldback = "permanent"
+)
+
+type TaskStatus string
+
+const (
+	StatusReceived  TaskStatus = "received"
+	StatusReview    TaskStatus = "review"
+	StatusSubmitted TaskStatus = "submitted"
+	StatusActive    TaskStatus = "active"
+	StatusAccepted  TaskStatus = "accepted"
+	StatusRejected  TaskStatus = "rejected"
+	StatusExpired   TaskStatus = "expired"
+	StatusCompleted TaskStatus = "completed"
+	StatusCanceled  TaskStatus = "canceled"
+	StatusError     TaskStatus = "error"
+	StatusAnomaly   TaskStatus = "anomaly"
+	StatusRetrying  TaskStatus = "retrying"
+	StatusApproved  TaskStatus = "approved" // cost-review transition
+)
+
+// ---------- PRODUCT TYPES ---------------------------------------
+
+type ProductType string
+
+const (
+	ProductSLC  ProductType = "SLC"
+	ProductGEO  ProductType = "GEO"
+	ProductGEC  ProductType = "GEC"
+	ProductSICD ProductType = "SICD"
+	ProductSIDD ProductType = "SIDD"
+	ProductCPHD ProductType = "CPHD"
+	ProductVC   ProductType = "VC"
+)
+
+// ---------- CONSTRAINTS / PROCESSING ----------------------------
+
+type CollectConstraints struct {
+	LookDirection   *string  `json:"lookDirection,omitempty"`
+	AscDesc         *string  `json:"ascDesc,omitempty"`
+	OrbitalPlanes   []int    `json:"orbitalPlanes,omitempty"`
+	OffNadirMin     *float64 `json:"offNadirMin,omitempty"`
+	OffNadirMax     *float64 `json:"offNadirMax,omitempty"`
+	AzimuthAngleMin *float64 `json:"azimuthAngleMin,omitempty"`
+	AzimuthAngleMax *float64 `json:"azimuthAngleMax,omitempty"`
+	GrazingAngleMin *float64 `json:"grazingAngleMin,omitempty"`
+	GrazingAngleMax *float64 `json:"grazingAngleMax,omitempty"`
+	Squint          *string  `json:"squint,omitempty"`
+	MaxSquintAngle  *int     `json:"maxSquintAngle,omitempty"`
+}
+
+type ProcessingConfig struct {
+	ProductTypes []ProductType `json:"productTypes,omitempty"`
+}
+
+// ---------- REQUEST / RESPONSE MODELS ---------------------------
+
+type TaskingRequestProperties struct {
+	TaskingRequestName        string              `json:"taskingrequestName,omitempty"`
+	TaskingRequestDescription string              `json:"taskingrequestDescription,omitempty"`
+	OrgID                     string              `json:"orgId"`
+	UserID                    string              `json:"userId"`
+	WindowOpen                time.Time           `json:"windowOpen"`
+	WindowClose               time.Time           `json:"windowClose"`
+	CollectionTier            CollectionTier      `json:"collectionTier"`
+	ArchiveHoldback           ArchiveHoldback     `json:"archiveHoldback,omitempty"`
+	CollectConstraints        *CollectConstraints `json:"collectConstraints,omitempty"`
+	CollectionType            string              `json:"collectionType"`
+	ProcessingConfig          *ProcessingConfig   `json:"processingConfig,omitempty"`
+	PreApproval               *bool               `json:"preApproval,omitempty"`
+	CustomAttribute1          string              `json:"customAttribute1,omitempty"`
+	CustomAttribute2          string              `json:"customAttribute2,omitempty"`
+}
+
+type TaskingRequest struct {
+	Type       string                   `json:"type"` // always "Feature"
+	Geometry   GeoJSONGeometry          `json:"geometry"`
+	Properties TaskingRequestProperties `json:"properties"`
+}
+
+type StatusEntry struct {
+	Time    time.Time  `json:"time"`
+	Code    TaskStatus `json:"code"`
+	Message string     `json:"message"`
+}
+
+type ConflictingTask struct {
+	TaskingRequestID   string         `json:"taskingrequestId"`
+	TaskingRequestName string         `json:"taskingrequestName"`
+	RepeatRequestID    string         `json:"repeatrequestId"`
+	CollectionTier     CollectionTier `json:"collectionTier"`
+	WindowOpen         time.Time      `json:"windowOpen"`
+	WindowClose        time.Time      `json:"windowClose"`
+}
+
+type TaskingRequestPropertiesResponse struct {
+	TaskingRequestProperties
+
+	TaskingRequestID    string              `json:"taskingrequestId"`
+	ProcessingStatus    ProcessingStatus    `json:"processingStatus"`
+	AccessibilityStatus AccessibilityStatus `json:"accessibilityStatus,omitempty"`
+	CollectionStatus    string              `json:"collectionStatus,omitempty"`
+}
+
+type TaskingRequestResponse struct {
+	Type             string                           `json:"type"`
+	Geometry         GeoJSONGeometry                  `json:"geometry"`
+	Properties       TaskingRequestPropertiesResponse `json:"properties"`
+	StatusHistory    []StatusEntry                    `json:"statusHistory,omitempty"`
+	ConflictingTasks *[]ConflictingTask               `json:"conflictingTasks,omitempty"`
+}
+
+type TaskingRequestsPagedResponse struct {
+	Results     []TaskingRequestResponse `json:"results"`
+	CurrentPage int                      `json:"currentPage"`
+	TotalPages  int                      `json:"totalPages"`
+}
+
+// ----------------------------------------------------------------
+// BASIC CRUD HELPERS
+// ----------------------------------------------------------------
+
+func (c *Client) CreateTaskingRequest(apiKey string, req TaskingRequest) (*TaskingRequestResponse, error) {
+	body, err := json.Marshal(req)
+	if err != nil {
+		return nil, fmt.Errorf("marshal: %w", err)
+	}
+	h, err := c.newRequest(apiKey, http.MethodPost, "/task", body)
+	if err != nil {
+		return nil, err
+	}
+	var resp TaskingRequestResponse
+	return &resp, c.do(h, &resp)
+}
+
+func (c *Client) GetTaskingRequest(apiKey, id string) (*TaskingRequestResponse, error) {
+	h, err := c.newRequest(apiKey, http.MethodGet, path.Join("/task", id), nil)
+	if err != nil {
+		return nil, err
+	}
+	var resp TaskingRequestResponse
+	return &resp, c.do(h, &resp)
+}
+
+func (c *Client) ApproveTaskingRequest(apiKey, id string) (*TaskingRequestResponse, error) {
+	payload := struct {
+		Status TaskStatus `json:"status"`
+	}{Status: StatusApproved}
+	body, err := json.Marshal(&payload)
+	if err != nil {
+		return nil, err
+	}
+	h, err := c.newRequest(apiKey, http.MethodPatch, path.Join("/task", id), body)
+	if err != nil {
+		return nil, err
+	}
+	var resp TaskingRequestResponse
+	return &resp, c.do(h, &resp)
+}
+
+// ----------------------------------------------------------------
+// PAGED LISTING – PAGE FETCH UTILITY
+// ----------------------------------------------------------------
+
+type PagedTasksParams struct {
+	CustomerID     string
+	OrganizationID string
+	ResellerID     string
+	Page           int
+	Limit          int
+	Sort           string
+	Order          string
+}
+
+func (c *Client) fetchTasksPage(apiKey string, p PagedTasksParams) (*TaskingRequestsPagedResponse, error) {
+	v := url.Values{}
+	if p.CustomerID != "" {
+		v.Set("customerId", p.CustomerID)
+	}
+	if p.OrganizationID != "" {
+		v.Set("organizationId", p.OrganizationID)
+	}
+	if p.ResellerID != "" {
+		v.Set("resellerId", p.ResellerID)
+	}
+	if p.Page > 0 {
+		v.Set("page", strconv.Itoa(p.Page))
+	}
+	if p.Limit > 0 {
+		v.Set("limit", strconv.Itoa(p.Limit))
+	}
+	if p.Sort != "" {
+		v.Set("sort", p.Sort)
+	}
+	if p.Order != "" {
+		v.Set("order", p.Order)
+	}
+
+	h, err := c.newRequest(apiKey, http.MethodGet, "/tasks/paged", nil)
+	if err != nil {
+		return nil, err
+	}
+	h.URL.RawQuery = v.Encode()
+
+	var resp TaskingRequestsPagedResponse
+	return &resp, c.do(h, &resp)
+}
+
+// ----------------------------------------------------------------
+// STREAMING ITERATOR USING iter.Seq2
+// ----------------------------------------------------------------
+//
+// ListTasksPaged returns an iter.Seq2 that lazily emits
+// (TaskingRequestResponse, error) pairs:
+//
+//	seq := cli.ListTasksPaged(apiKey, capella.PagedTasksParams{CustomerID: "cust-1"})
+//	for t, err := range iter.Pull2(seq) { … }
+//
+// *  The generator transparently walks through /tasks/paged until all
+//    pages are exhausted.
+// *  If an API call fails, it yields a nil-task with the error.
+// *  Stop early by breaking the `range`; no clean-up required.
+
+func (c *Client) ListTasksPaged(apiKey string, p PagedTasksParams) iter.Seq2[TaskingRequestResponse, error] {
+	// Provide sensible defaults
+	if p.Page <= 0 {
+		p.Page = 1
+	}
+	if p.Limit <= 0 {
+		p.Limit = 25
+	}
+
+	return iter.Seq2[TaskingRequestResponse, error](func(yield func(TaskingRequestResponse, error) bool) {
+		page := p.Page
+		for {
+			p.Page = page
+
+			resp, err := c.fetchTasksPage(apiKey, p)
+			if err != nil {
+				yield(TaskingRequestResponse{}, err)
+				return
+			}
+
+			for _, t := range resp.Results {
+				if !yield(t, nil) { // caller said “stop”
+					return
+				}
+			}
+
+			if page >= resp.TotalPages {
+				return // no more pages
+			}
+			page++
+		}
+	})
+}
+
+// ----------------------------------------------------------------
+// ADVANCED SEARCH  (POST /tasks/search)
+// ----------------------------------------------------------------
+
+type TaskSearchRequest struct {
+	Sort  string      `json:"sort,omitempty"`
+	Order string      `json:"order,omitempty"` // asc|desc
+	Page  int         `json:"page,omitempty"`
+	Limit int         `json:"limit,omitempty"`
+	Query interface{} `json:"query,omitempty"`
+}
+
+func (c *Client) SearchTasks(apiKey string, body TaskSearchRequest) (*TaskingRequestsPagedResponse, error) {
+	b, err := json.Marshal(body)
+	if err != nil {
+		return nil, fmt.Errorf("marshal search body: %w", err)
+	}
+	h, err := c.newRequest(apiKey, http.MethodPost, "/tasks/search", b)
+	if err != nil {
+		return nil, err
+	}
+	var resp TaskingRequestsPagedResponse
+	return &resp, c.do(h, &resp)
+}
+
+[File Ends] tasking.go
+
+
+<-- File Content Ends
+
