@@ -24,6 +24,7 @@ func main() {
 			umbraCmd(),
 			capellaCmd(),
 			iceyeCmd(),
+			airbusCmd(),
 		},
 	}
 
