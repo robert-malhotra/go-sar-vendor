@@ -1,0 +1,125 @@
+# Cancel Task
+
+Requests cancellation of a previously submitted task. A task can only be canceled if it's status is one of SCHEDULED, SUBMITTED, ACCEPTED, ACTIVE. If this operation fails, a 422 will be returned.
+
+# OpenAPI definition
+
+```json
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Tasking",
+    "description": "Canopy API for Self-Service Tasking",
+    "version": "2.39.0"
+  },
+  "servers": [
+    {
+      "url": "https://api.canopy.umbra.space/tasking",
+      "description": "Live Environment"
+    },
+    {
+      "url": "https://api.canopy.prod.umbra-sandbox.space/tasking",
+      "description": "Sandbox Environment"
+    }
+  ],
+  "paths": {
+    "/tasks/{id}/cancel": {
+      "patch": {
+        "tags": [
+          "Tasks"
+        ],
+        "summary": "Cancel Task",
+        "description": "Requests cancellation of a previously submitted task. A task can only be canceled if it's status is one of SCHEDULED, SUBMITTED, ACCEPTED, ACTIVE. If this operation fails, a 422 will be returned.",
+        "operationId": "cancel_task",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "detail": {
+                      "items": {
+                        "properties": {
+                          "loc": {
+                            "items": {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "integer"
+                                }
+                              ]
+                            },
+                            "type": "array",
+                            "title": "Location"
+                          },
+                          "msg": {
+                            "type": "string",
+                            "title": "Message"
+                          },
+                          "type": {
+                            "type": "string",
+                            "title": "Error Type"
+                          }
+                        },
+                        "type": "object",
+                        "required": [
+                          "loc",
+                          "msg",
+                          "type"
+                        ],
+                        "title": "ValidationError",
+                        "x-readme-ref-name": "ValidationError"
+                      },
+                      "type": "array",
+                      "title": "Detail"
+                    }
+                  },
+                  "type": "object",
+                  "title": "HTTPValidationError",
+                  "x-readme-ref-name": "HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    }
+  },
+  "security": [
+    {
+      "bearerAuth": []
+    }
+  ],
+  "x-readme": {
+    "explorer-enabled": true,
+    "proxy-enabled": true
+  }
+}
+```

@@ -1,0 +1,5845 @@
+{
+  "info": {
+    "title": "tasking-service",
+    "description": "The Tasking Service allows users to submit and check status of tasking requests.",
+    "version": "1.0.0"
+  },
+  "externalDocs": {
+    "url": ""
+  },
+  "security": [
+    {
+      "apiKeyAuth": [],
+      "bearerAuth": []
+    }
+  ],
+  "paths": {
+    "/ma/tles/": {
+      "get": {
+        "tags": [
+          "Mission Awareness"
+        ],
+        "summary": "List Capella TLEs",
+        "operationId": "access_list_capi_ma_tles__get",
+        "parameters": [
+          {
+            "required": false,
+            "schema": {
+              "title": "Skip",
+              "minimum": 0,
+              "type": "integer",
+              "default": 0,
+              "example": 0
+            },
+            "name": "skip",
+            "in": "query"
+          },
+          {
+            "required": false,
+            "schema": {
+              "title": "Limit",
+              "maximum": 1000,
+              "minimum": 1,
+              "type": "integer",
+              "default": 100,
+              "example": 100
+            },
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CAPITLE"
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/repeat-requests": {
+      "post": {
+        "tags": [
+          "Repeat Requests"
+        ],
+        "description": "Creates a new repeat request.",
+        "operationId": "createRepeatRequest",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CAPICollectionTypeRepeatRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created repeat request",
+            "content": {
+              "application/json; charset=utf-8": {
+                "schema": {
+                  "$ref": "#/components/schemas/CAPICollectionTypeRepeatRequestResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Failure due to invalid request schema elements.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorDetails"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "An error prevented the request from processing.",
+            "content": {
+              "application/json; charset=utf-8": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Repeat Requests"
+        ],
+        "description": "Fetch repeat requests",
+        "operationId": "fetchRepeatRequests",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "organizationId",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "userId",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "skip",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "An array of repeat requests",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CAPICollectionTypeRepeatRequestResponse"
+                  }
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "An error prevented the request from processing.",
+            "content": {
+              "application/json; charset=utf-8": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/repeat-requests/{repeatrequestId}": {
+      "get": {
+        "tags": [
+          "Repeat Requests"
+        ],
+        "description": "Fetches a repeat request by id",
+        "operationId": "getRepeatRequest",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "repeatrequestId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The repeat request",
+            "content": {
+              "application/json; charset=utf-8": {
+                "schema": {
+                  "$ref": "#/components/schemas/CAPICollectionTypeRepeatRequestResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "An error prevented the request from processing.",
+            "content": {
+              "application/json; charset=utf-8": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Repeat Requests"
+        ],
+        "description": "Updates a repeat request.",
+        "operationId": "updateRepeatRequest",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "repeatrequestId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateRepeatRequestBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Repeat request updated",
+            "content": {
+              "application/json; charset=utf-8": {
+                "schema": {
+                  "$ref": "#/components/schemas/CAPICollectionTypeRepeatRequestResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Failure due to invalid request schema elements.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorDetails"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "An error prevented the request from processing status update.",
+            "content": {
+              "application/json; charset=utf-8": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/repeat-requests/{repeatrequestId}/tasks": {
+      "get": {
+        "tags": [
+          "Repeat Requests"
+        ],
+        "description": "Fetches a repeat request's spawned tasks",
+        "operationId": "getRepeatRequestTasks",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "repeatrequestId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The tasking requests associated to the repeat reuqest",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CAPICollectionTypeTaskingRequestResponse"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "An error prevented the request from processing.",
+            "content": {
+              "application/json; charset=utf-8": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/repeat-requests/{repeatrequestId}/status": {
+      "patch": {
+        "tags": [
+          "Repeat Requests"
+        ],
+        "description": "Updates the status of a repeat request.",
+        "operationId": "updateRepeatRequestStatus",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "repeatrequestId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RepeatRequestStatusUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Repeat request status updated",
+            "content": {
+              "application/json; charset=utf-8": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CAPIStatusEntry"
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Failure due to invalid request schema elements.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorDetails"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "An error prevented the request from processing status update.",
+            "content": {
+              "application/json; charset=utf-8": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/repeat-requests/search/": {
+      "post": {
+        "tags": [
+          "Repeat Requests"
+        ],
+        "description": "Search repeat requests",
+        "operationId": "searchRepeatRequests",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RepeatRequestSearchRequest"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "in": "query",
+            "required": false,
+            "schema": {
+              "title": "Page",
+              "minimum": 1,
+              "type": "integer",
+              "default": 1
+            },
+            "example": 1,
+            "name": "page"
+          },
+          {
+            "in": "query",
+            "required": false,
+            "schema": {
+              "title": "Limit",
+              "maximum": 500,
+              "minimum": 250,
+              "type": "integer",
+              "default": 250
+            },
+            "example": 300,
+            "name": "limit"
+          },
+          {
+            "in": "query",
+            "name": "sort",
+            "schema": {
+              "type": "string",
+              "default": "submissionTime"
+            },
+            "description": "A key in task properties to sort on.",
+            "example": "windowOpen"
+          },
+          {
+            "in": "query",
+            "name": "order",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "asc",
+                "desc"
+              ],
+              "default": "desc"
+            },
+            "description": "Direction in which the sorted property will appear. This parameter is ignored unless you provide sort.",
+            "example": "asc"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RepeatRequestsPagedResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "An error prevented the request from processing.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "An error prevented the request from processing.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/repeat-requests/{repeatrequestId}/retask": {
+      "post": {
+        "tags": [
+          "Repeat Requests"
+        ],
+        "description": "Retask a repeat request with the specified repeat request ID.",
+        "operationId": "retaskByRepeatRequestId",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "repeatrequestId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The GUID for the repeat-request the caller is requesting to retask."
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "retaskRequestName": {
+                    "type": "string",
+                    "description": "Retask tasking request name"
+                  },
+                  "retaskRequestDescription": {
+                    "type": "string",
+                    "description": "Retask tasking request description"
+                  },
+                  "repeatStart": {
+                    "format": "date-time",
+                    "description": "Beginning of window recurrences",
+                    "type": "string"
+                  },
+                  "repeatEnd": {
+                    "format": "date-time",
+                    "description": "End of window recurrences",
+                    "type": "string"
+                  },
+                  "repetitionInterval": {
+                    "format": "integer",
+                    "description": "Number of days between the start of derived requests",
+                    "type": "string"
+                  },
+                  "repetitionCount": {
+                    "format": "integer",
+                    "description": "Total number of acquisitions for a repeat series",
+                    "type": "string"
+                  },
+                  "collectionTier": {
+                    "description": "The desired tasking service level.",
+                    "enum": [
+                      "routine",
+                      "flexible",
+                      "internal"
+                    ]
+                  },
+                  "archiveHoldback": {
+                    "$ref": "#/components/schemas/ArchiveHoldback"
+                  },
+                  "contractId": {
+                    "type": "string",
+                    "description": "The unique identifier for the contract that should be\ncharged for this retasking request\n"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successfully retasked repeated request",
+            "content": {
+              "application/json; charset=utf-8": {
+                "schema": {
+                  "$ref": "#/components/schemas/CAPICollectionTypeRepeatRequestResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Failure due to invalid request schema elements.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorDetails"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "An error prevented the request from processing.",
+            "content": {
+              "application/json; charset=utf-8": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/task/docs": {
+      "get": {
+        "tags": [
+          "Tasking Requests"
+        ],
+        "description": "Returns the task OpenAPI documentation in JSON format",
+        "operationId": "getDocs",
+        "responses": {
+          "200": {
+            "description": "tasking-service openapi.json",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "An error prevented the request from processing.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/task": {
+      "post": {
+        "tags": [
+          "Tasking Requests"
+        ],
+        "description": "Creates a new tasking request.",
+        "operationId": "createTaskingRequest",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CAPICollectionTypeTaskingRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created tasking request",
+            "content": {
+              "application/json; charset=utf-8": {
+                "schema": {
+                  "$ref": "#/components/schemas/CAPICollectionTypeTaskingRequestResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Failure due to invalid request schema elements.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorDetails"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "An error prevented the request from processing.",
+            "content": {
+              "application/json; charset=utf-8": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/tasks": {
+      "get": {
+        "tags": [
+          "Tasking Requests"
+        ],
+        "description": "Returns a list of tasks.  This request can be filtered using the customerId query parameter if it was supplied.",
+        "operationId": "getTaskByCustomerId",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "customerId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "organizationId",
+            "schema": {
+              "type": "string"
+            },
+            "description": "The GUID for the customer requesting the tasks they have created."
+          },
+          {
+            "in": "query",
+            "name": "resellerId",
+            "schema": {
+              "type": "string"
+            },
+            "description": "A reseller ID to index all tasks in their managed hierarchy (if authorized)."
+          },
+          {
+            "in": "query",
+            "name": "sort",
+            "schema": {
+              "type": "string"
+            },
+            "description": "A key in task properties to sort on. For example sort=windowOpen"
+          },
+          {
+            "in": "query",
+            "name": "order",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "asc",
+                "desc"
+              ]
+            },
+            "description": "Direction in which the sorted property will appear. This parameter is ignored unless you provide sort. Defaults to desc."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "JSON array of CAPICollectionTypeTaskingRequestResponse created by the requesting user",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CAPICollectionTypeTaskingRequestResponse"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "An error prevented the request from processing.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "An error prevented the request from processing.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "An error prevented the request from processing.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/tasks/paged": {
+      "get": {
+        "tags": [
+          "Tasking Requests"
+        ],
+        "description": "Returns a paginated list of tasks.  This request can be filtered using various query parameters below, pending authorization.",
+        "operationId": "getPagedTasks",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "customerId",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "organizationId",
+            "schema": {
+              "type": "string"
+            },
+            "description": "The GUID for the customer requesting the tasks they have created."
+          },
+          {
+            "in": "query",
+            "name": "resellerId",
+            "schema": {
+              "type": "string"
+            },
+            "description": "A reseller ID to index all tasks in their managed hierarchy (if authorized)."
+          },
+          {
+            "in": "query",
+            "required": false,
+            "schema": {
+              "title": "Page",
+              "minimum": 1,
+              "type": "integer",
+              "default": 1
+            },
+            "example": 1,
+            "name": "page"
+          },
+          {
+            "in": "query",
+            "required": false,
+            "schema": {
+              "title": "Limit",
+              "maximum": 500,
+              "minimum": 5,
+              "type": "integer",
+              "default": 25
+            },
+            "example": 25,
+            "name": "limit"
+          },
+          {
+            "in": "query",
+            "name": "sort",
+            "schema": {
+              "type": "string"
+            },
+            "description": "A key in task properties to sort on. For example sort=windowOpen"
+          },
+          {
+            "in": "query",
+            "name": "order",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "asc",
+                "desc"
+              ]
+            },
+            "description": "Direction in which the sorted property will appear. This parameter is ignored unless you provide sort. Defaults to desc."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskingRequestsPagedResponse"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "An error prevented the request from processing.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/tasks/search": {
+      "post": {
+        "tags": [
+          "Tasking Requests"
+        ],
+        "description": "An advanced search for tasking requests.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TaskingRequestSearchRequest"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "in": "query",
+            "required": false,
+            "schema": {
+              "title": "Page",
+              "minimum": 1,
+              "type": "integer",
+              "default": 1
+            },
+            "example": 1,
+            "name": "page"
+          },
+          {
+            "in": "query",
+            "required": false,
+            "schema": {
+              "title": "Limit",
+              "maximum": 500,
+              "minimum": 250,
+              "type": "integer",
+              "default": 250
+            },
+            "example": 300,
+            "name": "limit"
+          },
+          {
+            "in": "query",
+            "name": "sort",
+            "schema": {
+              "type": "string",
+              "default": "submissionTime"
+            },
+            "description": "A key in task properties to sort on.",
+            "example": "windowOpen"
+          },
+          {
+            "in": "query",
+            "name": "order",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "asc",
+                "desc"
+              ],
+              "default": "desc"
+            },
+            "description": "Direction in which the sorted property will appear. This parameter is ignored unless you provide sort.",
+            "example": "asc"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskingRequestsPagedResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "An authorization error prevented the request from processing.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "An error prevented the request from processing.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/task/{taskingRequestId}": {
+      "get": {
+        "tags": [
+          "Tasking Requests"
+        ],
+        "description": "Returns the task for the specified ID and it's status",
+        "operationId": "getTaskById",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "taskingRequestId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The GUID for the tasking request the caller is requesting."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "JSON representation of the tasking request created by the requesting user",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CAPITaskingRequestIndividualResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "An authorization error prevented the request from processing.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "An error prevented the request from processing.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Tasking Requests"
+        ],
+        "description": "Updates the task for the specified ID.",
+        "operationId": "updateTaskById",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "taskingRequestId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The GUID for the tasking request the caller is requesting to update."
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateTaskingRequestBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "JSON representation of the CAPICollectionTypeTaskingRequestResponse updated by the requesting user",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CAPICollectionTypeTaskingRequestResponse"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "An error prevented the request from processing.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/task/{taskingRequestId}/status": {
+      "patch": {
+        "tags": [
+          "Tasking Requests"
+        ],
+        "description": "Updates the status of a task with the specified ID.",
+        "operationId": "updateTaskStatusById",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "taskingRequestId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The GUID for the tasking request the caller is requesting to update."
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "approved",
+                      "rejected",
+                      "canceled"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "JSON representation of the CAPICollectionTypeTaskingRequestResponse updated by the requesting user",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CAPICollectionTypeTaskingRequestResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Failure due to invalid request schema elements.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorDetails"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "An error prevented the request from processing.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/task/{taskingRequestId}/retask": {
+      "post": {
+        "tags": [
+          "Tasking Requests"
+        ],
+        "description": "Retask a task with the specified task ID.",
+        "operationId": "retaskByTaskId",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "taskingRequestId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The GUID for the tasking request the caller is requesting to retask."
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "retaskRequestName": {
+                    "type": "string",
+                    "description": "Retask tasking request name"
+                  },
+                  "retaskRequestDescription": {
+                    "type": "string",
+                    "description": "Retask tasking request description"
+                  },
+                  "windowOpen": {
+                    "format": "date-time",
+                    "description": "Start of allowable collection period",
+                    "type": "string"
+                  },
+                  "windowClose": {
+                    "format": "date-time",
+                    "description": "End of allowable collection period",
+                    "type": "string"
+                  },
+                  "collectionTier": {
+                    "description": "The desired tasking service level.",
+                    "type": "string",
+                    "enum": [
+                      "urgent",
+                      "priority",
+                      "standard",
+                      "flexible",
+                      "internal"
+                    ]
+                  },
+                  "archiveHoldback": {
+                    "$ref": "#/components/schemas/ArchiveHoldback"
+                  },
+                  "contractId": {
+                    "type": "string",
+                    "description": "The unique identifier for the contract that should be\ncharged for this retasking request\n"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successfully retasked tasking request",
+            "content": {
+              "application/json; charset=utf-8": {
+                "schema": {
+                  "$ref": "#/components/schemas/CAPICollectionTypeTaskingRequestResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Failure due to invalid request schema elements.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorDetails"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "An error prevented the request from processing.",
+            "content": {
+              "application/json; charset=utf-8": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/tiles/list/{requestId}": {
+      "get": {
+        "tags": [
+          "Tiles and Collects"
+        ],
+        "summary": "List tiles by tasking request or access request id",
+        "parameters": [
+          {
+            "required": true,
+            "schema": {
+              "title": "Tasking or access request ID",
+              "type": "string"
+            },
+            "name": "requestId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Tile list",
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CAPITile"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/tiles/list/accessrequest/{accessRequestId}": {
+      "get": {
+        "tags": [
+          "Tiles and Collects"
+        ],
+        "summary": "List tiles by access request id",
+        "parameters": [
+          {
+            "required": true,
+            "schema": {
+              "title": "Access request ID",
+              "type": "string"
+            },
+            "name": "accessRequestId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Tile list",
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CAPITile"
+                  }
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "An error prevented the request from processing.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/collects/{collectId}/task": {
+      "get": {
+        "tags": [
+          "Tiles and Collects"
+        ],
+        "description": "Returns the task for the specified collect ID. For tasks created in a different organization, sensitive fields will be redacted.",
+        "operationId": "getTaskByCollectId",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "collectId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The UUID of the collect ID of the task being requested"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "JSON representation of the CAPICollectionTypeTaskingRequestResponse associated to the collect ID",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CAPICollectionTypeTaskingRequestResponse"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "An error prevented the request from processing.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/collects/{collectId}/retask": {
+      "post": {
+        "tags": [
+          "Tiles and Collects"
+        ],
+        "description": "Retask a task with the specified collect ID.",
+        "operationId": "retaskByCollectId",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "collectId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The GUID for the collect the caller wants to retask."
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "retaskRequestName": {
+                    "type": "string",
+                    "description": "Retask tasking request name"
+                  },
+                  "retaskRequestDescription": {
+                    "type": "string",
+                    "description": "Retask tasking request description"
+                  },
+                  "windowOpen": {
+                    "format": "date-time",
+                    "description": "Start of allowable collection period",
+                    "type": "string"
+                  },
+                  "windowClose": {
+                    "format": "date-time",
+                    "description": "End of allowable collection period",
+                    "type": "string"
+                  },
+                  "collectionTier": {
+                    "description": "The desired tasking service level.",
+                    "type": "string",
+                    "enum": [
+                      "urgent",
+                      "priority",
+                      "standard",
+                      "flexible",
+                      "internal"
+                    ]
+                  },
+                  "archiveHoldback": {
+                    "$ref": "#/components/schemas/ArchiveHoldback"
+                  },
+                  "offNadirMin": {
+                    "description": "Minimum off-nadir angle of ground center point viewed from the spacecraft during collection.",
+                    "type": "number"
+                  },
+                  "offNadirMax": {
+                    "description": "Maximum off-nadir angle of ground center point viewed from the spacecraft during collection.",
+                    "type": "number"
+                  },
+                  "contractId": {
+                    "type": "string",
+                    "description": "The unique identifier for the contract that should be\ncharged for this retasking request\n"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successfully retasked tasking request",
+            "content": {
+              "application/json; charset=utf-8": {
+                "schema": {
+                  "$ref": "#/components/schemas/CAPICollectionTypeTaskingRequestResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Failure due to invalid request schema elements.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorDetails"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "An error prevented the request from processing.",
+            "content": {
+              "application/json; charset=utf-8": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ma/accessrequests/": {
+      "post": {
+        "tags": [
+          "Mission Awareness"
+        ],
+        "summary": "Create Access Request",
+        "description": "Create Access Request.",
+        "operationId": "accessrequest_post_capi_ma_accessrequests__post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CAPIAccessRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CAPIAccessRequestResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ma/accessrequests/{accessrequest_id}": {
+      "get": {
+        "tags": [
+          "Mission Awareness"
+        ],
+        "summary": "Get Access Request by ID",
+        "description": "Retrieve a Access Request by ID.",
+        "operationId": "accessrequest_get_capi_ma_accessrequests__accessrequest_id__get",
+        "parameters": [
+          {
+            "required": true,
+            "schema": {
+              "title": "Access Request ID",
+              "type": "string"
+            },
+            "name": "accessrequest_id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CAPIAccessRequestResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ma/accesses/{accessrequest_id}": {
+      "get": {
+        "tags": [
+          "Mission Awareness"
+        ],
+        "summary": "Get Access by ID",
+        "description": "Retrieve a Access Request by ID.",
+        "operationId": "access_get_capi_ma_accesses__accessrequest_id__get",
+        "parameters": [
+          {
+            "required": true,
+            "schema": {
+              "title": "Access Request ID",
+              "type": "string"
+            },
+            "name": "accessrequest_id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Access Get Capi Ma Accesses  Accessrequest Id  Get",
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CAPIAccess"
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ma/tles/{spacecraft_id}": {
+      "get": {
+        "tags": [
+          "Mission Awareness"
+        ],
+        "summary": "Get TLE by Spacecraft ID",
+        "description": "Retrieve TLE by ID.",
+        "operationId": "get_tle_by_spacecraft_id_capi_ma_tles__spacecraft_id__get",
+        "parameters": [
+          {
+            "required": true,
+            "schema": {
+              "title": "Spacecraft ID",
+              "minimum": 1,
+              "type": "integer"
+            },
+            "name": "spacecraft_id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CAPITLE"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ma/spacecraft/": {
+      "get": {
+        "tags": [
+          "Mission Awareness"
+        ],
+        "summary": "List Capella Spacecraft",
+        "description": "List Spacecraft.",
+        "operationId": "get_capi_ma_spacecraft__get",
+        "parameters": [
+          {
+            "required": false,
+            "schema": {
+              "title": "Skip",
+              "minimum": 0,
+              "type": "integer",
+              "default": 0
+            },
+            "example": 0,
+            "name": "skip",
+            "in": "query"
+          },
+          {
+            "required": false,
+            "schema": {
+              "title": "Limit",
+              "maximum": 1000,
+              "minimum": 1,
+              "type": "integer",
+              "default": 100
+            },
+            "example": 100,
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Get Capi Ma Spacecraft  Get",
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CAPISpacecraft"
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ma/spacecraft/{spacecraft_id}": {
+      "get": {
+        "tags": [
+          "Mission Awareness"
+        ],
+        "summary": "Get Capella Spacecraft by ID",
+        "description": "Retrieve Spacecraft by ID.",
+        "operationId": "get_spacecraft_by_id_capi_ma_spacecraft__spacecraft_id__get",
+        "parameters": [
+          {
+            "required": true,
+            "schema": {
+              "title": "Spacecraft ID",
+              "type": "integer"
+            },
+            "name": "spacecraft_id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CAPISpacecraft"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ma/groundtrack/{spacecraft_id}": {
+      "get": {
+        "tags": [
+          "Mission Awareness"
+        ],
+        "summary": "Return Vehicle Ground Track",
+        "description": "Get Spacecraft Ground Track",
+        "operationId": "get_groundtrack_capi_ma_groundtrack__spacecraft_id__get",
+        "parameters": [
+          {
+            "required": true,
+            "schema": {
+              "title": "Spacecraft Id",
+              "type": "integer"
+            },
+            "name": "spacecraft_id",
+            "in": "path"
+          },
+          {
+            "required": true,
+            "schema": {
+              "title": "Windowopen",
+              "type": "string",
+              "format": "date-time"
+            },
+            "name": "windowOpen",
+            "in": "query"
+          },
+          {
+            "required": true,
+            "schema": {
+              "title": "Windowclose",
+              "type": "string",
+              "format": "date-time"
+            },
+            "name": "windowClose",
+            "in": "query"
+          },
+          {
+            "required": false,
+            "schema": {
+              "title": "Timestep",
+              "minimum": 15,
+              "type": "number",
+              "default": 120
+            },
+            "name": "timestep",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GroundTrack"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ma/trajectory/{spacecraft_id}": {
+      "get": {
+        "tags": [
+          "Mission Awareness"
+        ],
+        "summary": "Return Vehicle Ground Track",
+        "description": "Get Spacecraft Trajectory",
+        "operationId": "get_trajectory_capi_ma_trajectory__spacecraft_id__get",
+        "parameters": [
+          {
+            "required": true,
+            "schema": {
+              "title": "Spacecraft Id",
+              "type": "integer"
+            },
+            "name": "spacecraft_id",
+            "in": "path"
+          },
+          {
+            "required": true,
+            "schema": {
+              "title": "Windowopen",
+              "type": "string",
+              "format": "date-time"
+            },
+            "name": "windowOpen",
+            "in": "query"
+          },
+          {
+            "required": true,
+            "schema": {
+              "title": "Windowclose",
+              "type": "string",
+              "format": "date-time"
+            },
+            "name": "windowClose",
+            "in": "query"
+          },
+          {
+            "required": false,
+            "schema": {
+              "title": "Timestep",
+              "minimum": 15,
+              "type": "number",
+              "default": 120
+            },
+            "name": "timestep",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VehicleTrajectory"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/tiles/{tile_id}": {
+      "get": {
+        "tags": [
+          "Tiles and Collects"
+        ],
+        "summary": "Get Collects by Tile ID",
+        "description": "Retrieve a Tile by ID.",
+        "operationId": "tile_get_capi_tiles__tile_id__get",
+        "parameters": [
+          {
+            "required": true,
+            "schema": {
+              "title": "Tile ID",
+              "type": "string"
+            },
+            "name": "tile_id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CAPITile"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/collects/list/{taskingrequest_id}": {
+      "get": {
+        "tags": [
+          "Tiles and Collects"
+        ],
+        "summary": "List Collects",
+        "description": "List Collects by TaskingRequest ID.",
+        "operationId": "collect_list_capi_collects_list__taskingrequest_id__get",
+        "parameters": [
+          {
+            "required": true,
+            "schema": {
+              "title": "TaskingRequest ID",
+              "type": "string"
+            },
+            "name": "taskingrequest_id",
+            "in": "path"
+          },
+          {
+            "description": "Collects independent of schedule status",
+            "required": false,
+            "schema": {
+              "title": "All",
+              "type": "boolean",
+              "description": "Collects independent of schedule status",
+              "default": false
+            },
+            "name": "all",
+            "in": "query"
+          },
+          {
+            "required": false,
+            "schema": {
+              "title": "Skip",
+              "minimum": 0,
+              "type": "integer",
+              "default": 0
+            },
+            "example": 0,
+            "name": "skip",
+            "in": "query"
+          },
+          {
+            "required": false,
+            "schema": {
+              "title": "Limit",
+              "maximum": 1000,
+              "minimum": 1,
+              "type": "integer",
+              "default": 100
+            },
+            "example": 100,
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Collect List Capi Collects List  Taskingrequest Id  Get",
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CAPICollect"
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/collects/{collect_id}": {
+      "get": {
+        "tags": [
+          "Tiles and Collects"
+        ],
+        "summary": "Get Collects by Collect ID",
+        "description": "Retrieve a Collect by ID.",
+        "operationId": "collect_get_capi_collects__collect_id__get",
+        "parameters": [
+          {
+            "required": true,
+            "schema": {
+              "title": "Collect ID",
+              "type": "string"
+            },
+            "name": "collect_id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CAPICollect"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/collects/status/{collect_id}": {
+      "get": {
+        "tags": [
+          "Tiles and Collects"
+        ],
+        "summary": "Get Collect Status",
+        "description": "Get Collect status history",
+        "operationId": "collect_status_get_capi_collects_status__collect_id__get",
+        "parameters": [
+          {
+            "required": true,
+            "schema": {
+              "title": "Collect ID",
+              "type": "string"
+            },
+            "name": "collect_id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Collect Status Get Capi Collects Status  Collect Id  Get",
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CAPIStatusEntry"
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/collectiontypes/": {
+      "get": {
+        "tags": [
+          "Collection Types"
+        ],
+        "summary": "Get Collection Types",
+        "description": "Get collection types.",
+        "operationId": "get_collection_types_capi_collectiontypes__get",
+        "parameters": [
+          {
+            "description": "Collection type name",
+            "required": false,
+            "schema": {
+              "title": "Name",
+              "type": "string",
+              "description": "Collection type name"
+            },
+            "name": "name",
+            "in": "query"
+          },
+          {
+            "description": "Limit response to collection type names",
+            "required": false,
+            "schema": {
+              "title": "Names Only",
+              "type": "boolean",
+              "description": "Limit response to collection type names",
+              "default": false
+            },
+            "name": "names_only",
+            "in": "query"
+          },
+          {
+            "description": "Limit to active collection types",
+            "required": false,
+            "schema": {
+              "title": "Active Only",
+              "type": "boolean",
+              "description": "Limit to active collection types",
+              "default": true
+            },
+            "name": "active_only",
+            "in": "query"
+          },
+          {
+            "description": "Collection type version",
+            "required": false,
+            "schema": {
+              "title": "Version",
+              "type": "integer",
+              "description": "Collection type version"
+            },
+            "name": "version",
+            "in": "query"
+          },
+          {
+            "description": "Pagination page",
+            "required": false,
+            "schema": {
+              "title": "Page",
+              "minimum": 1,
+              "type": "integer",
+              "description": "Pagination page",
+              "default": 1
+            },
+            "example": 1,
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "description": "Limit results per page",
+            "required": false,
+            "schema": {
+              "title": "Limit",
+              "maximum": 500,
+              "minimum": 5,
+              "type": "integer",
+              "description": "Limit results per page",
+              "default": 25
+            },
+            "example": 25,
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PagedResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "apiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Authorization",
+        "description": "Prefix your API Key in the Authorization header with \"ApiKey\". (Example: Authorization: ApiKey \u003Cmy-key\u003E)"
+      },
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    },
+    "schemas": {
+      "RepeatRequestStatusUpdate": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "description": "Status of a Repeat Request",
+            "type": "string",
+            "enum": [
+              "submitted",
+              "canceled"
+            ]
+          }
+        },
+        "required": [
+          "code"
+        ]
+      },
+      "RepeatRequestCustomAttributes": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/TaskingRequestCustomAttributes"
+          }
+        ]
+      },
+      "RepeatRequestNameAttributes": {
+        "type": "object",
+        "properties": {
+          "properties": {
+            "type": "object",
+            "properties": {
+              "repeatrequestName": {
+                "type": "string",
+                "description": "The updated repeat request name"
+              },
+              "repeatrequestDescription": {
+                "type": "string",
+                "description": "The updated repeat request description"
+              }
+            }
+          }
+        }
+      },
+      "RepeatRequestProductTypeAttributes": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/TaskingRequestProductTypeAttributes"
+          }
+        ]
+      },
+      "UpdateRepeatRequestBody": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/RepeatRequestCustomAttributes"
+          },
+          {
+            "$ref": "#/components/schemas/RepeatRequestNameAttributes"
+          },
+          {
+            "$ref": "#/components/schemas/RepeatRequestProductTypeAttributes"
+          }
+        ],
+        "example": {
+          "properties": {
+            "repeatrequestName": "My new Tasking Name",
+            "repeatrequestDescription": "My new Description",
+            "customAttribute1": "Custom attribute 1",
+            "customAttribute2": "Custom attribute 2",
+            "processingConfig": {
+              "productTypes": [
+                "GEO",
+                "SLC"
+              ]
+            }
+          }
+        }
+      },
+      "TaskingRequestCustomAttributes": {
+        "type": "object",
+        "properties": {
+          "properties": {
+            "type": "object",
+            "properties": {
+              "customAttribute1": {
+                "type": "string"
+              },
+              "customAttribute2": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      },
+      "TaskingRequestNameAttributes": {
+        "type": "object",
+        "properties": {
+          "properties": {
+            "type": "object",
+            "properties": {
+              "taskingrequestName": {
+                "type": "string",
+                "description": "The updated tasking request name"
+              },
+              "taskingrequestDescription": {
+                "type": "string",
+                "description": "The updated tasking request description"
+              }
+            }
+          }
+        }
+      },
+      "TaskingRequestProductTypeAttributes": {
+        "type": "object",
+        "properties": {
+          "properties": {
+            "type": "object",
+            "properties": {
+              "processingConfig": {
+                "type": "object",
+                "properties": {
+                  "productTypes": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "UpdateTaskingRequestBody": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/TaskingRequestCustomAttributes"
+          },
+          {
+            "$ref": "#/components/schemas/TaskingRequestNameAttributes"
+          },
+          {
+            "$ref": "#/components/schemas/TaskingRequestProductTypeAttributes"
+          }
+        ],
+        "example": {
+          "properties": {
+            "taskingrequestName": "My new Tasking Name",
+            "taskingrequestDescription": "My new Description",
+            "customAttribute1": "Custom attribute 1",
+            "customAttribute2": "Custom attribute 2",
+            "processingConfig": {
+              "productTypes": [
+                "GEO",
+                "SLC"
+              ]
+            }
+          }
+        }
+      },
+      "TaskingRequestSearchRequest": {
+        "allOf": [
+          {
+            "type": "object",
+            "properties": {
+              "query": {
+                "$ref": "#/components/schemas/TaskingRequestSearchQuery"
+              }
+            }
+          },
+          {
+            "$ref": "#/components/schemas/PaginationAndSortOperators"
+          }
+        ]
+      },
+      "RepeatRequestSearchRequest": {
+        "allOf": [
+          {
+            "type": "object",
+            "properties": {
+              "query": {
+                "$ref": "#/components/schemas/RepeatRequestSearchQuery"
+              }
+            }
+          },
+          {
+            "$ref": "#/components/schemas/PaginationAndSortOperators"
+          }
+        ]
+      },
+      "TaskingRequestsPagedResponse": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/TaskingRequestSearchResults"
+          },
+          {
+            "$ref": "#/components/schemas/PagedSearchResponseContext"
+          }
+        ]
+      },
+      "RepeatRequestsPagedResponse": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/RepeatRequestSearchResults"
+          },
+          {
+            "$ref": "#/components/schemas/PagedSearchResponseContext"
+          }
+        ]
+      },
+      "PagedSearchResponseContext": {
+        "required": [
+          "currentPage",
+          "totalPages"
+        ],
+        "type": "object",
+        "properties": {
+          "currentPage": {
+            "title": "Current Page",
+            "type": "integer"
+          },
+          "totalPages": {
+            "title": "Total Pages",
+            "type": "integer"
+          }
+        }
+      },
+      "TaskingRequestSearchResults": {
+        "required": [
+          "results"
+        ],
+        "type": "object",
+        "properties": {
+          "results": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CAPICollectionTypeTaskingRequestResponse"
+            }
+          }
+        }
+      },
+      "RepeatRequestSearchResults": {
+        "required": [
+          "results"
+        ],
+        "type": "object",
+        "properties": {
+          "results": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CAPICollectionTypeRepeatRequest"
+            }
+          }
+        }
+      },
+      "PaginationAndSortOperators": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "integer",
+            "minimum": 1,
+            "default": 1,
+            "example": 1
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 250,
+            "maximum": 500,
+            "default": 250,
+            "example": 400
+          },
+          "sort": {
+            "description": "A key in the object's properties to sort on",
+            "type": "string",
+            "default": "submissionTime",
+            "example": "windowOpen"
+          },
+          "order": {
+            "type": "string",
+            "enum": [
+              "asc",
+              "desc"
+            ],
+            "description": "Direction in which the sorted property will appear. This parameter is ignored unless you provide sort. Defaults to desc.",
+            "default": "desc",
+            "example": "asc"
+          }
+        }
+      },
+      "CommonSearchQueryProperties": {
+        "type": "object",
+        "properties": {
+          "lastStatusCode": {
+            "$ref": "#/components/schemas/SearchFilterProperty"
+          },
+          "lastStatusMessage": {
+            "$ref": "#/components/schemas/SearchFilterProperty"
+          },
+          "lastStatusTime": {
+            "$ref": "#/components/schemas/DateTimeSearchFilterProperty"
+          },
+          "type": {
+            "description": "Alias to collectConstraints.collectMode",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SearchFilterProperty"
+              }
+            ]
+          },
+          "collectionTier": {
+            "$ref": "#/components/schemas/SearchFilterProperty"
+          },
+          "submissionTime": {
+            "$ref": "#/components/schemas/DateTimeSearchFilterProperty"
+          },
+          "repeatrequestId": {
+            "$ref": "#/components/schemas/SearchFilterProperty"
+          },
+          "taskIds": {
+            "$ref": "#/components/schemas/SearchFilterProperty"
+          },
+          "taskingrequestIds": {
+            "$ref": "#/components/schemas/SearchFilterProperty"
+          },
+          "userId": {
+            "$ref": "#/components/schemas/SearchFilterProperty"
+          },
+          "organizationIds": {
+            "$ref": "#/components/schemas/SearchFilterProperty"
+          },
+          "organizationId": {
+            "$ref": "#/components/schemas/SearchFilterProperty"
+          },
+          "windowDuration": {
+            "$ref": "#/components/schemas/SearchFilterProperty"
+          },
+          "archiveHoldback": {
+            "$ref": "#/components/schemas/SearchFilterProperty"
+          },
+          "resellerId": {
+            "description": "Queries all results visible to this reseller.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SearchFilterProperty"
+              }
+            ]
+          },
+          "includeRepeatingTasks": {
+            "description": "Only returns single tasking requests when true, excluding entries derived from a repeat request.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SearchFilterProperty"
+              }
+            ]
+          },
+          "analyticProducts": {
+            "$ref": "#/components/schemas/ArrayContainsSearchFilterProperty"
+          }
+        }
+      },
+      "TaskingRequestQueryProperties": {
+        "type": "object",
+        "properties": {
+          "taskingrequestName": {
+            "$ref": "#/components/schemas/TextSearchFilterProperty"
+          },
+          "taskName": {
+            "$ref": "#/components/schemas/TextSearchFilterProperty"
+          },
+          "taskIds": {
+            "$ref": "#/components/schemas/SearchFilterProperty"
+          },
+          "windowOpen": {
+            "$ref": "#/components/schemas/DateTimeSearchFilterProperty"
+          },
+          "windowClose": {
+            "$ref": "#/components/schemas/DateTimeSearchFilterProperty"
+          }
+        }
+      },
+      "RepeatRequestQueryProperties": {
+        "type": "object",
+        "properties": {
+          "repeatrequestName": {
+            "$ref": "#/components/schemas/TextSearchFilterProperty"
+          },
+          "repeatrequestDescription": {
+            "$ref": "#/components/schemas/TextSearchFilterProperty"
+          }
+        }
+      },
+      "TaskingRequestSearchQuery": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/CommonSearchQueryProperties"
+          },
+          {
+            "$ref": "#/components/schemas/TaskingRequestQueryProperties"
+          }
+        ],
+        "description": "A set of filters that can be applied to a search. Any property not explicitly declared can be searched by a scope such as `collectConstraints.radarParameters.bandwidth`.\n\nExplicit properties support various input operators depending if they are textual, datetime, or standard. See the defined schema for each.\n",
+        "example": {
+          "taskName": {
+            "startsWith": "My task prefix"
+          },
+          "lastStatusCode": {
+            "in": [
+              "accepted",
+              "completed"
+            ]
+          },
+          "lastStatusTime": "2019-01-01T00:00:00.000Z../2020-01-02T00:00:00.",
+          "collectConstraints.imageLength": {
+            "gt": 100
+          }
+        }
+      },
+      "RepeatRequestSearchQuery": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/CommonSearchQueryProperties"
+          },
+          {
+            "$ref": "#/components/schemas/RepeatRequestQueryProperties"
+          }
+        ],
+        "description": "A set of filters that can be applied to a search. Any property not explicitly declared can be searched by a scope such as `collectConstraints.radarParameters.bandwidth`.\n\nExplicit properties support various input operators depending if they are textual, datetime, or standard. See the defined schema for each.\n",
+        "example": {
+          "taskName": {
+            "startsWith": "Sean Test"
+          },
+          "lastStatusCode": {
+            "in": [
+              "accepted",
+              "completed"
+            ]
+          },
+          "lastStatusTime": "2019-01-01T00:00:00.000Z../2020-01-02T00:00:00.",
+          "collectConstraints.imageLength": {
+            "gt": 100
+          }
+        }
+      },
+      "SearchFilterProperty": {
+        "oneOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "array"
+          },
+          {
+            "$ref": "#/components/schemas/SearchQueryOperators"
+          }
+        ]
+      },
+      "SearchQueryOperators": {
+        "type": "object",
+        "properties": {
+          "gt": {
+            "type": "string"
+          },
+          "lt": {
+            "type": "string"
+          },
+          "gte": {
+            "type": "string"
+          }
+        },
+        "oneOf": [
+          {
+            "required": [
+              "gt"
+            ]
+          },
+          {
+            "required": [
+              "lt"
+            ]
+          },
+          {
+            "required": [
+              "gte"
+            ]
+          }
+        ]
+      },
+      "TextSearchFilterProperty": {
+        "type": "object",
+        "description": "All text searches are case insensitive.",
+        "properties": {
+          "contains": {
+            "type": "string"
+          },
+          "eq": {
+            "type": "string"
+          },
+          "startsWith": {
+            "type": "string"
+          }
+        },
+        "oneOf": [
+          {
+            "required": [
+              "contains"
+            ]
+          },
+          {
+            "required": [
+              "eq"
+            ]
+          },
+          {
+            "required": [
+              "startsWith"
+            ]
+          }
+        ]
+      },
+      "DateTimeSearchFilterProperty": {
+        "type": "string",
+        "description": "Date properties can be a date-time or an interval, open or closed. Date\nand time expressions adhere to RFC 3339. Open intervals are expressed\nusing double-dots.\n\nExamples:\n\n - A date-time: \"2018-02-12T23:20:50Z\"\n\n - A closed interval: \"2018-02-12T00:00:00Z/2018-03-18T12:31:12Z\"\n\n - Open intervals: \"2018-02-12T00:00:00Z/..\" or \"../2018-03-18T12:31:12Z\"\n",
+        "example": [
+          "2018-02-12T23:20:50",
+          "2018-02-12T00:00:00Z/2018-03-18T12:31:12Z",
+          "2018-02-12T00:00:00Z/..",
+          "../2018-03-18T12:31:12Z"
+        ]
+      },
+      "ArrayContainsSearchFilterProperty": {
+        "type": "object",
+        "properties": {
+          "contains": {
+            "type": "array"
+          }
+        },
+        "description": "Matches if all provided elements are present in the queried array field."
+      },
+      "ValidationErrorDetails": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              },
+              "detail": {
+                "type": "object",
+                "description": "An optional array of details present when there is a request validation error.",
+                "properties": {
+                  "message": {
+                    "type": "string",
+                    "description": "A description of the validation error",
+                    "example": "Invalid uuid"
+                  },
+                  "code": {
+                    "type": "string",
+                    "description": "The validation error code",
+                    "example": "invalid_string"
+                  },
+                  "path": {
+                    "type": "string",
+                    "description": "The path to the invalid element",
+                    "example": "body.contractId"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "ProcessingConfigProductTypes": {
+        "type": "string",
+        "enum": [
+          "SLC",
+          "GEO",
+          "GEC",
+          "SICD",
+          "SIDD",
+          "CPHD",
+          "VC"
+        ],
+        "description": "`SLC` - Single Look Complex\n`GEO` - Geocoded Terrain Corrected\n`GEC` - Geocoded Ellipsoid Corrected\n`SICD` - Sensor Independent Complex Data\n`SIDD` - Sensor Independent Derived Data\n`CPHD` - Compensated Phase History Data\n`VC` - Vessel Classification\n"
+      },
+      "ProcessingConfigRequest": {
+        "type": "object",
+        "description": "The list of product types to create. Types not on this list will not be created and, therefore, if the required minimum types (like GEO) are not included the request will fail with the appropriate error response.",
+        "example": {
+          "productTypes": [
+            "SLC",
+            "GEO",
+            "GEC",
+            "SICD",
+            "VC"
+          ]
+        },
+        "properties": {
+          "productTypes": {
+            "type": "array",
+            "example": [
+              "SLC",
+              "GEO",
+              "GEC",
+              "SICD",
+              "VC"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/ProcessingConfigProductTypes"
+            }
+          }
+        }
+      },
+      "ProcessingConfigResponse": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ProcessingConfigRequest"
+          },
+          {
+            "type": "object",
+            "example": {
+              "productTypes": [
+                "VC"
+              ],
+              "isSandbox": true
+            },
+            "properties": {
+              "isSandbox": {
+                "type": "boolean",
+                "description": "indicator of CAPI location."
+              }
+            }
+          }
+        ]
+      },
+      "ArchiveHoldback": {
+        "title": "ArchiveHoldback",
+        "enum": [
+          "none",
+          "1_year",
+          "30_day",
+          "permanent"
+        ],
+        "type": "string",
+        "description": "Archival Hold from"
+      },
+      "CAPIAccess": {
+        "title": "CAPIAccess",
+        "required": [
+          "center",
+          "centerEcef",
+          "spacecraftId",
+          "accessId",
+          "accessrequestId",
+          "tileId",
+          "windowOpen",
+          "windowClose"
+        ],
+        "type": "object",
+        "properties": {
+          "center": {
+            "title": "Center",
+            "type": "array",
+            "items": {
+              "type": "number"
+            },
+            "description": "Geodetic coordinates (lon, lat) of Access center point. Units: [deg]"
+          },
+          "centerEcef": {
+            "title": "Centerecef",
+            "type": "array",
+            "items": {
+              "type": "number"
+            },
+            "description": "ITRF ECEF Coordinates of Access center point. Units: [m]"
+          },
+          "spacecraftId": {
+            "title": "Spacecraftid",
+            "exclusiveMinimum": 0,
+            "type": "integer",
+            "description": "Spacecraft ID"
+          },
+          "accessId": {
+            "title": "Accessid",
+            "type": "string",
+            "description": "Access ID"
+          },
+          "accessrequestId": {
+            "title": "Accessrequestid",
+            "type": "string",
+            "description": "Access Request ID"
+          },
+          "tileId": {
+            "title": "Tileid",
+            "type": "string",
+            "description": "Tile ID"
+          },
+          "windowOpen": {
+            "title": "Windowopen",
+            "type": "string",
+            "description": "Start of access period in UTC",
+            "format": "date-time"
+          },
+          "windowClose": {
+            "title": "Windowclose",
+            "type": "string",
+            "description": "End of access period in UTC",
+            "format": "date-time"
+          },
+          "windowOpenLocal": {
+            "title": "Windowopenlocal",
+            "type": "string",
+            "description": "Start of access period in local time",
+            "format": "date-time"
+          },
+          "windowCloseLocal": {
+            "title": "Windowcloselocal",
+            "type": "string",
+            "description": "Start of access period in local time",
+            "format": "date-time"
+          },
+          "accessProperties": {
+            "title": "Accessproperties",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CAPIAccessProperties"
+              }
+            ],
+            "default": {
+
+            },
+            "description": "Access geometry"
+          },
+          "orbitalPlane": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/OrbitalPlane"
+              }
+            ],
+            "description": "Orbital Plane of access"
+          }
+        }
+      },
+      "CAPIAccessRequest": {
+        "title": "CAPIAccessRequest",
+        "required": [
+          "geometry",
+          "properties"
+        ],
+        "type": "object",
+        "properties": {
+          "type": {
+            "title": "Type",
+            "type": "string",
+            "description": "GeoJSON Object type",
+            "default": "Feature",
+            "example": "Feature"
+          },
+          "geometry": {
+            "title": "Geometry",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/GeoJSONGeometry"
+              }
+            ],
+            "description": "GeoJSON object type"
+          },
+          "properties": {
+            "$ref": "#/components/schemas/CAPIAccessRequestProperties"
+          }
+        },
+        "description": "Access Request Class"
+      },
+      "CAPIAccessRequestResponse": {
+        "title": "CAPIAccessRequestResponse",
+        "required": [
+          "geometry",
+          "properties"
+        ],
+        "type": "object",
+        "properties": {
+          "type": {
+            "title": "Type",
+            "type": "string",
+            "description": "GeoJSON Object type",
+            "default": "Feature",
+            "example": "Feature"
+          },
+          "geometry": {
+            "title": "Geometry",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/GeoJSONGeometry"
+              }
+            ],
+            "description": "GeoJSON object type"
+          },
+          "properties": {
+            "$ref": "#/components/schemas/CAPIAccessRequestPropertiesResponse"
+          }
+        },
+        "description": "Access Request Class"
+      },
+      "CAPICollect": {
+        "title": "CAPICollect",
+        "required": [
+          "center",
+          "centerEcef",
+          "spacecraftId",
+          "collectId",
+          "tileId",
+          "tileGroupId",
+          "taskingrequestId",
+          "windowOpen",
+          "windowClose",
+          "accessProperties",
+          "collectProperties"
+        ],
+        "type": "object",
+        "properties": {
+          "center": {
+            "title": "Center",
+            "type": "array",
+            "items": {
+              "type": "number"
+            },
+            "description": "Geodetic coordinates (lon, lat) of Collect center point. Units: [deg]"
+          },
+          "centerEcef": {
+            "title": "Centerecef",
+            "type": "array",
+            "items": {
+              "type": "number"
+            },
+            "description": "ITRF ECEF Coordinates of Collect center point. Units: [m]"
+          },
+          "spacecraftId": {
+            "title": "Spacecraftid",
+            "exclusiveMinimum": 0,
+            "type": "integer",
+            "description": "Collecting Spacecraft Capella ID"
+          },
+          "collectId": {
+            "title": "Collectid",
+            "type": "string",
+            "description": "Collect ID"
+          },
+          "tileId": {
+            "title": "Tileid",
+            "type": "string",
+            "description": "Tile ID of Tile associated with Collect"
+          },
+          "tileGroupId": {
+            "title": "Tilegroupid",
+            "type": "string",
+            "description": "Tile Group ID of Tile Group associated with the Collect"
+          },
+          "taskingrequestId": {
+            "title": "Taskingrequestid",
+            "type": "string",
+            "description": "Tasking request ID of tasking request generating the "
+          },
+          "repeatrequestId": {
+            "title": "Repeatrequestid",
+            "type": "string",
+            "description": "Associated Repeat Request ID (If Any)"
+          },
+          "windowOpen": {
+            "title": "Windowopen",
+            "type": "string",
+            "description": "Start time of collection.",
+            "format": "date-time"
+          },
+          "windowClose": {
+            "title": "Windowclose",
+            "type": "string",
+            "description": "End time of collection.",
+            "format": "date-time"
+          },
+          "windowDuration": {
+            "title": "Windowduration",
+            "type": "number",
+            "description": "Duration of collection window."
+          },
+          "accessProperties": {
+            "title": "Accessproperties",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CAPIAccessProperties"
+              }
+            ],
+            "description": "Collect access geometry"
+          },
+          "collectProperties": {
+            "title": "Collectproperties",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CAPICollectProperties"
+              }
+            ],
+            "description": "Collect radar properties"
+          },
+          "collectStatusHistory": {
+            "title": "Collectstatushistory",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CAPIStatusEntry"
+            },
+            "description": "Collect status history.",
+            "default": []
+          }
+        }
+      },
+      "CAPICollectionTypeRepeatRequest": {
+        "title": "CAPICollectionTypeRepeatRequest",
+        "required": [
+          "geometry",
+          "properties"
+        ],
+        "type": "object",
+        "properties": {
+          "type": {
+            "title": "Type",
+            "type": "string",
+            "description": "GeoJSON Object type",
+            "default": "Feature",
+            "example": "Feature"
+          },
+          "geometry": {
+            "title": "Geometry",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/GeoJSONPointGeometry"
+              }
+            ],
+            "description": "GeoJSON compliant geometry"
+          },
+          "properties": {
+            "$ref": "#/components/schemas/CAPICollectionTypeRepeatRequestProperties"
+          }
+        },
+        "description": "Repeat Request with Collection Type"
+      },
+      "CAPICollectionTypeRepeatRequestResponse": {
+        "title": "CAPICollectionTypeRepeatRequestResponse",
+        "required": [
+          "geometry",
+          "properties"
+        ],
+        "type": "object",
+        "properties": {
+          "type": {
+            "title": "Type",
+            "type": "string",
+            "description": "GeoJSON Object type",
+            "default": "Feature",
+            "example": "Feature"
+          },
+          "geometry": {
+            "title": "Geometry",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/GeoJSONPointGeometry"
+              }
+            ],
+            "description": "GeoJSON compliant geometry"
+          },
+          "properties": {
+            "$ref": "#/components/schemas/CAPICollectionTypeRepeatRequestResponseProperties"
+          }
+        },
+        "description": "Repeat Request with Collection Type"
+      },
+      "CAPICollectionTypeTaskingRequest": {
+        "title": "CAPICollectionTypeTaskingRequest",
+        "required": [
+          "geometry",
+          "properties"
+        ],
+        "type": "object",
+        "properties": {
+          "type": {
+            "title": "Type",
+            "type": "string",
+            "description": "GeoJSON Object type",
+            "default": "Feature",
+            "example": "Feature"
+          },
+          "geometry": {
+            "title": "Geometry",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/GeoJSONGeometry"
+              }
+            ],
+            "description": "GeoJSON object type"
+          },
+          "properties": {
+            "$ref": "#/components/schemas/CAPICollectionTypeTaskingRequestProperties"
+          }
+        },
+        "description": "Tasking Request with Collection Type"
+      },
+      "CAPICollectionTypeTaskingRequestResponse": {
+        "title": "CAPICollectionTypeTaskingRequestResponse",
+        "required": [
+          "geometry",
+          "properties"
+        ],
+        "type": "object",
+        "properties": {
+          "type": {
+            "title": "Type",
+            "type": "string",
+            "description": "GeoJSON Object type",
+            "default": "Feature",
+            "example": "Feature"
+          },
+          "geometry": {
+            "title": "Geometry",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/GeoJSONGeometry"
+              }
+            ],
+            "description": "GeoJSON object type"
+          },
+          "properties": {
+            "$ref": "#/components/schemas/CAPICollectionTypeTaskingRequestResponseProperties"
+          }
+        },
+        "description": "Tasking Request with Collection Type\nUsed in list/search responses with multiple tasking requests."
+      },
+      "CAPISpacecraft": {
+        "title": "CAPISpacecraft",
+        "type": "object",
+        "properties": {
+          "spacecraftId": {
+            "title": "Spacecraftid",
+            "type": "integer",
+            "description": "Capella Spacecraft ID"
+          },
+          "spacecraftName": {
+            "title": "Spacecraftname",
+            "type": "string",
+            "description": "Spacecraft name"
+          },
+          "noradId": {
+            "title": "Noradid",
+            "type": "integer",
+            "description": "NORAD catalog ID of spacecraft"
+          },
+          "generation": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Generation"
+              }
+            ],
+            "description": "Spacecraft model generation",
+            "default": "denali"
+          }
+        }
+      },
+      "CAPIStatusEntry": {
+        "title": "CAPIStatusEntry",
+        "required": [
+          "code"
+        ],
+        "type": "object",
+        "properties": {
+          "time": {
+            "title": "Time",
+            "type": "string",
+            "description": "Time of status entry creation.",
+            "format": "date-time"
+          },
+          "code": {
+            "title": "Code",
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RequestStatusCode"
+              },
+              {
+                "$ref": "#/components/schemas/CollectStatusCode"
+              },
+              {
+                "$ref": "#/components/schemas/ProcessingStatus"
+              }
+            ],
+            "description": "Current status code of Request of Collect."
+          },
+          "message": {
+            "title": "Message",
+            "type": "string",
+            "description": "Status message describing current",
+            "default": ""
+          }
+        }
+      },
+      "CAPITLE": {
+        "title": "CAPITLE",
+        "required": [
+          "line1",
+          "line2"
+        ],
+        "type": "object",
+        "properties": {
+          "tleId": {
+            "title": "Tleid",
+            "type": "string",
+            "description": "TLE ID"
+          },
+          "spacecraftId": {
+            "title": "Spacecraftid",
+            "type": "integer",
+            "description": "Capella Spacecraft ID"
+          },
+          "line1": {
+            "title": "Line1",
+            "type": "string",
+            "description": "First line of TLE"
+          },
+          "line2": {
+            "title": "Line2",
+            "type": "string",
+            "description": "Second line of TLE"
+          }
+        }
+      },
+      "CAPITaskingRequestIndividualResponse": {
+        "title": "CAPITaskingRequestIndividualResponse",
+        "required": [
+          "geometry",
+          "properties"
+        ],
+        "type": "object",
+        "properties": {
+          "type": {
+            "title": "Type",
+            "type": "string",
+            "description": "GeoJSON Object type",
+            "default": "Feature",
+            "example": "Feature"
+          },
+          "geometry": {
+            "title": "Geometry",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/GeoJSONGeometry"
+              }
+            ],
+            "description": "GeoJSON object type"
+          },
+          "properties": {
+            "$ref": "#/components/schemas/CAPITaskingRequestIndividualResponseProperties"
+          }
+        },
+        "description": "Tasking Request Class\n\nUsed in GET response for an individual/specific tasking request."
+      },
+      "CAPITile": {
+        "title": "CAPITile",
+        "required": [
+          "properties"
+        ],
+        "type": "object",
+        "properties": {
+          "type": {
+            "title": "Type",
+            "type": "string",
+            "description": "GeoJSON Object type",
+            "default": "Feature"
+          },
+          "geometry": {
+            "title": "Geometry",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/GeoJSONGeometry"
+              }
+            ],
+            "description": "GeoJSON object type",
+            "default": "Feature"
+          },
+          "properties": {
+            "$ref": "#/components/schemas/CAPITileProperties"
+          }
+        },
+        "description": "Tasking request Tile"
+      },
+      "GroundTrack": {
+        "title": "GroundTrack",
+        "required": [
+          "epochs",
+          "state"
+        ],
+        "type": "object",
+        "properties": {
+          "epochs": {
+            "title": "Epochs",
+            "type": "array",
+            "items": {
+
+            },
+            "description": "List of Epochs associated with state points."
+          },
+          "state": {
+            "title": "State",
+            "type": "array",
+            "items": {
+              "maxItems": 3,
+              "minItems": 3,
+              "type": "array",
+              "items": {
+                "type": "number"
+              }
+            },
+            "description": "Satellite ground track as WGS84 Geodetic points.                Returned as [lon, lat, alt]. Units: [deg, deg, m]."
+          }
+        }
+      },
+      "HTTPValidationError": {
+        "title": "HTTPValidationError",
+        "type": "object",
+        "properties": {
+          "detail": {
+            "title": "Detail",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            }
+          }
+        }
+      },
+      "PagedResponse": {
+        "title": "PagedResponse",
+        "required": [
+          "results",
+          "current_page",
+          "total_pages"
+        ],
+        "type": "object",
+        "properties": {
+          "results": {
+            "title": "Results",
+            "type": "array",
+            "items": {
+
+            }
+          },
+          "current_page": {
+            "title": "Current Page",
+            "type": "integer"
+          },
+          "total_pages": {
+            "title": "Total Pages",
+            "type": "integer"
+          }
+        }
+      },
+      "VehicleTrajectory": {
+        "title": "VehicleTrajectory",
+        "required": [
+          "epochs",
+          "state"
+        ],
+        "type": "object",
+        "properties": {
+          "epochs": {
+            "title": "Epochs",
+            "type": "array",
+            "items": {
+
+            },
+            "description": "List of Epochs associated with state points."
+          },
+          "state": {
+            "title": "State",
+            "type": "array",
+            "items": {
+              "maxItems": 6,
+              "minItems": 6,
+              "type": "array",
+              "items": {
+                "type": "number"
+              }
+            },
+            "description": "Satellite trajectory in ITRF frame.                Returned as [p_x, p_y, p_z, v_x, v_y, v_z]. Units: [m] and [m/s]."
+          }
+        }
+      },
+      "CAPIAccessProperties": {
+        "title": "CAPIAccessProperties",
+        "type": "object",
+        "properties": {
+          "ascdsc": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/AscDsc"
+              }
+            ],
+            "description": "Whether collect is taken during an ascending or descending pass"
+          },
+          "lookDirection": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/LookDirection"
+              }
+            ],
+            "description": "Spacecraft look direction at time of collect."
+          },
+          "localTime": {
+            "title": "Localtime",
+            "exclusiveMaximum": 86400,
+            "minimum": 0,
+            "type": "number",
+            "description": "Astronomical Local Time at time of collection. Units [s]. Range: [0, 86400)"
+          },
+          "azimuthOpen": {
+            "title": "Azimuthopen",
+            "type": "number",
+            "description": "Azimuth of spacecraft viewed from ground center point at start of collection. Units: [deg]"
+          },
+          "azimuthClose": {
+            "title": "Azimuthclose",
+            "type": "number",
+            "description": "Azimuth of spacecraft viewed from ground center point at end of collection. Units: [deg]"
+          },
+          "grazingAngleMin": {
+            "title": "Grazinganglemin",
+            "type": "number",
+            "description": "Minimum grazing angle during collection, measured with respect to the center of the scene. Units: [deg]"
+          },
+          "grazingAngleMax": {
+            "title": "Grazinganglemax",
+            "type": "number",
+            "description": "Maximum grazing angle during collection, measured with respect to the center of the scene. Units: [deg]"
+          },
+          "offNadirMin": {
+            "title": "Offnadirmin",
+            "type": "number",
+            "description": "Minimum off-nadir angle of ground center point viewed from the spacecraft during collection. Units: [deg]"
+          },
+          "offNadirMax": {
+            "title": "Offnadirmax",
+            "type": "number",
+            "description": "Maximum off-nadir angle of ground center point viewed from the spacecraft during collection. Units: [deg]"
+          }
+        }
+      },
+      "CAPIAccessRequestProperties": {
+        "title": "CAPIAccessRequestProperties",
+        "required": [
+          "orgId",
+          "userId",
+          "windowOpen",
+          "windowClose"
+        ],
+        "type": "object",
+        "properties": {
+          "accessrequestName": {
+            "title": "Accessrequestname",
+            "type": "string",
+            "description": "Name of access request",
+            "default": ""
+          },
+          "accessrequestDescription": {
+            "title": "Accessrequestdescription",
+            "type": "string",
+            "description": "Access request description",
+            "default": ""
+          },
+          "accessrequestType": {
+            "title": "Accessrequesttype",
+            "type": "string",
+            "description": "Access request product type",
+            "default": ""
+          },
+          "orgId": {
+            "title": "Orgid",
+            "type": "string",
+            "description": "Requesting organization ID"
+          },
+          "userId": {
+            "title": "Userid",
+            "type": "string",
+            "description": "Requesting user ID"
+          },
+          "windowOpen": {
+            "title": "Windowopen",
+            "type": "string",
+            "description": "Start of allowable collection period",
+            "format": "date-time"
+          },
+          "windowClose": {
+            "title": "Windowclose",
+            "type": "string",
+            "description": "End of window period. Derived from window_duration.",
+            "format": "date-time"
+          },
+          "accessConstraints": {
+            "title": "Accessconstraints",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CAPIAccessConstraints"
+              }
+            ],
+            "description": "Access Constraints",
+            "default": {
+              "lookDirection": "either",
+              "ascDsc": "either",
+              "orbitalPlanes": [],
+              "localTime": [
+                [0, 86400]
+              ],
+              "offNadirMin": 5,
+              "offNadirMax": 45,
+              "grazingAngleMin": 0,
+              "grazingAngleMax": 90,
+              "azimuthAngleMin": 0,
+              "azimuthAngleMax": 360,
+              "imageLength": 5000,
+              "imageWidth": 5000
+            }
+          }
+        }
+      },
+      "CAPIAccessRequestPropertiesResponse": {
+        "title": "CAPIAccessRequestPropertiesResponse",
+        "required": [
+          "accessrequestId",
+          "orgId",
+          "userId",
+          "windowOpen",
+          "windowClose",
+          "processingStatus",
+          "accessibilityStatus"
+        ],
+        "type": "object",
+        "properties": {
+          "accessrequestId": {
+            "title": "Accessrequestid",
+            "type": "string",
+            "description": "Name of access request"
+          },
+          "accessrequestName": {
+            "title": "Accessrequestname",
+            "type": "string",
+            "description": "Name of access request",
+            "default": ""
+          },
+          "accessrequestDescription": {
+            "title": "Accessrequestdescription",
+            "type": "string",
+            "description": "Access request description",
+            "default": ""
+          },
+          "accessrequestType": {
+            "title": "Accessrequesttype",
+            "type": "string",
+            "description": "Access request product type",
+            "default": ""
+          },
+          "orgId": {
+            "title": "Orgid",
+            "type": "string",
+            "description": "Requesting organization ID"
+          },
+          "userId": {
+            "title": "Userid",
+            "type": "string",
+            "description": "Requesting user ID"
+          },
+          "windowOpen": {
+            "title": "Windowopen",
+            "type": "string",
+            "description": "Start of allowable collection period",
+            "format": "date-time"
+          },
+          "windowClose": {
+            "title": "Windowclose",
+            "type": "string",
+            "description": "End of window period. Derived from window_duration.",
+            "format": "date-time"
+          },
+          "processingStatus": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ProcessingStatus"
+              }
+            ],
+            "description": "Processing status history."
+          },
+          "accessibilityStatus": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/AccessibilityStatus"
+              }
+            ],
+            "description": "Accessibility status."
+          },
+          "accessibilityMessage": {
+            "title": "Accessibilitymessage",
+            "type": "string",
+            "description": "Accessibility status message."
+          },
+          "accessConstraints": {
+            "title": "Accessconstraints",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CAPIAccessConstraints"
+              }
+            ],
+            "description": "Access Constraints",
+            "default": {
+              "lookDirection": "either",
+              "ascDsc": "either",
+              "orbitalPlanes": [],
+              "localTime": [
+                [0, 86400]
+              ],
+              "offNadirMin": 5,
+              "offNadirMax": 45,
+              "grazingAngleMin": 0,
+              "grazingAngleMax": 90,
+              "azimuthAngleMin": 0,
+              "azimuthAngleMax": 360,
+              "imageLength": 5000,
+              "imageWidth": 5000
+            }
+          }
+        }
+      },
+      "CAPICollectProperties": {
+        "title": "CAPICollectProperties",
+        "type": "object",
+        "properties": {
+          "collectDuration": {
+            "title": "Collectduration",
+            "exclusiveMinimum": 0,
+            "type": "number",
+            "description": "How long the imaging activity will take. Units [s]."
+          },
+          "imageLength": {
+            "title": "Imagelength",
+            "maximum": 1000000,
+            "minimum": 1000,
+            "type": "number",
+            "description": "Length of image in the along-track direction. Units [m]."
+          },
+          "imageWidth": {
+            "title": "Imagewidth",
+            "maximum": 1000000,
+            "minimum": 1000,
+            "type": "number",
+            "description": "Width of image in the cross-track direction. Units [m]."
+          },
+          "grr": {
+            "title": "Grr",
+            "minimum": 0.01,
+            "type": "number",
+            "description": "Ground Range Resolution of the image. Units [m]."
+          },
+          "azr": {
+            "title": "Azr",
+            "minimum": 0.01,
+            "type": "number",
+            "description": "Azimuth Resolution of the image. Units [m]."
+          },
+          "bandwidth": {
+            "title": "Bandwidth",
+            "minimum": 0,
+            "type": "number",
+            "description": "Radar pulse bandwidth used to take the image. Units [Hz]."
+          },
+          "nesz": {
+            "title": "Nesz",
+            "maximum": 0,
+            "minimum": -40,
+            "type": "number",
+            "description": "Noise Equivalent Sigma Zero of the image. Units [dB]."
+          },
+          "meanSquint": {
+            "title": "Meansquint",
+            "maximum": 90,
+            "minimum": -90,
+            "type": "number",
+            "description": "DEPRECATED: Mean squint angle over duration of collection. Units: [degrees]"
+          },
+          "squint": {
+            "title": "Squint",
+            "maximum": 90,
+            "minimum": -90,
+            "type": "number",
+            "description": "Squint angle at the midpoint of the collect. Units [degrees]."
+          },
+          "polarization": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RadarPolarization"
+              }
+            ],
+            "description": "Polarization mode of the image. Unitless."
+          }
+        }
+      },
+      "CAPICollectionTypeRepeatRequestProperties": {
+        "title": "CAPICollectionTypeRepeatRequestProperties",
+        "required": [
+          "repetitionProperties",
+          "orgId",
+          "userId",
+          "collectionType"
+        ],
+        "type": "object",
+        "properties": {
+          "windowDuration": {
+            "title": "Windowduration",
+            "type": "number",
+            "description": "Duration of derived repeat requests."
+          },
+          "repetitionProperties": {
+            "title": "Repetitionproperties",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CAPIRepetitionProperties"
+              }
+            ],
+            "description": "Repetition pattern properties."
+          },
+          "repeatrequestName": {
+            "title": "Repeatrequestname",
+            "type": "string",
+            "description": "Name of repeat request",
+            "default": ""
+          },
+          "repeatrequestDescription": {
+            "title": "Repeatrequestdescription",
+            "type": "string",
+            "description": "Repeat request description",
+            "default": ""
+          },
+          "orgId": {
+            "title": "Orgid",
+            "type": "string",
+            "description": "Requesting organization ID"
+          },
+          "userId": {
+            "title": "Userid",
+            "type": "string",
+            "description": "Requesting user ID"
+          },
+          "collectionTier": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CAPIRepeatCollectionTier"
+              }
+            ],
+            "description": "Repeat service level.",
+            "default": "routine"
+          },
+          "archiveHoldback": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ArchiveHoldback"
+              }
+            ],
+            "description": "Hold back request from Capella imaging archive.",
+            "default": "none"
+          },
+          "collectConstraints": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/CAPICollectConstraints"
+              },
+              {
+                "$ref": "#/components/schemas/CAPIExtendedCollectConstraints"
+              }
+            ]
+          },
+          "collectionType": {
+            "title": "Collectiontype",
+            "type": "string",
+            "description": "Requested collection type."
+          },
+          "processingConfig": {
+            "$ref": "#/components/schemas/ProcessingConfigRequest"
+          },
+          "preApproval": {
+            "title": "preApproval",
+            "type": "boolean"
+          },
+          "customAttribute1": {
+            "title": "customAttribute1",
+            "nullable": true,
+            "type": "string"
+          },
+          "customAttribute2": {
+            "title": "customAttribute2",
+            "nullable": true,
+            "type": "string"
+          }
+        }
+      },
+      "CAPICollectionTypeRepeatRequestResponseProperties": {
+        "title": "CAPICollectionTypeRepeatRequestResponseProperties",
+        "required": [
+          "windowDuration",
+          "repetitionProperties"
+        ],
+        "type": "object",
+        "properties": {
+          "submissionTime": {
+            "title": "Submissiontime",
+            "type": "string",
+            "description": "Submission time of request. Created automatically",
+            "format": "date-time"
+          },
+          "repeatrequestId": {
+            "title": "Repeatrequestid",
+            "type": "string",
+            "description": "Repeat request ID"
+          },
+          "repeatrequestName": {
+            "title": "Repeatrequestname",
+            "type": "string",
+            "description": "Name of repeat request"
+          },
+          "repeatrequestDescription": {
+            "title": "Repeatrequestdescription",
+            "type": "string",
+            "description": "Repeat request description"
+          },
+          "repeatrequestType": {
+            "title": "Repeatrequesttype",
+            "type": "string",
+            "description": "Type of repeat request"
+          },
+          "orgId": {
+            "title": "Orgid",
+            "type": "string",
+            "description": "Requesting organization ID"
+          },
+          "userId": {
+            "title": "Userid",
+            "type": "string",
+            "description": "Requesting user ID"
+          },
+          "windowDuration": {
+            "title": "Windowduration",
+            "type": "number",
+            "description": "Duration of derived repeat requests."
+          },
+          "repetitionProperties": {
+            "title": "Repetitionproperties",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CAPIRepetitionProperties"
+              }
+            ],
+            "description": "Repetition pattern properties."
+          },
+          "collectionTier": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RepeatCollectionTier"
+              }
+            ],
+            "description": "Repeat service level.",
+            "default": "routine"
+          },
+          "collectionType": {
+            "title": "Collectiontype",
+            "type": "string",
+            "description": "Requested collection type."
+          },
+          "archiveHoldback": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ArchiveHoldback"
+              }
+            ],
+            "description": "Hold back request from Capella imaging archive.",
+            "default": "none"
+          },
+          "statusHistory": {
+            "title": "Statushistory",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CAPIStatusEntry"
+            },
+            "description": "Request status history.",
+            "default": []
+          },
+          "collectConstraints": {
+            "title": "Collectconstraints",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CAPICollectionTypeCollectConstraintsResponse"
+              }
+            ],
+            "description": "Constraints on collection values. Will be used for each derived repeat request.",
+            "default": {
+              "lookDirection": "either",
+              "ascDsc": "either",
+              "orbitalPlanes": [],
+              "localTime": "anytime",
+              "offNadirMin": 5,
+              "offNadirMax": 40,
+              "grazingAngleMin": 0,
+              "grazingAngleMax": 90,
+              "azimuthAngleMin": 0,
+              "azimuthAngleMax": 360,
+              "imageLength": 5000,
+              "imageWidth": 5000,
+              "collectMode": "spotlight",
+              "srrMin": 0.1,
+              "srrMax": 10,
+              "azrMin": 0.5,
+              "azrMax": 0.7,
+              "numLooks": 9,
+              "polarization": "HH",
+              "squint": "disabled",
+              "maxSquintAngle": 0,
+              "radarParameters": {
+
+              }
+            }
+          },
+          "processingConfig": {
+            "$ref": "#/components/schemas/ProcessingConfigResponse"
+          },
+          "customAttribute1": {
+            "title": "customAttribute1",
+            "nullable": true,
+            "type": "string"
+          },
+          "customAttribute2": {
+            "title": "customAttribute2",
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "description": "Repeat Request with Collection Type Properties"
+      },
+      "CAPICollectionTypeTaskingRequestProperties": {
+        "title": "CAPICollectionTypeTaskingRequestProperties",
+        "required": [
+          "orgId",
+          "userId",
+          "windowOpen",
+          "windowClose",
+          "collectionType"
+        ],
+        "type": "object",
+        "properties": {
+          "taskingrequestName": {
+            "title": "Taskingrequestname",
+            "type": "string",
+            "description": "Name of tasking request",
+            "default": ""
+          },
+          "taskingrequestDescription": {
+            "title": "Taskingrequestdescription",
+            "type": "string",
+            "description": "Tasking request description",
+            "default": ""
+          },
+          "orgId": {
+            "title": "Orgid",
+            "type": "string",
+            "description": "Requesting organization ID"
+          },
+          "userId": {
+            "title": "Userid",
+            "type": "string",
+            "description": "Requesting user ID"
+          },
+          "windowOpen": {
+            "title": "Windowopen",
+            "type": "string",
+            "description": "Start of allowable collection period",
+            "format": "date-time"
+          },
+          "windowClose": {
+            "title": "Windowclose",
+            "type": "string",
+            "description": "End of allowable collection period",
+            "format": "date-time"
+          },
+          "collectionTier": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CAPICollectionTier"
+              }
+            ],
+            "description": "Tasking service level.",
+            "default": "standard"
+          },
+          "archiveHoldback": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ArchiveHoldback"
+              }
+            ],
+            "description": "Hold back request from Capella imaging archive.",
+            "default": "none"
+          },
+          "collectConstraints": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/CAPICollectConstraints"
+              },
+              {
+                "$ref": "#/components/schemas/CAPIExtendedCollectConstraints"
+              }
+            ]
+          },
+          "collectionType": {
+            "title": "Collectiontype",
+            "type": "string",
+            "description": "Requested collection type."
+          },
+          "processingConfig": {
+            "$ref": "#/components/schemas/ProcessingConfigRequest"
+          },
+          "preApproval": {
+            "title": "preApproval",
+            "type": "boolean"
+          },
+          "customAttribute1": {
+            "title": "customAttribute1",
+            "nullable": true,
+            "type": "string"
+          },
+          "customAttribute2": {
+            "title": "customAttribute2",
+            "nullable": true,
+            "type": "string"
+          }
+        }
+      },
+      "CAPICollectionTypeTaskingRequestResponseProperties": {
+        "title": "CAPICollectionTypeTaskingRequestResponseProperties",
+        "required": [
+          "windowOpen",
+          "windowClose"
+        ],
+        "type": "object",
+        "properties": {
+          "submissionTime": {
+            "title": "Submissiontime",
+            "type": "string",
+            "description": "Submission time of request. Created automatically",
+            "format": "date-time"
+          },
+          "taskingrequestId": {
+            "title": "Taskingrequestid",
+            "type": "string",
+            "description": "Tasking request ID"
+          },
+          "taskingrequestName": {
+            "title": "Taskingrequestname",
+            "type": "string",
+            "description": "Name of tasking request"
+          },
+          "taskingrequestDescription": {
+            "title": "Taskingrequestdescription",
+            "type": "string",
+            "description": "Tasking request description"
+          },
+          "taskingrequestType": {
+            "title": "Taskingrequesttype",
+            "type": "string",
+            "description": "Type of tasking request"
+          },
+          "orgId": {
+            "title": "Orgid",
+            "type": "string",
+            "description": "Requesting organization ID"
+          },
+          "userId": {
+            "title": "Userid",
+            "type": "string",
+            "description": "Requesting user ID"
+          },
+          "repeatrequestId": {
+            "title": "Repeatrequestid",
+            "type": "string",
+            "description": "Associated repeat request ID"
+          },
+          "windowOpen": {
+            "title": "Windowopen",
+            "type": "string",
+            "description": "Start of allowable collection period",
+            "format": "date-time"
+          },
+          "windowDuration": {
+            "title": "Windowduration",
+            "type": "number",
+            "description": "Duration of allowable collection period"
+          },
+          "windowClose": {
+            "title": "Windowclose",
+            "type": "string",
+            "description": "End of allowable collection period",
+            "format": "date-time"
+          },
+          "collectionTier": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CollectionTier"
+              }
+            ],
+            "description": "Tasking service level.",
+            "default": "standard"
+          },
+          "collectionType": {
+            "title": "Collectiontype",
+            "type": "string",
+            "description": "Requested collection type."
+          },
+          "archiveHoldback": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ArchiveHoldback"
+              }
+            ],
+            "description": "Hold back request from Capella imaging archive.",
+            "default": "none"
+          },
+          "statusHistory": {
+            "title": "Statushistory",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CAPIStatusEntry"
+            },
+            "description": "Request status history."
+          },
+          "collectConstraints": {
+            "title": "Collectconstraints",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CAPICollectionTypeCollectConstraintsResponse"
+              }
+            ],
+            "description": "Constraints on collection values. Will be used for each tasking request.",
+            "default": {
+              "lookDirection": "either",
+              "ascDsc": "either",
+              "orbitalPlanes": [],
+              "localTime": "anytime",
+              "offNadirMin": 5,
+              "offNadirMax": 40,
+              "grazingAngleMin": 0,
+              "grazingAngleMax": 90,
+              "azimuthAngleMin": 0,
+              "azimuthAngleMax": 360,
+              "imageLength": 5000,
+              "imageWidth": 5000,
+              "collectMode": "spotlight",
+              "srrMin": 0.1,
+              "srrMax": 10,
+              "azrMin": 0.5,
+              "azrMax": 0.7,
+              "numLooks": 9,
+              "polarization": "HH",
+              "squint": "disabled",
+              "maxSquintAngle": 0,
+              "radarParameters": {
+
+              }
+            }
+          },
+          "processingConfig": {
+            "$ref": "#/components/schemas/ProcessingConfigResponse"
+          },
+          "customAttribute1": {
+            "title": "customAttribute1",
+            "nullable": true,
+            "type": "string"
+          },
+          "customAttribute2": {
+            "title": "customAttribute2",
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "description": "Tasking Request with Collection Type Properties for list/search responses"
+      },
+      "CAPITaskingRequestIndividualResponseProperties": {
+        "title": "CAPITaskingRequestIndividualResponseProperties",
+        "required": [
+          "windowOpen",
+          "windowClose"
+        ],
+        "type": "object",
+        "properties": {
+          "submissionTime": {
+            "title": "Submissiontime",
+            "type": "string",
+            "description": "Submission time of request. Created automatically",
+            "format": "date-time"
+          },
+          "taskingrequestId": {
+            "title": "Taskingrequestid",
+            "type": "string",
+            "description": "Tasking request ID"
+          },
+          "taskingrequestName": {
+            "title": "Taskingrequestname",
+            "type": "string",
+            "description": "Name of tasking request"
+          },
+          "taskingrequestDescription": {
+            "title": "Taskingrequestdescription",
+            "type": "string",
+            "description": "Tasking request description"
+          },
+          "taskingrequestType": {
+            "title": "Taskingrequesttype",
+            "type": "string",
+            "description": "Type of tasking request"
+          },
+          "orgId": {
+            "title": "Orgid",
+            "type": "string",
+            "description": "Requesting organization ID"
+          },
+          "userId": {
+            "title": "Userid",
+            "type": "string",
+            "description": "Requesting user ID"
+          },
+          "repeatrequestId": {
+            "title": "Repeatrequestid",
+            "type": "string",
+            "description": "Associated repeat request ID"
+          },
+          "windowOpen": {
+            "title": "Windowopen",
+            "type": "string",
+            "description": "Start of allowable collection period",
+            "format": "date-time"
+          },
+          "windowDuration": {
+            "title": "Windowduration",
+            "type": "number",
+            "description": "Duration of allowable collection period"
+          },
+          "windowClose": {
+            "title": "Windowclose",
+            "type": "string",
+            "description": "End of allowable collection period",
+            "format": "date-time"
+          },
+          "collectionTier": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CollectionTier"
+              }
+            ],
+            "description": "Tasking service level.",
+            "default": "standard"
+          },
+          "collectionType": {
+            "title": "Collectiontype",
+            "type": "string",
+            "description": "Requested collection type."
+          },
+          "archiveHoldback": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ArchiveHoldback"
+              }
+            ],
+            "description": "Hold back request from Capella imaging archive.",
+            "default": "none"
+          },
+          "statusHistory": {
+            "title": "Statushistory",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CAPIStatusEntry"
+            },
+            "description": "Request status history."
+          },
+          "collectConstraints": {
+            "title": "Collectconstraints",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CAPICollectConstraintsResponse"
+              }
+            ],
+            "description": "Constraints on collection values. Will be used for each repeated tasking request.",
+            "default": {
+              "lookDirection": "either",
+              "ascDsc": "either",
+              "orbitalPlanes": [],
+              "localTime": "anytime",
+              "offNadirMin": 5,
+              "offNadirMax": 40,
+              "grazingAngleMin": 0,
+              "grazingAngleMax": 90,
+              "azimuthAngleMin": 0,
+              "azimuthAngleMax": 360,
+              "imageLength": 5000,
+              "imageWidth": 5000,
+              "collectMode": "spotlight",
+              "grrMin": 0.5,
+              "grrMax": 0.7,
+              "srrMin": 0.1,
+              "srrMax": 10,
+              "azrMin": 0.5,
+              "azrMax": 0.7,
+              "numLooks": 9,
+              "squint": "disabled",
+              "maxSquintAngle": 0,
+              "polarization": "HH",
+              "prfMin": 5000,
+              "radarParameters": {
+                "bandwidth": 500000000,
+                "upchirp": true,
+                "method": "onboard"
+              }
+            }
+          },
+          "conflictingTasks": {
+            "title": "Conflictingtasks",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CAPIConflictingTaskInfo"
+            },
+            "description": "Tasks that conflict with this tasking request."
+          }
+        },
+        "description": "Tasking Request Properties for individual-request responses"
+      },
+      "CAPITileProperties": {
+        "title": "CAPITileProperties",
+        "required": [
+          "tileId",
+          "tileGroupId"
+        ],
+        "type": "object",
+        "properties": {
+          "accessrequestId": {
+            "title": "Accessrequestid",
+            "type": "string",
+            "description": "Access request ID"
+          },
+          "taskingrequestId": {
+            "title": "Taskingrequestid",
+            "type": "string",
+            "description": "Tasking request ID"
+          },
+          "repeatrequestId": {
+            "title": "Repeatrequestid",
+            "type": "string",
+            "description": "Associated repeat request ID"
+          },
+          "tileId": {
+            "title": "Tileid",
+            "type": "string",
+            "description": "Tile ID of Tile associated with Collect"
+          },
+          "tileGroupId": {
+            "title": "Tilegroupid",
+            "type": "string",
+            "description": "Tile Group ID of Tile Group associated with the Collect"
+          },
+          "tileWidth": {
+            "title": "Tilewidth",
+            "exclusiveMinimum": 0,
+            "type": "number",
+            "description": "Width of tile. Units: [m]"
+          },
+          "tileLength": {
+            "title": "Tilelength",
+            "exclusiveMinimum": 0,
+            "type": "number",
+            "description": "Length of tile. Units: [m]"
+          },
+          "tileArea": {
+            "title": "Tilearea",
+            "exclusiveMinimum": 0,
+            "type": "number",
+            "description": "Area of tile. Units: [m^2]"
+          }
+        }
+      },
+      "CollectStatusCode": {
+        "title": "CollectStatusCode",
+        "enum": [
+          "predicted",
+          "tasked",
+          "collected",
+          "processing",
+          "qa",
+          "delivered",
+          "anomaly",
+          "stagnant",
+          "collection_anomaly",
+          "processing_anomaly"
+        ],
+        "type": "string",
+        "description": "Schedule status of opportunity"
+      },
+      "Generation": {
+        "title": "Generation",
+        "enum": [
+          "denali",
+          "sequoia",
+          "whitney",
+          "young",
+          "acadia"
+        ],
+        "type": "string",
+        "description": "An enumeration."
+      },
+      "GeoJSONGeometry": {
+        "title": "GeoJSONGeometry",
+        "required": [
+          "coordinates"
+        ],
+        "type": "object",
+        "properties": {
+          "type": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/GeoJSONGeometryType"
+              }
+            ],
+            "description": "GeoJSON geometry type. Must Be \"Point\" or \"Polygon\"",
+            "default": "Point"
+          },
+          "coordinates": {
+            "title": "Coordinates",
+            "anyOf": [
+              {
+                "maxItems": 3,
+                "minItems": 2,
+                "type": "array",
+                "items": {
+                  "type": "number"
+                }
+              },
+              {
+                "type": "array",
+                "items": {
+                  "maxItems": 3,
+                  "minItems": 2,
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  }
+                }
+              },
+              {
+                "type": "array",
+                "items": {
+                  "type": "array",
+                  "items": {
+                    "maxItems": 3,
+                    "minItems": 2,
+                    "type": "array",
+                    "items": {
+                      "type": "number"
+                    }
+                  }
+                }
+              },
+              {
+                "type": "array",
+                "items": {
+                  "type": "array",
+                  "items": {
+                    "type": "array",
+                    "items": {
+                      "maxItems": 3,
+                      "minItems": 2,
+                      "type": "array",
+                      "items": {
+                        "type": "number"
+                      }
+                    }
+                  }
+                }
+              }
+            ],
+            "description": "Geometry coordinates of either the point or the polygon. In the GeoJSON format, coordinates are ordered in longitude-latitude. Specifying an optional third value within a coordinates array will set the Target Height of the collection"
+          }
+        },
+        "example": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [-122.52, 37.7],
+              [-122.35, 37.7],
+              [-122.35, 37.82],
+              [-122.52, 37.82],
+              [-122.5, 37.7]
+            ]
+          ]
+        }
+      },
+      "GeoJSONPointGeometry": {
+        "title": "GeoJSONPointGeometry",
+        "required": [
+          "coordinates"
+        ],
+        "type": "object",
+        "properties": {
+          "type": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/GeoJSONGeometryType"
+              }
+            ],
+            "description": "GeoJSON geometry type. Must Be \"Point\"",
+            "default": "Point"
+          },
+          "coordinates": {
+            "title": "Coordinates",
+            "maxItems": 3,
+            "minItems": 2,
+            "type": "array",
+            "items": {
+              "type": "number"
+            },
+            "description": "Geometry coordinates of the point. In the GeoJSON format, coordinates are ordered in longitude-latitude. Specifying an optional third value within a coordinates array will set the Target Height of the collection"
+          }
+        },
+        "example": {
+          "type": "Point",
+          "coordinates": [-122.52, 37.7, 15]
+        }
+      },
+      "OrbitalPlane": {
+        "title": "OrbitalPlane",
+        "enum": [45, 53, 97],
+        "type": "integer",
+        "description": "An enumeration."
+      },
+      "ProcessingStatus": {
+        "title": "ProcessingStatus",
+        "enum": [
+          "queued",
+          "processing",
+          "completed",
+          "error"
+        ],
+        "type": "string",
+        "description": "Processing status provides a status field to indicated the processing status\nof asynchronously processed access request."
+      },
+      "RequestStatusCode": {
+        "title": "RequestStatusCode",
+        "enum": [
+          "received",
+          "review",
+          "submitted",
+          "active",
+          "accepted",
+          "rejected",
+          "expired",
+          "completed",
+          "anomaly",
+          "canceled",
+          "error",
+          "failed"
+        ],
+        "type": "string",
+        "description": "Status of Tasking Request"
+      },
+      "ValidationError": {
+        "title": "ValidationError",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "type": "object",
+        "properties": {
+          "loc": {
+            "title": "Location",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "msg": {
+            "title": "Message",
+            "type": "string"
+          },
+          "type": {
+            "title": "Error Type",
+            "type": "string"
+          }
+        }
+      },
+      "AccessibilityStatus": {
+        "title": "AccessibilityStatus",
+        "enum": [
+          "unknown",
+          "accessible",
+          "inaccessible",
+          "rejected"
+        ],
+        "type": "string",
+        "description": "Accessibility status of access request"
+      },
+      "AscDsc": {
+        "title": "AscDsc",
+        "enum": [
+          "ascending",
+          "descending",
+          "either"
+        ],
+        "type": "string",
+        "description": "Whether pass is ascending or descenting"
+      },
+      "CAPIAccessConstraints": {
+        "title": "CAPIAccessConstraints",
+        "type": "object",
+        "properties": {
+          "lookDirection": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/LookDirection"
+              }
+            ],
+            "description": "Constraint on view angle.",
+            "default": "either"
+          },
+          "ascDsc": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/AscDsc"
+              }
+            ],
+            "description": "Constraint on ascending/descending pass.",
+            "default": "either"
+          },
+          "orbitalPlanes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OrbitalPlane"
+            },
+            "description": "Orbital planes allowed to service request. If empty any spacecraft in any plane can service request."
+          },
+          "localTime": {
+            "title": "Localtime",
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "maxItems": 2,
+              "minItems": 1,
+              "type": "array",
+              "items": {
+                "maximum": 86400,
+                "minimum": 0,
+                "type": "number"
+              }
+            },
+            "description": "Constraints on local access time",
+            "default": [
+              [0, 86400]
+            ]
+          },
+          "offNadirMin": {
+            "title": "Offnadirmin",
+            "maximum": 60,
+            "minimum": 0,
+            "type": "number",
+            "description": "Minimum off-nadir angle permitted. Must be less than offNadirMax. Units: [degrees]",
+            "default": 5
+          },
+          "offNadirMax": {
+            "title": "Offnadirmax",
+            "maximum": 90,
+            "minimum": 0,
+            "type": "number",
+            "description": "Maximum off-nadir angle permitted. Must be greater than offNadirMax. Units: [degrees]",
+            "default": 40
+          },
+          "grazingAngleMin": {
+            "title": "Grazinganglemin",
+            "maximum": 90,
+            "minimum": 0,
+            "type": "number",
+            "description": "Minimum grazing angle permitted. Units: [degrees]",
+            "default": 0
+          },
+          "grazingAngleMax": {
+            "title": "Grazinganglemax",
+            "maximum": 90,
+            "minimum": 0,
+            "type": "number",
+            "description": "Maximum grazing angle permitted. Units: [degrees]",
+            "default": 90
+          },
+          "azimuthAngleMin": {
+            "title": "Azimuthanglemin",
+            "maximum": 360,
+            "minimum": 0,
+            "type": "number",
+            "description": "Minimum azimuth angle permitted. Units: [degrees]",
+            "default": 0
+          },
+          "azimuthAngleMax": {
+            "title": "Azimuthanglemax",
+            "maximum": 360,
+            "minimum": 0,
+            "type": "number",
+            "description": "Maximum azimuth angle permitted. Units: [degrees]",
+            "default": 360
+          },
+          "imageLength": {
+            "title": "Imagelength",
+            "maximum": 210000,
+            "minimum": 1000,
+            "type": "number",
+            "description": "Image length. Units: [m]",
+            "default": 5000
+          },
+          "imageWidth": {
+            "title": "Imagewidth",
+            "maximum": 25000,
+            "minimum": 5000,
+            "type": "number",
+            "description": "Image width. Units: [m]",
+            "default": 5000
+          }
+        }
+      },
+      "CAPICollectConstraintsResponse": {
+        "title": "CAPICollectConstraintsResponse",
+        "type": "object",
+        "properties": {
+          "lookDirection": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/LookDirection"
+              }
+            ],
+            "description": "Constraint on view angle.",
+            "default": "either"
+          },
+          "ascDsc": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/AscDsc"
+              }
+            ],
+            "description": "Constraint on ascending/descending pass.",
+            "default": "either"
+          },
+          "orbitalPlanes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OrbitalPlane"
+            },
+            "description": "Orbital planes allowed to service request. If empty any spacecraft in any plane can service request."
+          },
+          "localTime": {
+            "title": "Localtime",
+            "anyOf": [
+              {
+                "minItems": 1,
+                "type": "array",
+                "items": {
+                  "maxItems": 2,
+                  "minItems": 1,
+                  "type": "array",
+                  "items": {
+                    "maximum": 86400,
+                    "minimum": 0,
+                    "type": "number"
+                  }
+                }
+              },
+              {
+                "$ref": "#/components/schemas/LocalTimeOption"
+              }
+            ],
+            "description": "Constraints on local access time",
+            "default": [
+              [0, 86400]
+            ]
+          },
+          "offNadirMin": {
+            "title": "Offnadirmin",
+            "maximum": 60,
+            "minimum": 0,
+            "type": "number",
+            "description": "Minimum off-nadir angle permitted. Must be less than offNadirMax. Units: [degrees]",
+            "default": 5
+          },
+          "offNadirMax": {
+            "title": "Offnadirmax",
+            "maximum": 90,
+            "minimum": 0,
+            "type": "number",
+            "description": "Maximum off-nadir angle permitted. Must be greater than offNadirMax. Units: [degrees]",
+            "default": 40
+          },
+          "grazingAngleMin": {
+            "title": "Grazinganglemin",
+            "maximum": 90,
+            "minimum": 0,
+            "type": "number",
+            "description": "Minimum grazing angle permitted. Units: [degrees]",
+            "default": 0
+          },
+          "grazingAngleMax": {
+            "title": "Grazinganglemax",
+            "maximum": 90,
+            "minimum": 0,
+            "type": "number",
+            "description": "Maximum grazing angle permitted. Units: [degrees]",
+            "default": 90
+          },
+          "azimuthAngleMin": {
+            "title": "Azimuthanglemin",
+            "maximum": 360,
+            "minimum": 0,
+            "type": "number",
+            "description": "Minimum azimuth angle permitted. Units: [degrees]",
+            "default": 0
+          },
+          "azimuthAngleMax": {
+            "title": "Azimuthanglemax",
+            "maximum": 360,
+            "minimum": 0,
+            "type": "number",
+            "description": "Maximum azimuth angle permitted. Units: [degrees]",
+            "default": 360
+          },
+          "imageLength": {
+            "title": "Imagelength",
+            "maximum": 210000,
+            "minimum": 1000,
+            "type": "number",
+            "description": "Image length. Units: [m]",
+            "default": 5000
+          },
+          "imageWidth": {
+            "title": "Imagewidth",
+            "maximum": 25000,
+            "minimum": 5000,
+            "type": "number",
+            "description": "Image width. Units: [m]",
+            "default": 5000
+          },
+          "collectMode": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CAPICollectMode"
+              }
+            ],
+            "description": "Collection mode. Default is spotlight",
+            "default": "spotlight"
+          },
+          "grrMin": {
+            "title": "Grrmin",
+            "maximum": 100,
+            "minimum": 0.1,
+            "type": "number",
+            "description": "Minimum ground-range resolution. Minimum is in ordinal sense. Units: [m]",
+            "default": 0.5
+          },
+          "grrMax": {
+            "title": "Grrmax",
+            "maximum": 100,
+            "minimum": 0.1,
+            "type": "number",
+            "description": "Maximum ground-range resolution. Minimum is in ordinal sense. Units: [m]",
+            "default": 0.7
+          },
+          "srrMin": {
+            "title": "Srrmin",
+            "maximum": 100,
+            "minimum": 0.1,
+            "type": "number",
+            "description": "Minimum slant-range resolution. Minimum is in ordinal sense. Units: [m]",
+            "default": 0.1
+          },
+          "srrMax": {
+            "title": "Srrmax",
+            "maximum": 100,
+            "minimum": 0.01,
+            "type": "number",
+            "description": "Maximum slant-range resolution. Minimum is in ordinal sense. Units: [m]",
+            "default": 10
+          },
+          "azrMin": {
+            "title": "Azrmin",
+            "maximum": 11.5,
+            "minimum": 0.01,
+            "type": "number",
+            "description": "Minimum azimuth resolution. Minimum is in ordinal sense. Units: [m]",
+            "default": 0.5
+          },
+          "azrMax": {
+            "title": "Azrmax",
+            "maximum": 11.5,
+            "minimum": 0.01,
+            "type": "number",
+            "description": "Maximum azimuth resolution. Minimum is in ordinal sense. Units: [m]",
+            "default": 0.7
+          },
+          "numLooks": {
+            "title": "Numlooks",
+            "exclusiveMinimum": 0,
+            "type": "integer",
+            "description": "Number of looks to use in processing collect.",
+            "default": 9
+          },
+          "squint": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Squint"
+              }
+            ],
+            "description": "Whether generated collects will be squinted.",
+            "default": "disabled"
+          },
+          "maxSquintAngle": {
+            "title": "Maxsquintangle",
+            "maximum": 60,
+            "minimum": 0,
+            "type": "number",
+            "description": "Maximum allowed absolute squint angle when generating collects. Units: [degrees]",
+            "default": 0
+          },
+          "polarization": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RadarPolarization"
+              }
+            ],
+            "description": "Image polarization.",
+            "default": "HH"
+          },
+          "prfMin": {
+            "title": "Prfmin",
+            "exclusiveMinimum": 0,
+            "type": "integer",
+            "description": "Lower bound for PRF search.",
+            "default": 5000
+          },
+          "radarParameters": {
+            "title": "Radarparameters",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/auto_ops__data_models__capi_constraints__CAPIRadarParameters"
+              }
+            ],
+            "description": "Radar parameters to set.",
+            "default": {
+              "upchirp": true,
+              "method": "onboard"
+            }
+          },
+          "duration": {
+            "title": "Duration",
+            "exclusiveMinimum": 0,
+            "type": "number",
+            "description": "How long the imaging activity will take. Units [s]."
+          },
+          "prescribedCollectMidtime": {
+            "title": "Prescribedcollectmidtime",
+            "type": "string",
+            "description": "Choose a specific collect time.",
+            "format": "date-time"
+          }
+        }
+      },
+      "CAPICollectionTier": {
+        "title": "CAPICollectionTier",
+        "enum": [
+          "urgent",
+          "priority",
+          "standard",
+          "flexible"
+        ],
+        "type": "string",
+        "description": "Collection Option"
+      },
+      "CAPICollectionTypeCollectConstraintsResponse": {
+        "title": "CAPICollectionTypeCollectConstraintsResponse",
+        "type": "object",
+        "properties": {
+          "lookDirection": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/LookDirection"
+              }
+            ],
+            "description": "Constraint on view angle.",
+            "default": "either"
+          },
+          "ascDsc": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/AscDsc"
+              }
+            ],
+            "description": "Constraint on ascending/descending pass.",
+            "default": "either"
+          },
+          "orbitalPlanes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OrbitalPlane"
+            },
+            "description": "Orbital planes allowed to service request. If empty any spacecraft in any plane can service request."
+          },
+          "localTime": {
+            "title": "Localtime",
+            "anyOf": [
+              {
+                "minItems": 1,
+                "type": "array",
+                "items": {
+                  "maxItems": 2,
+                  "minItems": 1,
+                  "type": "array",
+                  "items": {
+                    "maximum": 86400,
+                    "minimum": 0,
+                    "type": "number"
+                  }
+                }
+              },
+              {
+                "$ref": "#/components/schemas/LocalTimeOption"
+              }
+            ],
+            "description": "Constraints on local access time",
+            "default": [
+              [0, 86400]
+            ]
+          },
+          "offNadirMin": {
+            "title": "Offnadirmin",
+            "maximum": 60,
+            "minimum": 0,
+            "type": "number",
+            "description": "Minimum off-nadir angle permitted. Must be less than offNadirMax. Units: [degrees]",
+            "default": 5
+          },
+          "offNadirMax": {
+            "title": "Offnadirmax",
+            "maximum": 90,
+            "minimum": 0,
+            "type": "number",
+            "description": "Maximum off-nadir angle permitted. Must be greater than offNadirMax. Units: [degrees]",
+            "default": 40
+          },
+          "grazingAngleMin": {
+            "title": "Grazinganglemin",
+            "maximum": 90,
+            "minimum": 0,
+            "type": "number",
+            "description": "Minimum grazing angle permitted. Units: [degrees]",
+            "default": 0
+          },
+          "grazingAngleMax": {
+            "title": "Grazinganglemax",
+            "maximum": 90,
+            "minimum": 0,
+            "type": "number",
+            "description": "Maximum grazing angle permitted. Units: [degrees]",
+            "default": 90
+          },
+          "azimuthAngleMin": {
+            "title": "Azimuthanglemin",
+            "maximum": 360,
+            "minimum": 0,
+            "type": "number",
+            "description": "Minimum azimuth angle permitted. Units: [degrees]",
+            "default": 0
+          },
+          "azimuthAngleMax": {
+            "title": "Azimuthanglemax",
+            "maximum": 360,
+            "minimum": 0,
+            "type": "number",
+            "description": "Maximum azimuth angle permitted. Units: [degrees]",
+            "default": 360
+          },
+          "imageLength": {
+            "title": "Imagelength",
+            "maximum": 210000,
+            "minimum": 1000,
+            "type": "number",
+            "description": "Image length. Units: [m]",
+            "default": 5000
+          },
+          "imageWidth": {
+            "title": "Imagewidth",
+            "maximum": 25000,
+            "minimum": 5000,
+            "type": "number",
+            "description": "Image width. Units: [m]",
+            "default": 5000
+          },
+          "collectMode": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CAPICollectMode"
+              }
+            ],
+            "description": "Collection mode. Default is spotlight",
+            "default": "spotlight"
+          },
+          "srrMin": {
+            "title": "Srrmin",
+            "maximum": 100,
+            "minimum": 0.1,
+            "type": "number",
+            "description": "Minimum slant-range resolution. Minimum is in ordinal sense. Units: [m]",
+            "default": 0.1
+          },
+          "srrMax": {
+            "title": "Srrmax",
+            "maximum": 100,
+            "minimum": 0.01,
+            "type": "number",
+            "description": "Maximum slant-range resolution. Minimum is in ordinal sense. Units: [m]",
+            "default": 10
+          },
+          "azrMin": {
+            "title": "Azrmin",
+            "maximum": 11.5,
+            "minimum": 0.01,
+            "type": "number",
+            "description": "Minimum azimuth resolution. Minimum is in ordinal sense. Units: [m]",
+            "default": 0.5
+          },
+          "azrMax": {
+            "title": "Azrmax",
+            "maximum": 11.5,
+            "minimum": 0.01,
+            "type": "number",
+            "description": "Maximum azimuth resolution. Minimum is in ordinal sense. Units: [m]",
+            "default": 0.7
+          },
+          "numLooks": {
+            "title": "Numlooks",
+            "exclusiveMinimum": 0,
+            "type": "integer",
+            "description": "Number of looks to use in processing collect.",
+            "default": 9
+          },
+          "polarization": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RadarPolarization"
+              }
+            ],
+            "description": "Image polarization.",
+            "default": "HH"
+          },
+          "squint": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Squint"
+              }
+            ],
+            "description": "Whether generated collects will be squinted.",
+            "default": "disabled"
+          },
+          "maxSquintAngle": {
+            "title": "Maxsquintangle",
+            "maximum": 60,
+            "minimum": 0,
+            "type": "number",
+            "description": "Maximum allowed absolute squint angle when generating collects. Units: [degrees]",
+            "default": 0
+          },
+          "radarParameters": {
+            "title": "Radarparameters",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CAPICollectionTypeRadarParametersResponse"
+              }
+            ],
+            "description": "Radar parameters to set.",
+            "default": {
+
+            }
+          }
+        }
+      },
+      "CAPIConflictingTaskInfo": {
+        "title": "CAPIConflictingTaskInfo",
+        "required": [
+          "taskingrequestId",
+          "collectionTier",
+          "windowOpen",
+          "windowClose"
+        ],
+        "type": "object",
+        "properties": {
+          "taskingrequestId": {
+            "title": "Taskingrequestid",
+            "type": "string",
+            "description": "Conflicting tasking request ID"
+          },
+          "taskingrequestName": {
+            "title": "Taskingrequestname",
+            "type": "string",
+            "description": "Conflicting tasking request name"
+          },
+          "repeatrequestId": {
+            "title": "Repeatrequestid",
+            "type": "string",
+            "description": "Conflicting repeat request identifier"
+          },
+          "collectionTier": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CollectionTier"
+              }
+            ],
+            "description": "Conflicting task collection tier"
+          },
+          "windowOpen": {
+            "title": "Windowopen",
+            "type": "string",
+            "description": "Start of conflicting tasking request",
+            "format": "date-time"
+          },
+          "windowClose": {
+            "title": "Windowclose",
+            "type": "string",
+            "description": "End of conflicting tasking request",
+            "format": "date-time"
+          }
+        }
+      },
+      "CAPIRepeatCollectionTier": {
+        "title": "CAPIRepeatCollectionTier",
+        "enum": [
+          "routine",
+          "flexible"
+        ],
+        "type": "string",
+        "description": "Collection Tier Option"
+      },
+      "CAPIRepetitionProperties": {
+        "title": "CAPIRepetitionProperties",
+        "required": [
+          "repeatStart",
+          "repetitionInterval"
+        ],
+        "type": "object",
+        "properties": {
+          "repeatStart": {
+            "title": "Repeatstart",
+            "type": "string",
+            "description": "Beginning of window recurrences.",
+            "format": "date-time"
+          },
+          "repeatEnd": {
+            "title": "Repeatend",
+            "type": "string",
+            "description": "End of window recurrences.",
+            "format": "date-time"
+          },
+          "repetitionInterval": {
+            "title": "Repetitioninterval",
+            "minimum": 1,
+            "type": "integer",
+            "description": "Number of days between the start of derived requests. For example, repetitionInterval==5 means requests will open 5 days after the opening previous request."
+          },
+          "repetitionCount": {
+            "title": "Repetitioncount",
+            "minimum": 1,
+            "type": "integer",
+            "description": "Total number of acquisitions for a repeat series"
+          },
+          "maintainSceneFraming": {
+            "title": "Maintainsceneframing",
+            "type": "boolean",
+            "description": "Flag to maintain consistent framing (look-direction, ascending/descending, orbital-plane) across all acquisitions.",
+            "default": false
+          },
+          "lookAngleTolerance": {
+            "title": "Lookangletolerance",
+            "minimum": 0,
+            "type": "number",
+            "description": "Tolerance to look-angle deviations across all acquisitions. Units: [degrees]"
+          },
+          "azimuthAngleTolerance": {
+            "title": "Azimuthangletolerance",
+            "minimum": 0,
+            "type": "number",
+            "description": "Tolerance to azimuth-angle deviations across all acquisitions. Units: [degrees]"
+          }
+        }
+      },
+      "CollectionTier": {
+        "title": "CollectionTier",
+        "enum": [
+          "urgent",
+          "priority",
+          "standard",
+          "flexible"
+        ],
+        "type": "string",
+        "description": "Collection Option"
+      },
+      "GeoJSONGeometryType": {
+        "title": "GeoJSONGeometryType",
+        "enum": [
+          "Point",
+          "Polygon",
+          "MultiPolygon"
+        ],
+        "type": "string",
+        "description": "An enumeration."
+      },
+      "LookDirection": {
+        "title": "LookDirection",
+        "enum": [
+          "right",
+          "left",
+          "either"
+        ],
+        "type": "string",
+        "description": "Whether access is right or left looking"
+      },
+      "RadarPolarization": {
+        "title": "RadarPolarization",
+        "enum": [
+          "HH",
+          "VV"
+        ],
+        "type": "string",
+        "description": "Radar Collect Polarizations"
+      },
+      "RepeatCollectionTier": {
+        "title": "RepeatCollectionTier",
+        "enum": [
+          "routine",
+          "flexible"
+        ],
+        "type": "string",
+        "description": "Collection Tier Option"
+      },
+      "CAPICollectMode": {
+        "title": "CAPICollectMode",
+        "enum": [
+          "spotlight",
+          "stripmap",
+          "sliding_spotlight"
+        ],
+        "type": "string",
+        "description": "An enumeration."
+      },
+      "CAPICollectionTypeRadarParametersResponse": {
+        "title": "CAPICollectionTypeRadarParametersResponse",
+        "type": "object",
+        "properties": {
+          "bandwidth": {
+            "title": "Bandwidth",
+            "minimum": 0,
+            "type": "number",
+            "description": "Radar pulse bandwidth used to take the image. Units [Hz]."
+          }
+        }
+      },
+      "LocalTimeOption": {
+        "title": "LocalTimeOption",
+        "enum": [
+          "day",
+          "night",
+          "anytime"
+        ],
+        "type": "string",
+        "description": "String parameter for localTime that parses to an array value"
+      },
+      "Squint": {
+        "title": "Squint",
+        "enum": [
+          "disabled",
+          "enabled",
+          "forward",
+          "backward"
+        ],
+        "type": "string",
+        "description": "Flag parameter to enable squint for tasking requests"
+      },
+      "auto_ops__data_models__capi_constraints__CAPIRadarParameters": {
+        "title": "CAPIRadarParameters",
+        "type": "object",
+        "properties": {
+          "prf": {
+            "title": "Prf",
+            "type": "array",
+            "items": {
+
+            },
+            "description": "[a b c] coefficients for a quadratic polynomial PRF\n                             approximation, lowest order to highest."
+          },
+          "bandwidth": {
+            "title": "Bandwidth",
+            "minimum": 0,
+            "type": "number",
+            "description": "Radar pulse bandwidth used to take the image. Units [Hz]."
+          },
+          "centerFrequency": {
+            "title": "Centerfrequency",
+            "minimum": 0,
+            "type": "integer",
+            "description": "Radar center frequency used to take the image. Units [Hz]."
+          },
+          "upchirp": {
+            "title": "Upchirp",
+            "type": "boolean",
+            "description": "Whether to upchirp or downchirp.",
+            "default": true
+          },
+          "method": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RadarParamsMethod"
+              }
+            ],
+            "description": "Method used for range and PRF calculations.",
+            "default": "onboard"
+          },
+          "ground_poly": {
+            "title": "Ground Poly",
+            "type": "array",
+            "items": {
+              "type": "number"
+            },
+            "description": "Ground polynomial of track to follow (ECEF), [X, Y, Z, vX, vY, vZ, aX, aY, aZ]"
+          },
+          "mode": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CollectTXRX"
+              }
+            ],
+            "description": "Collection radar behavior. Whether to transmit and/or recieve."
+          }
+        }
+      },
+      "CollectTXRX": {
+        "title": "CollectTXRX",
+        "enum": [
+          "COLLECT_TXRX",
+          "COLLECT_RX_ONLY"
+        ],
+        "type": "string",
+        "description": "Control over transmit/recieve behavior. Used for radar calibration."
+      },
+      "RadarParamsMethod": {
+        "title": "RadarParamsMethod",
+        "enum": [
+          "onboard",
+          "ground",
+          "default"
+        ],
+        "type": "string",
+        "description": "What method to use for radar parameter calculation"
+      }
+    }
+  },
+  "openapi": "3.0.0",
+  "servers": [],
+  "tags": []
+}

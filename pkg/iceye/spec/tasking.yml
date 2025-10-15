@@ -1,0 +1,1273 @@
+openapi: 3.0.0
+info:
+  version: 2.0.0
+  title: Tasking API
+servers:
+  - url: https://platform.iceye.com/api/tasking/v2
+paths:
+  /price:
+    get:
+      summary: Get task price
+      operationId: getPrice
+      parameters:
+        - name: contractID
+          in: query
+          required: true
+          schema:
+            $ref: "#/components/schemas/ResourceID"
+        - name: imagingMode
+          in: query
+          required: true
+          schema:
+            $ref: "#/components/schemas/TaskRequestImagingMode"
+        - name: pointOfInterest
+          in: query
+          style: deepObject
+          required: true
+          explode: true
+          schema:
+            description: Point Of Interest
+            type: object
+            properties:
+              lat:
+                description: Latitude in degrees
+                type: number
+                format: float
+              lon:
+                description: Longitude in degrees
+                type: number
+                format: float
+            additionalProperties: false
+        - name: exclusivity
+          in: query
+          required: true
+          schema:
+            description: Product exclusivity
+            type: string
+        - name: priority
+          in: query
+          required: true
+          schema:
+            description: Priority for tasking images
+            type: string
+        - name: sla
+          in: query
+          required: true
+          schema:
+            description: Service level agreement
+            type: string
+        - name: eula
+          in: query
+          required: true
+          schema:
+            description: End User license Agreement
+            type: string
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Price"
+          description: Pricing details
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorised"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+  /tasks:
+    post:
+      summary: Create task
+      operationId: createTask
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TaskRequest"
+      responses:
+        "201":
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Task"
+          description: Task created
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorised"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+    get:
+      summary: List tasks
+      operationId: getTasks
+      parameters:
+        - name: contractID
+          in: query
+          required: false
+          schema:
+            type: string
+            format: uuid
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+        - name: cursor
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: createdAfter
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date-time
+        - name: createdBefore
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date-time
+      responses:
+        "200":
+          description: List of tasks
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ListTasks"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorised"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+  /tasks/{taskID}:
+    get:
+      summary: Get task
+      operationId: getTask
+      parameters:
+        - name: taskID
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: The task resource
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Task"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorised"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+    patch:
+      summary: Cancel task
+      operationId: cancelTask
+      parameters:
+        - name: taskID
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TaskUpdateRequest"
+      responses:
+        "200":
+          description: The task resource
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Task"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorised"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+  /tasks/{taskID}/products:
+    get:
+      summary: List task products
+      operationId: listTaskProducts
+      parameters:
+        - name: taskID
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: cursor
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of task products
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CatalogItems"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorised"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+  /tasks/{taskID}/products/{productType}:
+    get:
+      summary: Get task product
+      operationId: getTaskProduct
+      parameters:
+        - name: taskID
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: productType
+          in: path
+          required: true
+          schema:
+            $ref: "#/components/schemas/ProductType"
+        - name: cursor
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Product of the task
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CatalogItems"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorised"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+  /tasks/{taskID}/scene:
+    get:
+      summary: Get task scene
+      operationId: getTaskScene
+      parameters:
+        - name: taskID
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: The task scene resource
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TaskScene"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorised"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    Error:
+      description: An Error
+      type: object
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+      required:
+        - code
+        - message
+      additionalProperties: false
+    Price:
+      description: A Price resource
+      type: object
+      properties:
+        amount:
+          description: Total cost for tasking
+          type: integer
+          format: int64
+        currency:
+          description: Currency of cost
+          type: string
+      required:
+        - amount
+        - currency
+      additionalProperties: false
+    TaskRequestImagingMode:
+      description: An ImagingMode resource
+      type: string
+    ImagingMode:
+      description: An ImagingMode resource
+      type: string
+    imagingDuration:
+      type: integer
+      format: int32
+      minimum: 1
+      maximum: 180
+      description: |
+        Optional imaging duration in seconds.
+
+        If not provided, the system will use default values based on the selected imaging mode.
+      example: 30
+    Point:
+      description: A Point resource
+      type: object
+      properties:
+        lat:
+          description: Latitude in degrees
+          type: number
+          format: float
+        lon:
+          description: Longitude in degrees
+          type: number
+          format: float
+      required:
+        - lat
+        - lon
+      additionalProperties: false
+    Polygon:
+      type: object
+      properties:
+        type:
+          type: string
+          enum:
+            - Polygon
+        coordinates:
+          type: array
+          items:
+            type: array
+            items:
+              type: array
+              items:
+                type: number
+              minItems: 2
+              maxItems: 2
+      required:
+        - type
+        - coordinates
+    Exclusivity:
+      description: Must be PRIVATE or PUBLIC.
+      type: string
+      enum:
+        - PRIVATE
+        - PUBLIC
+      example: "PRIVATE"
+    Priority:
+      description: Must be BACKGROUND or COMMERCIAL.
+      type: string
+      enum:
+        - BACKGROUND
+        - COMMERCIAL
+      example: "BACKGROUND"
+    SLA:
+      description: SLA By default it is SLA_8H
+      type: string
+      example: SLA_8H
+    TaskStatus:
+      description: The Task status
+      type: string
+      enum:
+        - RECEIVED
+        - ACTIVE
+        - FULFILLED
+        - REJECTED
+        - CANCELED
+        - DONE
+        - FAILED
+    IncidenceAngle:
+      description: Incidence Angle must be in the range 10-45 (inclusive). By default min = 10 and max = 45
+      type: object
+      properties:
+        min:
+          type: integer
+          minimum: 10
+          maximum: 45
+        max:
+          type: integer
+          minimum: 10
+          maximum: 45
+      required:
+        - min
+        - max
+      additionalProperties: false
+    LookSide:
+      description: Look Side must be LEFT, RIGHT or ANY. By default it is ANY
+      type: string
+      enum:
+        - LEFT
+        - RIGHT
+        - ANY
+    PassDirection:
+      description: Pass Direction must be ASCENDING, DESCENDING or ANY. By default it is ANY
+      type: string
+      enum:
+        - ASCENDING
+        - DESCENDING
+        - ANY
+    EULA:
+      description: EULA
+      type: string
+      enum:
+        - STANDARD
+        - GOVERNMENT
+        - MULTI
+    OpportunitiesRequest:
+      description: A Opportunities request resource
+      type: object
+      properties:
+        contractID:
+          $ref: "#/components/schemas/ResourceID"
+        pointOfInterest:
+          $ref: "#/components/schemas/Point"
+        acquisitionWindow:
+          $ref: "#/components/schemas/TimeWindow"
+        imagingMode:
+          $ref: "#/components/schemas/TaskRequestImagingMode"
+        priority:
+          $ref: "#/components/schemas/Priority"
+        sla:
+          $ref: "#/components/schemas/SLA"
+        incidenceAngle:
+          $ref: "#/components/schemas/IncidenceAngle"
+        lookSide:
+          $ref: "#/components/schemas/LookSide"
+        passDirection:
+          $ref: "#/components/schemas/PassDirection"
+      required:
+        - acquisitionWindow
+        - contractID
+        - imagingMode
+        - pointOfInterest
+      additionalProperties: false
+    OpportunitiesResponse:
+      description: The Opportunities resource
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Opportunity"
+        cursor:
+          description: Cursor token for pagination
+          type: string
+      required:
+        - data
+      additionalProperties: false
+    Opportunity:
+      description: An Opportunity resource
+      type: object
+      properties:
+        feasible:
+          type: boolean
+        footprint:
+          $ref: "#/components/schemas/PolygonFeatureCollection"
+        imagingStartTime:
+          description: The time at which the imaging operation will start, in RFC3339 format
+          type: string
+          format: date-time
+          example: "2006-01-02T15:04:05Z07:00"
+        incidenceAngle:
+          type: number
+          format: double
+          description: Incidence Angle of Satellite during Pass (in degrees)
+          example: 45.5
+        lookSide:
+          type: string
+          description: Look Side of Satellite (i.e RIGHT/LEFT)
+          example: "RIGHT"
+        passDirection:
+          type: string
+          description: Pass Direction of satellite (i.e DESCENDING/ASCENDING)
+          example: "DESCENDING"
+        azimuth:
+          type: number
+          format: double
+          description: Azimuth during Pass
+          example: 45.5
+      required:
+        - feasible
+    TaskRequest:
+      description: A TaskRequest resource
+      type: object
+      properties:
+        contractID:
+          $ref: "#/components/schemas/ResourceID"
+        reference:
+          $ref: "#/components/schemas/TaskReference"
+        pointOfInterest:
+          $ref: "#/components/schemas/Point"
+        acquisitionWindow:
+          $ref: "#/components/schemas/TimeWindow"
+        imagingMode:
+          $ref: "#/components/schemas/TaskRequestImagingMode"
+        exclusivity:
+          $ref: "#/components/schemas/Exclusivity"
+        priority:
+          $ref: "#/components/schemas/Priority"
+        sla:
+          $ref: "#/components/schemas/SLA"
+        incidenceAngle:
+          $ref: "#/components/schemas/IncidenceAngle"
+        lookSide:
+          $ref: "#/components/schemas/LookSide"
+        passDirection:
+          $ref: "#/components/schemas/PassDirection"
+        productTypes:
+          type: array
+          items:
+            $ref: "#/components/schemas/ProductType"
+        eula:
+          $ref: "#/components/schemas/EULA"
+        notifications:
+          $ref: "#/components/schemas/Notifications"
+        deliveries:
+          type: array
+          items:
+            $ref: '#/components/schemas/TaskingDeliveryRequest'
+      required:
+        - acquisitionWindow
+        - contractID
+        - imagingMode
+        - pointOfInterest
+      additionalProperties: false
+    ListTasks:
+      description: List of tasks
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/ListTask"
+        cursor:
+          description: Cursor token for pagination
+          type: string
+      required:
+        - data
+      additionalProperties: false
+    ListTask:
+      description: A Task resource
+      type: object
+      properties:
+        id:
+          $ref: "#/components/schemas/ResourceID"
+        pointOfInterest:
+          $ref: "#/components/schemas/Point"
+        acquisitionWindow:
+          $ref: "#/components/schemas/TimeWindow"
+        createdAt:
+          description: The time the Task was created, in RFC3339 format
+          type: string
+          format: date-time
+          example: "2006-01-02T15:04:05Z07:00"
+        updatedAt:
+          description: The time at which the Task was updated, in RFC3339 format
+          type: string
+          format: date-time
+          example: "2006-01-02T15:04:05Z07:00"
+        imagingDuration:
+          $ref: "#/components/schemas/imagingDuration"
+        imagingMode:
+          $ref: "#/components/schemas/ImagingMode"
+        contractID:
+          $ref: "#/components/schemas/ResourceID"
+        reference:
+          $ref: "#/components/schemas/TaskReference"
+        status:
+          $ref: "#/components/schemas/TaskStatus"
+        fulfilledAt:
+          description: The time when the first product for the Task in Fulfilled state was available, in RFC3339 format
+          type: string
+          format: date-time
+          example: "2006-01-02T15:04:05Z07:00"
+        exclusivity:
+          $ref: "#/components/schemas/Exclusivity"
+        priority:
+          $ref: "#/components/schemas/Priority"
+        sla:
+          $ref: "#/components/schemas/SLA"
+        productsAvailableInSeconds:
+          description: The time required to obtain standard products following the successful completion of imaging. The time duration is in seconds.
+          type: integer
+          format: int64
+        incidenceAngle:
+          $ref: "#/components/schemas/IncidenceAngle"
+        lookSide:
+          $ref: "#/components/schemas/LookSide"
+        passDirection:
+          $ref: "#/components/schemas/PassDirection"
+        eula:
+          $ref: "#/components/schemas/EULA"
+        productTypes:
+          type: array
+          items:
+            $ref: "#/components/schemas/ProductType"
+      required:
+        - id
+        - pointOfInterest
+        - acquisitionWindow
+        - createdAt
+        - updatedAt
+        - imagingMode
+        - status
+        - contractID
+        - exclusivity
+        - priority
+        - incidenceAngle
+        - lookSide
+        - passDirection
+        - eula
+      additionalProperties: false
+    Task:
+      description: A Task resource
+      type: object
+      properties:
+        id:
+          $ref: "#/components/schemas/ResourceID"
+        pointOfInterest:
+          $ref: "#/components/schemas/Point"
+        acquisitionWindow:
+          $ref: "#/components/schemas/TimeWindow"
+        createdAt:
+          description: The time the Task was created, in RFC3339 format
+          type: string
+          format: date-time
+          example: "2006-01-02T15:04:05Z07:00"
+        updatedAt:
+          description: The time at which the Task was updated, in RFC3339 format
+          type: string
+          format: date-time
+          example: "2006-01-02T15:04:05Z07:00"
+        imagingMode:
+          $ref: "#/components/schemas/ImagingMode"
+        imagingDuration:
+          $ref: "#/components/schemas/imagingDuration"
+        contractID:
+          $ref: "#/components/schemas/ResourceID"
+        reference:
+          $ref: "#/components/schemas/TaskReference"
+        status:
+          $ref: "#/components/schemas/TaskStatus"
+        fulfilledAt:
+          description: The time when the first product for the Task in Fulfilled state was available, in RFC3339 format
+          type: string
+          format: date-time
+          example: "2006-01-02T15:04:05Z07:00"
+        exclusivity:
+          $ref: "#/components/schemas/Exclusivity"
+        priority:
+          $ref: "#/components/schemas/Priority"
+        sla:
+          $ref: "#/components/schemas/SLA"
+        productsAvailableInSeconds:
+          description: The time required to obtain standard products following the successful completion of imaging. The time duration is in seconds.
+          type: integer
+          format: int64
+        incidenceAngle:
+          $ref: "#/components/schemas/IncidenceAngle"
+        lookSide:
+          $ref: "#/components/schemas/LookSide"
+        passDirection:
+          $ref: "#/components/schemas/PassDirection"
+        eula:
+          $ref: "#/components/schemas/EULA"
+        productTypes:
+          type: array
+          items:
+            $ref: "#/components/schemas/ProductType"
+        notifications:
+          $ref: "#/components/schemas/Notifications"
+        deliveries:
+          type: array
+          items:
+            $ref: "#/components/schemas/TaskingDelivery"
+      required:
+        - id
+        - pointOfInterest
+        - acquisitionWindow
+        - createdAt
+        - updatedAt
+        - imagingMode
+        - status
+        - contractID
+        - exclusivity
+        - priority
+        - incidenceAngle
+        - lookSide
+        - passDirection
+        - eula
+      additionalProperties: false
+    ResourceID:
+      description: A resource ID
+      type: string
+      format: uuid
+    TaskReference:
+      description: Task Reference
+      type: string
+      example: "customer task reference 123_456"
+    TimeWindow:
+      description: A TimeWindow resource
+      type: object
+      properties:
+        start:
+          description: |
+            The start of the TimeWindow, in RFC3339 format
+            Start time must not be in past.
+          type: string
+          format: date-time
+          example: "2006-01-02T15:04:05Z07:00"
+        end:
+          description: |
+            The end of the TimeWindow, in RFC3339 format
+            The end time must not exceed 14 days.
+          type: string
+          format: date-time
+          example: "2006-01-02T15:04:05Z07:00"
+      required:
+        - start
+        - end
+      additionalProperties: false
+    TaskUpdateRequest:
+      description: A TaskUpdate resource
+      type: object
+      properties:
+        status:
+          description: Status of the task
+          type: string
+          enum:
+            - CANCELED
+      required:
+        - status
+      additionalProperties: false
+    Notifications:
+      description: Notifications
+      type: object
+      properties:
+        webhook:
+          $ref: '#/components/schemas/WebhookNotification'
+    WebhookNotification:
+      description: Webhook Notification
+      type: object
+      properties:
+        id:
+          description: |
+            An ID to reference the subscription details.
+          type: string
+          format: uuid
+    TaskingDeliveryRequest:
+      description: Tasking Delivery Request
+      type: object
+      properties:
+        locations:
+          description: The locations to deliver the products to.
+          type: array
+          items:
+            $ref: '#/components/schemas/DeliveryLocation'
+      required:
+        - locations
+      additionalProperties: false
+    TaskingDelivery:
+      description: Tasking Delivery
+      type: object
+      properties:
+        id:
+          description: The ID of the delivery. It could be empty if the delivery has not created yet.
+          type: string
+          format: uuid
+        locations:
+          description: The locations to deliver the products to.
+          type: array
+          items:
+            $ref: '#/components/schemas/DeliveryLocation'
+        status:
+          description: The status of the delivery.
+          type: string
+          enum:
+            - pending
+            - success
+            - failed
+      required:
+        - locations
+        - status
+      additionalProperties: false
+    DeliveryLocation:
+      description: Delivery Location
+      type: object
+      properties:
+        configID:
+          description: The ID of the Delivery Location Config.
+          type: string
+          format: uuid
+        path:
+          description: The path to deliver the products to.
+          type: string
+        subPath:
+          description: The sub path to deliver the products to.
+          type: string
+      required:
+        - configID
+        - path
+      additionalProperties: false
+    ImagingTime:
+      description: Start and end of imaging operation.
+      type: object
+      properties:
+        start:
+          description: The start of the Imaging, in RFC3339 format
+          type: string
+          format: date-time
+          example: "2006-01-02T15:04:05Z07:00"
+        end:
+          description: The end of the Imaging, in RFC3339 format
+          type: string
+          format: date-time
+          example: "2006-01-02T15:04:05Z07:00"
+      required:
+        - start
+        - end
+    TaskScene:
+      description: A Task scene resource
+      type: object
+      properties:
+        duration:
+          description: Duration is in seconds.
+          type: integer
+          format: int64
+        imagingTime:
+          $ref: "#/components/schemas/ImagingTime"
+        lookSide:
+          $ref: "#/components/schemas/LookSide"
+        passDirection:
+          $ref: "#/components/schemas/PassDirection"
+        incidenceAngle:
+          description: Incidence Angle value
+          type: string
+      required:
+        - imagingTime
+        - duration
+      additionalProperties: false
+    CatalogItems:
+      description: List of catalog items
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/CatalogItem"
+        cursor:
+          description: Cursor token for pagination
+          type: string
+      required:
+        - data
+      additionalProperties: false
+    CatalogItem:
+      description: The catalog item resource
+      type: object
+      properties:
+        id:
+          type: string
+        geometry:
+          $ref: '#/components/schemas/Geometry'
+        stac_version:
+          type: string
+        bbox:
+          type: array
+          items:
+            type: number
+            format: float
+          example: [-122.59750209, 37.48803556, 180.0, 90.0]
+        type:
+          type: string
+        properties:
+          $ref: '#/components/schemas/CatalogItemProperties'
+        collection:
+          type: string
+        assets:
+          $ref: '#/components/schemas/CatalogItemAssets'
+      required:
+        - id
+        - geometry
+        - stac_version
+        - bbox
+        - type
+        - properties
+        - collection
+      additionalProperties: false
+    CatalogItemProperties:
+      type: object
+      properties:
+        frame_id:
+          type: string
+        created:
+          type: string
+          format: date-time
+          nullable: true
+          example: "2022-03-12T10:00:00Z"
+        updated:
+          type: string
+          format: date-time
+          nullable: true
+          example: "2022-03-12T10:00:00Z"
+        start_datetime:
+          type: string
+          format: date-time
+          nullable: true
+          example: "2022-03-12T10:00:00Z"
+        end_datetime:
+          type: string
+          format: date-time
+          nullable: true
+          example: "2022-03-12T12:00:00Z"
+        sar:instrument_mode:
+          type: string
+          nullable: true
+          example: "Mode1"
+        sar:frequency_band:
+          type: string
+          nullable: true
+          example: "X"
+        sar:polarizations:
+          type: array
+          items:
+            type: string
+          example: ["HH", "VV"]
+        sar:product_type:
+          type: string
+          nullable: true
+          example: "GRD"
+        sar:looks_range:
+          type: number
+          nullable: true
+          format: float
+          example: 1
+        sar:looks_azimuth:
+          type: number
+          nullable: true
+          format: float
+          example: 1
+        sar:observation_direction:
+          type: string
+          nullable: true
+          example: "left"
+        sat:orbit_state:
+          type: string
+          nullable: true
+          example: "descending"
+        iceye:acquisition_mode:
+          type: string
+          nullable: true
+          example: "spotlight"
+        iceye:incidence_center:
+          type: number
+          nullable: true
+          format: float
+          example: 45.0
+        iceye:incidence_near:
+          type: number
+          nullable: true
+          format: float
+          example: 45.0
+        iceye:incidence_far:
+          type: number
+          nullable: true
+          format: float
+          example: 45.0
+        iceye:satellite_look_angle:
+          type: number
+          nullable: true
+          format: float
+          example: 45.0
+        iceye:chirp_bandwidth:
+          type: number
+          nullable: true
+          format: float
+          example: 45.0
+        iceye:data_orientation:
+          type: string
+          nullable: true
+          example: "native"
+        iceye:azimuth_resolution:
+          type: number
+          nullable: true
+          format: float
+          example: 45.0
+        iceye:range_resolution_center:
+          type: number
+          nullable: true
+          format: float
+          example: 45.0
+        iceye:range_resolution_near:
+          type: number
+          nullable: true
+          format: float
+          example: 45.0
+        iceye:range_resolution_far:
+          type: number
+          nullable: true
+          format: float
+          example: 45.0
+        iceye:processing_mode:
+          type: string
+          nullable: true
+          example: "SM"
+      required:
+        - frame_id
+      additionalProperties: false
+    CatalogItemAssets:
+      type: object
+      additionalProperties:
+        $ref: '#/components/schemas/Asset'
+    Feature:
+      type: object
+      properties:
+        type:
+          type: string
+          enum:
+            - Feature
+        geometry:
+          oneOf:
+            - $ref: '#/components/schemas/Point'
+            - $ref: '#/components/schemas/Polygon'
+        properties:
+          type: object
+      required:
+        - properties
+        - type
+        - geometry
+    PolygonFeature:
+      type: object
+      properties:
+        type:
+          type: string
+          enum:
+            - Feature
+        geometry:
+          $ref: '#/components/schemas/Polygon'
+        properties:
+          type: object
+      required:
+        - properties
+        - type
+        - geometry
+    PolygonFeatureCollection:
+      type: object
+      properties:
+        type:
+          type: string
+          enum:
+            - FeatureCollection
+        features:
+          type: array
+          items:
+            $ref: '#/components/schemas/PolygonFeature'
+      required:
+        - type
+        - features
+    FeatureCollection:
+      type: object
+      properties:
+        type:
+          type: string
+          enum:
+            - FeatureCollection
+        features:
+          type: array
+          items:
+            $ref: '#/components/schemas/Feature'
+      required:
+        - type
+        - features
+    Geometry:
+      type: object
+      example: [[[-122.308150179, 37.488035566], [101.0, 0.0], [101.0, 1.0], [100.0, 1.0], [100.0, 0.0]]]
+      properties:
+        type:
+          type: string
+        coordinates:
+          type: array
+          items:
+            type: array
+            items:
+              type: array
+              items:
+                type: number
+                format: float
+      required:
+        - type
+        - coordinates
+      additionalProperties: false
+    Asset:
+      type: object
+      properties:
+        href:
+          type: string
+          example: https://cloudfront.cdn.com/token
+        title:
+          type: string
+          example: "Thumbnail png file"
+        type:
+          type: string
+          example: "application/json"
+        roles:
+          type: array
+          items:
+            type: string
+            example: "thumbnail"
+        coordinates:
+          $ref: "#/components/schemas/AssetCoordinates"
+      additionalProperties: false
+    AssetCoordinates:
+      type: object
+      properties:
+        top_left:
+          type: array
+          items:
+            type: number
+            format: float
+        bottom_right:
+          type: array
+          items:
+            type: number
+            format: float
+        bottom_left:
+          type: array
+          items:
+            type: number
+            format: float
+        top_right:
+          type: array
+          items:
+            type: number
+            format: float
+      required:
+        - top_left
+        - bottom_right
+        - bottom_left
+        - top_right
+      example:
+        top_left: [-122.308150179, 37.488035566]
+        bottom_right: [101.0, 0.0]
+        bottom_left: [101.0, 1.0]
+        top_right: [100.0, 1.0]
+    ProductType:
+      description: SAR product type
+      type: string
+      enum:
+        - GRD
+        - GRD-COG
+        - SLC
+        - SLC-COG
+        - QLK
+        - SICD
+        - SIDD
+        - CSI
+        - VID
+      example: "GRD"
+  responses:
+    BadRequest:
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    Unauthorised:
+      description: Unauthorised
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    Forbidden:
+      description: Forbidden
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    NotFound:
+      description: Not Found
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    TooManyRequests:
+      description: Too Many Requests
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    InternalServerError:
+      description: Internal Server Error
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+security:
+  - BearerAuth: []

@@ -1,0 +1,1478 @@
+{
+  "info": {
+    "title": "access-entitlement",
+    "version": "1.0.0"
+  },
+  "externalDocs": {
+    "url": ""
+  },
+  "security": [
+    {
+      "apiKeyAuth": [],
+      "bearerAuth": []
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "apiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Authorization",
+        "description": "Prefix your API Key in the Authorization header with \"ApiKey\". (Example: Authorization: ApiKey \u003Cmy-key\u003E)"
+      },
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    },
+    "schemas": {
+      "ContractParameters": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "$ref": "#/components/schemas/ContractType"
+          },
+          "discretionaryDiscount": {
+            "type": "object",
+            "properties": {
+              "data_order": {
+                "type": "number",
+                "format": "float",
+                "example": 0.25
+              },
+              "tasking_request": {
+                "type": "number",
+                "format": "float",
+                "example": 0.25
+              }
+            }
+          },
+          "entityUplift": {
+            "type": "number",
+            "format": "float",
+            "example": 0.25
+          },
+          "funds": {
+            "type": "string",
+            "format": "currency",
+            "example": "$1,000,000.00"
+          },
+          "exclusivityHolds": {
+            "$ref": "#/components/schemas/PropertyByResourceType"
+          },
+          "license": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/USGLicenseOption"
+              },
+              {
+                "$ref": "#/components/schemas/CanadaLicenseOption"
+              },
+              {
+                "$ref": "#/components/schemas/CapellaLicenseOption"
+              }
+            ]
+          }
+        }
+      },
+      "PropertyByResourceType": {
+        "type": "object",
+        "properties": {
+          "task": {
+            "type": "number",
+            "format": "float"
+          },
+          "archive": {
+            "type": "number",
+            "format": "float"
+          }
+        }
+      },
+      "ErrorDetails": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              },
+              "detail": {
+                "type": "object"
+              }
+            },
+            "required": [
+              "message"
+            ]
+          }
+        }
+      },
+      "TransactionsAdvancedSearchBody": {
+        "description": "List of transaction properties to search for, which will be treated as a union of all search results.",
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "object",
+            "anyOf": [
+              {
+                "required": [
+                  "transactionIds"
+                ],
+                "properties": {
+                  "transactionIds": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "format": "uuid"
+                    }
+                  }
+                }
+              },
+              {
+                "required": [
+                  "targetIds"
+                ],
+                "properties": {
+                  "targetIds": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        }
+      },
+      "AuthorizeResource": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          }
+        }
+      },
+      "OrderItem": {
+        "type": "object",
+        "properties": {
+          "collectionId": {
+            "type": "string"
+          },
+          "granuleId": {
+            "type": "string"
+          }
+        }
+      },
+      "OrderReview": {
+        "type": "object",
+        "properties": {
+          "authorized": {
+            "type": "boolean"
+          },
+          "user": {
+            "type": "object"
+          },
+          "orderDetails": {
+            "$ref": "#/components/schemas/OrderDetails"
+          }
+        }
+      },
+      "OrderDetails": {
+        "type": "object",
+        "properties": {
+          "lineItems": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "collectionId": {
+                  "type": "string"
+                },
+                "granuleId": {
+                  "type": "string"
+                },
+                "previouslyOrdered": {
+                  "type": "boolean"
+                },
+                "type": {
+                  "type": "string"
+                },
+                "cost": {
+                  "type": "string",
+                  "format": "currency"
+                }
+              }
+            }
+          },
+          "summary": {
+            "type": "object",
+            "properties": {
+              "subtotal": {
+                "type": "string",
+                "format": "currency"
+              },
+              "volumeDiscount": {
+                "$ref": "#/components/schemas/Discount"
+              },
+              "entityUplift": {
+                "$ref": "#/components/schemas/Surcharge"
+              },
+              "discretionaryDiscount": {
+                "$ref": "#/components/schemas/Discount"
+              },
+              "total": {
+                "type": "string",
+                "format": "currency"
+              }
+            }
+          }
+        }
+      },
+      "Discount": {
+        "type": "object",
+        "properties": {
+          "discount": {
+            "type": "string",
+            "format": "percent"
+          },
+          "amount": {
+            "type": "string",
+            "format": "currency"
+          }
+        }
+      },
+      "Surcharge": {
+        "type": "object",
+        "properties": {
+          "surcharge": {
+            "type": "string",
+            "format": "percent"
+          },
+          "amount": {
+            "type": "string",
+            "format": "currency"
+          }
+        }
+      },
+      "UserAccessRole": {
+        "type": "string",
+        "enum": [
+          "user",
+          "archive-viewer",
+          "archive-buyer",
+          "tasker",
+          "admin",
+          "organization-manager",
+          "reseller",
+          "sub-reseller",
+          "analytics-developer",
+          "analytics-operator",
+          "analytics-user",
+          "salesforce"
+        ]
+      },
+      "AuthorizeRequest": {
+        "type": "object",
+        "properties": {
+          "resource": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "type": {
+                "type": "string"
+              },
+              "items": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "granuleId": {
+                      "type": "string"
+                    },
+                    "previouslyOrdered": {
+                      "type": "boolean"
+                    },
+                    "type": {
+                      "type": "string"
+                    },
+                    "collectionId": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "service": {
+            "type": "string"
+          },
+          "action": {
+            "type": "string"
+          }
+        }
+      },
+      "Preauthorization": {
+        "type": "object",
+        "properties": {
+          "authorized": {
+            "type": "boolean",
+            "description": "Indicates whether or not the user is preauthorized.  The response indicates A) if the user token was valid B) If there is a matching Entitlement Policy matching the user's role, supplied service, and action C) The user is NOAA verified."
+          },
+          "user": {
+            "type": "object",
+            "description": "serialized representation of the user, including organizationId"
+          }
+        },
+        "required": [
+          "authorized",
+          "user"
+        ]
+      },
+      "Authorization": {
+        "type": "object",
+        "properties": {
+          "authorized": {
+            "type": "boolean",
+            "description": "Indicates whether or not the order is authorized."
+          },
+          "user": {
+            "type": "object",
+            "description": "serialized representation of the user, including organizationId"
+          },
+          "orderDetails": {
+            "$ref": "#/components/schemas/OrderDetails"
+          }
+        },
+        "required": [
+          "authorized",
+          "user"
+        ]
+      },
+      "TokenResponse": {
+        "type": "object",
+        "properties": {
+          "accessToken": {
+            "type": "string"
+          },
+          "expiresIn": {
+            "type": "integer"
+          },
+          "tokenType": {
+            "type": "string"
+          },
+          "refreshToken": {
+            "type": "string"
+          },
+          "refreshTokenExpirationTs": {
+            "type": "integer",
+            "format": "int64"
+          }
+        },
+        "required": [
+          "accessToken",
+          "expiresIn",
+          "tokenType"
+        ]
+      },
+      "TokenChallenge": {
+        "type": "object",
+        "properties": {
+          "challengeName": {
+            "type": "string"
+          },
+          "challengeParameters": {
+            "type": "object",
+            "properties": {
+              "USER_ID_FOR_SRP": {
+                "type": "string"
+              },
+              "requiredAttributes": {
+                "type": "string"
+              },
+              "userAttributes": {
+                "type": "string"
+              }
+            }
+          },
+          "session": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "challengeName",
+          "challengeParameters",
+          "session"
+        ]
+      },
+      "USGLicenseOption": {
+        "description": "USG Data License Identifier",
+        "type": "string",
+        "enum": [
+          "USG/USG",
+          "USG/USGP",
+          "USG/PUB"
+        ]
+      },
+      "CanadaLicenseOption": {
+        "description": "Canada Data License Identifier",
+        "type": "string",
+        "enum": [
+          "CANADA/Class0",
+          "CANADA/Class1",
+          "CANADA/Class2",
+          "CANADA/Class3",
+          "CANADA/Class4",
+          "CANADA/Class5"
+        ]
+      },
+      "CapellaLicenseOption": {
+        "description": "Canada Data License Identifier",
+        "type": "string",
+        "enum": [
+          "CAPELLA/SingleOrg",
+          "CAPELLA/MultiOrg",
+          "CAPELLA/Eval",
+          "CAPELLA/AnalyticsPartner"
+        ]
+      },
+      "DefaultProductType": {
+        "type": "object",
+        "properties": {
+          "productType": {
+            "type": "string",
+            "example": "GEO"
+          },
+          "required": {
+            "type": "boolean"
+          }
+        }
+      },
+      "Address": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "example": "9bc78ca6-2ee0-4d31-a421-460f82639943"
+          },
+          "street": {
+            "nullable": true,
+            "type": "string",
+            "example": "10 Main St."
+          },
+          "city": {
+            "nullable": true,
+            "type": "string",
+            "example": "Boston"
+          },
+          "state": {
+            "nullable": true,
+            "type": "string",
+            "example": "MA"
+          },
+          "postalCode": {
+            "nullable": true,
+            "type": "string",
+            "example": 19151
+          },
+          "country": {
+            "type": "string",
+            "example": "US"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2019-10-08T19:53:27.660Z"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2019-10-08T19:53:27.660Z"
+          },
+          "organizationId": {
+            "nullable": true,
+            "type": "string",
+            "format": "uuid",
+            "example": "c63fe09e-53cf-4407-aaef-5f393d78e778"
+          },
+          "userId": {
+            "nullable": true,
+            "type": "string",
+            "format": "uuid",
+            "example": "c63fe09e-53cf-4407-aaef-5f393d78e771"
+          }
+        }
+      },
+      "ContractOrgDataShare": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "example": "c63fe09e-53cf-4407-aaef-5f393d78e778"
+          },
+          "contractId": {
+            "type": "string",
+            "format": "uuid",
+            "example": "f33948e3-b26f-4da3-8c2b-388d0704c1a2"
+          },
+          "orgId": {
+            "type": "string",
+            "format": "uuid",
+            "example": "edf53893-a9a8-4d4d-acb6-d3ae5d02bcb2"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2023-09-08T19:53:27.660Z"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2023-09-08T19:53:27.660Z"
+          }
+        }
+      },
+      "ContractPeriod": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "example": "c63fe09e-53cf-4407-aaef-5f393d78e778"
+          },
+          "startDate": {
+            "type": "string",
+            "format": "date",
+            "example": "2019-08-19T00:00:00.000Z"
+          },
+          "endDate": {
+            "type": "string",
+            "format": "date",
+            "example": "2019-08-19T00:00:00.000Z"
+          },
+          "valueCommitment": {
+            "type": "string",
+            "format": "currency",
+            "example": "$500,000.00"
+          },
+          "usage": {
+            "type": "string",
+            "format": "currency",
+            "example": "$500,000.00"
+          },
+          "subscriptionQuota": {
+            "type": "integer",
+            "example": 100
+          },
+          "subscriptionUsage": {
+            "type": "integer",
+            "example": 25
+          },
+          "availableSubscriptionUnits": {
+            "type": "integer",
+            "example": 75
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2019-10-08T19:53:27.660Z"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2019-10-08T19:53:27.660Z"
+          },
+          "organizationId": {
+            "type": "string",
+            "format": "uuid",
+            "example": "c63fe09e-53cf-4407-aaef-5f393d78e778"
+          }
+        }
+      },
+      "ContractType": {
+        "type": "string",
+        "enum": [
+          "standard",
+          "indefinite",
+          "reseller",
+          "trial",
+          "archiveSubscription"
+        ]
+      },
+      "Contract": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "example": "c63fe09e-53cf-4407-aaef-5f393d78e778"
+          },
+          "funds": {
+            "type": "string",
+            "format": "currency"
+          },
+          "organizationId": {
+            "type": "string",
+            "format": "uuid",
+            "example": "c63fe09e-53cf-4407-aaef-5f393d78e778"
+          },
+          "discretionaryDiscount": {
+            "type": "object",
+            "properties": {
+              "data_order": {
+                "type": "number",
+                "format": "float",
+                "example": 0.25
+              },
+              "tasking_request": {
+                "type": "number",
+                "format": "float",
+                "example": 0.25
+              }
+            }
+          },
+          "entityUplift": {
+            "type": "number",
+            "format": "float"
+          },
+          "enforceAvailableFundsCap": {
+            "type": "boolean",
+            "default": false
+          },
+          "startDate": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2019-10-08T19:53:27.660Z"
+          },
+          "endDate": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2019-10-08T19:53:27.660Z"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2019-10-08T19:53:27.660Z"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2019-10-08T19:53:27.660Z"
+          },
+          "type": {
+            "$ref": "#/components/schemas/ContractType"
+          },
+          "users": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/User"
+            }
+          },
+          "pricingOverrides": {
+            "type": "object",
+            "nullable": true,
+            "properties": {
+              "analyticImageryUplifts": {
+                "type": "object",
+                "properties": {
+                  "VC": {
+                    "type": "number",
+                    "format": "float",
+                    "example": 0.25
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "Organization": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "hideOrderPricing": {
+            "type": "boolean"
+          },
+          "hideTransactionActivity": {
+            "type": "boolean"
+          },
+          "users": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/User"
+            }
+          },
+          "name": {
+            "type": "string"
+          },
+          "address": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Address"
+              }
+            ]
+          },
+          "contracts": {
+            "nullable": true,
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Contract"
+            },
+            "description": "The full set of contracts for the organization"
+          },
+          "contract": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Contract"
+              }
+            ],
+            "description": "The default organization's contract"
+          },
+          "updatedAt": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "transactions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Transaction"
+            }
+          },
+          "s3PushEnabled": {
+            "type": "boolean"
+          },
+          "s3BucketConfigs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/S3BucketConfig"
+            }
+          },
+          "icebreakerApiEnabled": {
+            "type": "boolean"
+          },
+          "ledgerBillingEnabled": {
+            "type": "boolean"
+          },
+          "vesselDetectionEnabled": {
+            "type": "boolean"
+          },
+          "vesselClassificationEnabled": {
+            "type": "boolean"
+          },
+          "amplitudeChangeDetectionEnabled": {
+            "type": "boolean"
+          },
+          "availableLicenses": {
+            "type": "array",
+            "items": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/USGLicenseOption"
+                },
+                {
+                  "$ref": "#/components/schemas/CanadaLicenseOption"
+                },
+                {
+                  "$ref": "#/components/schemas/CapellaLicenseOption"
+                }
+              ]
+            }
+          },
+          "defaultProductTypes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DefaultProductType"
+            }
+          },
+          "permittedProductTypes": {
+            "nullable": true,
+            "type": "object",
+            "description": "The list of permitted product types for the organization",
+            "properties": {
+              "permitted": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "example": "GEO"
+                }
+              }
+            }
+          }
+        }
+      },
+      "S3BucketConfig": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "organizationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "bucketName": {
+            "type": "string"
+          },
+          "prefix": {
+            "type": "string"
+          },
+          "isGovcloud": {
+            "type": "boolean"
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "updatedAt": {
+            "type": "string"
+          }
+        }
+      },
+      "TransactionStatus": {
+        "type": "string",
+        "enum": [
+          "completed",
+          "pending-cost-calculation",
+          "pending-customer-approval",
+          "in-progress",
+          "failed",
+          "denied",
+          "customer-rejected",
+          "customer-cancelled",
+          "service-rejected",
+          "anomaly",
+          "collection-in-progress",
+          "collection-finished",
+          "cancel-in-progress"
+        ]
+      },
+      "Transaction": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "targetId": {
+            "type": "string"
+          },
+          "targetType": {
+            "type": "string"
+          },
+          "chargedFunds": {
+            "type": "string"
+          },
+          "organizationId": {
+            "type": "string"
+          },
+          "denialReason": {
+            "type": "object"
+          },
+          "status": {
+            "$ref": "#/components/schemas/TransactionStatus"
+          },
+          "failureReason": {
+            "type": "object"
+          },
+          "preApproval": {
+            "type": "boolean",
+            "description": "If set to true transactions will not wait for customer approval after cost is obtained."
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "completedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "targetId",
+          "targetType",
+          "organizationId",
+          "updatedAt",
+          "createdAt"
+        ]
+      },
+      "User": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/UserSummary"
+          },
+          {
+            "$ref": "#/components/schemas/Address"
+          }
+        ]
+      },
+      "UserSummary": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "noaaVerified": {
+            "type": "boolean"
+          },
+          "noaaWhitelisted": {
+            "type": "boolean"
+          },
+          "roles": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UserAccessRole"
+            }
+          },
+          "email": {
+            "type": "string"
+          },
+          "givenName": {
+            "type": "string"
+          },
+          "familyName": {
+            "type": "string"
+          },
+          "address": {
+            "$ref": "#/components/schemas/Address"
+          },
+          "updatedAt": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "organizationId": {
+            "nullable": true,
+            "type": "string",
+            "format": "uuid"
+          },
+          "makePascalCaseRole": {
+            "type": "string",
+            "description": "This is a dynamic property which can be used to toggle only a specific role without supplying an exhaustive array. For example makeOrganizationManager=true|false sets a role organization-manager."
+          },
+          "sendAllTransactionEmailNotifications": {
+            "type": "boolean",
+            "description": "If true user will receive email notifications for all transaction activity across the organization.” (applies only to users with the role organization-manager)"
+          },
+          "permittedProductTypes": {
+            "nullable": true,
+            "type": "object",
+            "description": "The list of permitted product types organized in a map of collection types",
+            "properties": {
+              "byCollectionType": {
+                "type": "object"
+              }
+            }
+          },
+          "allowedToTaskOnBehalf": {
+            "type": "boolean",
+            "description": "The user is allowed to create Tasking and Repeat Requests on behalf of other users. Certain roles only allow on behalf of specific users, for example managed organizations by the reseller."
+          }
+        },
+        "required": [
+          "id",
+          "noaaVerified",
+          "noaaWhitelisted",
+          "roles",
+          "email",
+          "givenName",
+          "familyName",
+          "updatedAt",
+          "createdAt"
+        ]
+      }
+    }
+  },
+  "openapi": "3.0.0",
+  "servers": [],
+  "paths": {
+    "/organization": {
+      "get": {
+        "x-org-manager-endpoint": true,
+        "description": "If the provided user token has an organization manager role, returns the user's organization with contract information.",
+        "tags": [
+          "Organizations"
+        ],
+        "responses": {
+          "200": {
+            "description": "Organization of the manager",
+            "content": {
+              "application/json; charset=utf-8": {
+                "schema": {
+                  "$ref": "#/components/schemas/Organization"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "Unable to authorize credentials or manager role",
+            "content": {
+              "application/json; charset=utf-8": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/passwords": {
+      "description": "Updates a user's password as a result of a reset password workflow.",
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json; charset=utf-8": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "format": "email"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successfully authorized"
+          },
+          "4XX": {
+            "description": "Unable to reset password",
+            "content": {
+              "application/json; charset=utf-8": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "example": {
+                    "error": "Incorrect username or password."
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "requestBody": {
+          "content": {
+            "application/json; charset=utf-8": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "format": "email"
+                  },
+                  "password": {
+                    "type": "string",
+                    "format": "email"
+                  },
+                  "passwordConfirmation": {
+                    "type": "string",
+                    "format": "email"
+                  },
+                  "confirmationCode": {
+                    "type": "string",
+                    "format": "email"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successfully updated password"
+          },
+          "4XX": {
+            "description": "Unable to update password",
+            "content": {
+              "application/json; charset=utf-8": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "example": {
+                    "error": "Password and password confirmation do not match"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/organizations/{orgId}/s3bucketconfigs": {
+      "get": {
+        "description": "Gets an organization's S3 Bucket Configurations",
+        "tags": [
+          "Organizations"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "orgId",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "The Organization's ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns Array of S3 Bucket Configs for organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/S3BucketConfig"
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Failure due to authorization issues.",
+            "content": {
+              "application/json; charset=utf-8": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/token": {
+      "post": {
+        "description": "Logs a user in given the username and password",
+        "security": [
+          {
+            "basicAuth": []
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Successfully authorized or authentication challenge",
+            "content": {
+              "application/json; charset=utf-8": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/TokenResponse"
+                    },
+                    {
+                      "$ref": "#/components/schemas/TokenChallenge"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "Unable to authorize credentials",
+            "content": {
+              "application/json; charset=utf-8": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "example": {
+                    "error": "Incorrect username or password."
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "description": "Used to complete and solve an authentication token challenge",
+        "requestBody": {
+          "content": {
+            "application/json; charset=utf-8": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/TokenChallenge"
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "challengeResponses": {
+                        "type": "object"
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successfully authorized",
+            "content": {
+              "application/json; charset=utf-8": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/TokenResponse"
+                    },
+                    {
+                      "$ref": "#/components/schemas/TokenChallenge"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "Unable to authorize credentials",
+            "content": {
+              "application/json; charset=utf-8": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "example": {
+                    "error": "Incorrect username or password."
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "description": "Invalidates all user tokens effectively signing the user out of all devices",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Successfully signed out",
+            "content": {
+              "application/json; charset=utf-8": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "example": {
+                    "message": "User is now signed out."
+                  }
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "Unable to sign out or invalidate token",
+            "content": {
+              "application/json; charset=utf-8": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "example": {
+                    "error": "Failed to delete token"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/token/refresh": {
+      "post": {
+        "description": "Refreshes a user's Access Token with a Refresh Token.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "refreshToken": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successfully refreshed tokens",
+            "content": {
+              "application/json; charset=utf-8": {
+                "schema": {
+                  "$ref": "#/components/schemas/TokenResponse"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "Unable to refresh token",
+            "content": {
+              "application/json; charset=utf-8": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "example": {
+                    "error": "Failed to refresh token"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/user": {
+      "get": {
+        "description": "Returns the signed in user (according to the provided JWT token)",
+        "tags": [
+          "Users"
+        ],
+        "responses": {
+          "200": {
+            "description": "User instance",
+            "content": {
+              "application/json; charset=utf-8": {
+                "schema": {
+                  "$ref": "#/components/schemas/User"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Failure due to authorization or update issues.",
+            "content": {
+              "application/json; charset=utf-8": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "description": "This is a non-admin endpoint to update the signed-in user of the provided token. Certain protected attributes are not modified.",
+        "tags": [
+          "Users"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "givenName": {
+                    "type": "string"
+                  },
+                  "familyName": {
+                    "type": "string"
+                  },
+                  "organizationId": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "address": {
+                    "$ref": "#/components/schemas/Address"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Returns the updated user",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/User"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "Failure due to authorization or update issues.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "tags": []
+}

@@ -1,0 +1,1602 @@
+{
+  "info": {
+    "title": "capella-data-access",
+    "version": "1.0.0"
+  },
+  "externalDocs": {
+    "url": ""
+  },
+  "security": [
+    {
+      "apiKeyAuth": [],
+      "bearerAuth": []
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "apiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Authorization",
+        "description": "Prefix your API Key in the Authorization header with \"ApiKey\". (Example: Authorization: ApiKey \u003Cmy-key\u003E)"
+      },
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    },
+    "schemas": {
+      "OrderItem": {
+        "type": "object",
+        "properties": {
+          "collectionId": {
+            "type": "string"
+          },
+          "granuleId": {
+            "type": "string"
+          },
+          "freshnessOption": {
+            "type": "string",
+            "enum": [
+              "FRESH",
+              "HISTORICAL"
+            ]
+          }
+        }
+      },
+      "OrderItemProductTypeKey": {
+        "type": "object",
+        "properties": {
+          "collectIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "productType": {
+            "type": "string"
+          }
+        }
+      },
+      "OrderReview": {
+        "type": "object",
+        "properties": {
+          "authorized": {
+            "type": "boolean"
+          },
+          "user": {
+            "type": "object"
+          },
+          "orderDetails": {
+            "$ref": "#/components/schemas/OrderDetails"
+          }
+        }
+      },
+      "OrderDetails": {
+        "type": "object",
+        "properties": {
+          "lineItems": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "collectionId": {
+                  "type": "string"
+                },
+                "granuleId": {
+                  "type": "string"
+                },
+                "previouslyOrdered": {
+                  "type": "boolean"
+                },
+                "type": {
+                  "type": "string"
+                },
+                "cost": {
+                  "type": "string",
+                  "format": "currency"
+                },
+                "contractId": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "summary": {
+            "type": "object",
+            "properties": {
+              "subtotal": {
+                "type": "string",
+                "format": "currency"
+              },
+              "volumeDiscount": {
+                "$ref": "#/components/schemas/Discount"
+              },
+              "licenseUplift": {
+                "$ref": "#/components/schemas/Surcharge"
+              },
+              "specialDiscount": {
+                "$ref": "#/components/schemas/Discount"
+              },
+              "total": {
+                "type": "string",
+                "format": "currency"
+              }
+            }
+          }
+        }
+      },
+      "Discount": {
+        "type": "object",
+        "properties": {
+          "discount": {
+            "type": "string",
+            "format": "percent"
+          },
+          "amount": {
+            "type": "string",
+            "format": "currency"
+          }
+        }
+      },
+      "Surcharge": {
+        "type": "object",
+        "properties": {
+          "surcharge": {
+            "type": "string",
+            "format": "percent"
+          },
+          "amount": {
+            "type": "string",
+            "format": "currency"
+          }
+        }
+      },
+      "AvailableProductTypes": {
+        "type": "object",
+        "properties": {
+          "collectId": {
+            "type": "string"
+          },
+          "existingItems": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "availableProductTypes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "ErrorDetails": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              },
+              "detail": {
+                "type": "object"
+              }
+            },
+            "required": [
+              "message"
+            ]
+          }
+        }
+      },
+      "ValidationErrorDetails": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              },
+              "detail": {
+                "type": "object",
+                "description": "An optional array of details present when there is a request validation error.",
+                "properties": {
+                  "message": {
+                    "type": "string",
+                    "description": "A description of the validation error",
+                    "example": "Invalid uuid"
+                  },
+                  "code": {
+                    "type": "string",
+                    "description": "The validation error code",
+                    "example": "invalid_string"
+                  },
+                  "path": {
+                    "type": "string",
+                    "description": "The path to the invalid element",
+                    "example": "params.orderId"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "DataOrderStatus": {
+        "type": "string",
+        "enum": [
+          "failed",
+          "rejected",
+          "in-progress",
+          "completed"
+        ]
+      },
+      "DataOrder": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "organizationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "orderDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "expirationDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "orderId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "orderStatus": {
+            "$ref": "#/components/schemas/DataOrderStatus"
+          },
+          "contractId": {
+            "type": "string",
+            "nullable": true
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/DataOrderItem"
+            },
+            "type": "array"
+          }
+        }
+      },
+      "DataOrderItem": {
+        "type": "object",
+        "properties": {
+          "collectionId": {
+            "type": "string"
+          },
+          "granuleId": {
+            "type": "string"
+          }
+        }
+      },
+      "PagedDataOrderResults": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DataOrder"
+            }
+          },
+          "count": {
+            "type": "integer"
+          },
+          "lastOrderId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "if the results are paged, this value is defined; provide it in queries as the 'startOrderId' to return the next page of results."
+          }
+        }
+      }
+    }
+  },
+  "openapi": "3.0.0",
+  "servers": [],
+  "paths": {
+    "/orders/available-product-types": {
+      "get": {
+        "operationId": "getAvailableProductTypes",
+        "description": "Gets the available product types for a collect id, bounded by the requesting user's organization settings.",
+        "tags": [
+          "Orders"
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "collectId",
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "description": "UUID of the collect"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "For the supplied collect ids, returns the existing products in the catalog, along with the products than are available to be generated.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "$ref": "#/components/schemas/AvailableProductTypes"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "If the user is denied authorization.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "$ref": "#/components/schemas/ErrorDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Failure due to invalid request schema elements.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "$ref": "#/components/schemas/ValidationErrorDetails"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "Failure due to authorization or creation issues.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/orders": {
+      "post": {
+        "operationId": "createOrder",
+        "description": "Creates a new Data Order",
+        "tags": [
+          "Orders"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "contractId": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "items": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/OrderItem"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Returns the serialized created Data Order (orderDate, orderStatus, and orderId are set automatically)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "$ref": "#/components/schemas/DataOrder"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "If the order is denied authorization.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "$ref": "#/components/schemas/ErrorDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Failure due to invalid request schema elements.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "$ref": "#/components/schemas/ValidationErrorDetails"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "Failure due to authorization or creation issues.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "parameters": [
+          {
+            "in": "query",
+            "name": "customerId",
+            "schema": {
+              "type": "string"
+            },
+            "description": "UUID of the customer to refine orders to"
+          },
+          {
+            "in": "query",
+            "name": "organizationId",
+            "schema": {
+              "type": "string"
+            },
+            "description": "UUID of the organization to refine orders to"
+          },
+          {
+            "in": "query",
+            "name": "resellerId",
+            "schema": {
+              "type": "string"
+            },
+            "description": "UUID of a reseller in which orders for all managed organizations will be returned."
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "description": "The number of orders to return"
+          },
+          {
+            "in": "query",
+            "name": "startOrderId",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "The last seen order id of which to start the next set of paginated results from."
+          }
+        ],
+        "operationId": "indexOrders",
+        "description": "Returns all orders scoped to either customerId or organizationId",
+        "tags": [
+          "Orders"
+        ],
+        "responses": {
+          "200": {
+            "description": "Responds with an array of orders with ability to paginate using startOrderId.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DataOrder"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Failure due to denied authorization.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "$ref": "#/components/schemas/ErrorDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Failure due to denied authorization.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "$ref": "#/components/schemas/ErrorDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Failure due to invalid request schema elements.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "$ref": "#/components/schemas/ValidationErrorDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/orders/{id}": {
+      "patch": {
+        "operationId": "patchOrder",
+        "description": "Patches select fields on an order. Only fields supplied on the request body will be altered. To unset a field's value, pass a null value.",
+        "tags": [
+          "Orders"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "The UUID of the order to patch."
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "orderName": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "orderDescription": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "customAttribute1": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "customAttribute2": {
+                    "type": "string",
+                    "nullable": true
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Returns the patched order",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "$ref": "#/components/schemas/DataOrder"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "If the patch is denied authorization.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "$ref": "#/components/schemas/ErrorDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Failure due to invalid request schema elements.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "$ref": "#/components/schemas/ValidationErrorDetails"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "Failure due to authorization or creation issues.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "operationId": "getOrder",
+        "description": "Retrieves a single order with the specified ID",
+        "tags": [
+          "Orders"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "The Data Order ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns a DataOrder instance",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "$ref": "#/components/schemas/DataOrder"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Failure due to denied authorization.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "$ref": "#/components/schemas/ErrorDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Failure due to denied authorization.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "$ref": "#/components/schemas/ErrorDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Failure due to invalid request schema elements.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "$ref": "#/components/schemas/ValidationErrorDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/orders/review": {
+      "post": {
+        "operationId": "reviewOrder",
+        "description": "Authorizes the requested order with the Access-Entitlement service and prepares a cost breakdown.",
+        "tags": [
+          "Orders"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "contractId": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "items": {
+                    "type": "array",
+                    "items": {
+                      "anyOf": [
+                        {
+                          "$ref": "#/components/schemas/OrderItem"
+                        },
+                        {
+                          "$ref": "#/components/schemas/OrderItemProductTypeKey"
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Returns a preview of the order and indicates whether or not it is going to be authorized. See the documented OrderReview schema for the structure of this response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrderReview"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Failure due to denied authorization.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "$ref": "#/components/schemas/ErrorDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Failure due to invalid request schema elements.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "$ref": "#/components/schemas/ValidationErrorDetails"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "If the order was unable to be prepared due to some issue, a 4xx status code is returned with an error response. This does not occur on orders that are simply denied authorization.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/orders/task/{taskingRequestId}": {
+      "get": {
+        "operationId": "reviewOrderFromTask",
+        "description": "Previews an order containing all assets from a Tasking Request.",
+        "tags": [
+          "Orders"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "taskingRequestId",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "The UUID of the Tasking Request from which to prepare an order."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns a preview of the order including authorization status. content: application/json: schema: $ref: "
+          },
+          "400": {
+            "description": "Failure due to denied authorization.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "$ref": "#/components/schemas/ErrorDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Failure due to invalid request schema elements.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "$ref": "#/components/schemas/ValidationErrorDetails"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "If the order was unable to be prepared a 4xx status code is returned with an error response.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "createOrderFromTask",
+        "description": "Creates an order containing all assets from a Tasking Request. It is not required to preview the order (using GET /orders/task/:taskId) before this step.",
+        "tags": [
+          "Orders"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "taskingRequestId",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "The UUID of the Tasking Request from which to prepare an order."
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "contractId": {
+                    "type": "string",
+                    "nullable": true
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Returns the created order.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrderReview"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Failure due to denied authorization.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "$ref": "#/components/schemas/ErrorDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Failure due to invalid request schema elements.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "$ref": "#/components/schemas/ValidationErrorDetails"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "If the order was unable to be prepared a 4xx status code is returned with an error response.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/orders/search/download": {
+      "get": {
+        "operationId": "downloadOrders",
+        "description": "Launches download orders to csv lambda async. A status code of 202 is returned while in progress.",
+        "tags": [
+          "Orders"
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "customerId",
+            "schema": {
+              "type": "string"
+            },
+            "description": "UUID of the customer to refine orders to"
+          },
+          {
+            "in": "query",
+            "name": "organizationId",
+            "schema": {
+              "type": "string"
+            },
+            "description": "UUID of the organization to refine orders to"
+          },
+          {
+            "in": "query",
+            "name": "resellerId",
+            "schema": {
+              "type": "string"
+            },
+            "description": "UUID of a reseller in which orders for all managed organizations will be returned."
+          },
+          {
+            "in": "query",
+            "name": "startDate",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            },
+            "description": "Earliest order date to export (YYYY-MM-DD)"
+          },
+          {
+            "in": "query",
+            "name": "endDate",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            },
+            "description": "Latest order date to export (YYYY-MM-DD)"
+          },
+          {
+            "in": "query",
+            "name": "forceExport",
+            "schema": {
+              "type": "boolean"
+            },
+            "description": "Whether the export should be triggered regardless if an export file already exists"
+          },
+          {
+            "in": "query",
+            "name": "orderStatus",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "initialized",
+                "failed",
+                "rejected",
+                "in-progress",
+                "completed"
+              ]
+            },
+            "description": "Comma-delimited list of order statuses to include in order export"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Redirected to download",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    },
+                    "url": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "CSV export is in progress in the background. Call this endpoint again to check progress until complete."
+          },
+          "400": {
+            "description": "Failure due to denied authorization.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "$ref": "#/components/schemas/ErrorDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Failure due to denied authorization.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "$ref": "#/components/schemas/ErrorDetails"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Unable to download because the order was rejected.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Failure due to invalid request schema elements.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "$ref": "#/components/schemas/ValidationErrorDetails"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "Failure due to authorization or not found issues",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/orders/{id}/reorder": {
+      "post": {
+        "operationId": "reorder",
+        "description": "Places a \"re-order\" of the specified order. As re-ordering is deprecated, this simply returns the same order.",
+        "tags": [
+          "Orders"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "The Data Order ID"
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Returns the serialized existing order",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "$ref": "#/components/schemas/DataOrder"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Failure due to denied authorization.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "$ref": "#/components/schemas/ErrorDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Failure due to denied authorization.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "$ref": "#/components/schemas/ErrorDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Failure due to invalid request schema elements.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "$ref": "#/components/schemas/ValidationErrorDetails"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "Failure due to authorization or not finding the existing order.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/orders/{id}/download": {
+      "get": {
+        "operationId": "downloadOrder",
+        "description": "For completed orders prepares and returns the STAC records for downloading.",
+        "tags": [
+          "Orders"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "The Data Order ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The STAC records for downloading.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "description": "An array of STAC records",
+                  "items": {
+                    "type": "object"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Failure due to denied authorization.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "$ref": "#/components/schemas/ErrorDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Failure due to denied authorization.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "$ref": "#/components/schemas/ErrorDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Failure due to denied authorization.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "$ref": "#/components/schemas/ErrorDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "An order with the supplied ID was not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Unable to download because the order was rejected.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Failure due to invalid request schema elements.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "$ref": "#/components/schemas/ValidationErrorDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/orders/{id}/assets/{collectionId}/{granuleId}/archive": {
+      "get": {
+        "operationId": "downloadArchive",
+        "description": "Prepares and downloads an archive for a given item in a completed order. Archives are prepared on demand and take a few minutes to process. A status code of 202 is returned while in progress, after which the request is redirected to a signed download URL.",
+        "tags": [
+          "Orders"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "The Data Order ID"
+          },
+          {
+            "in": "path",
+            "name": "collectionId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The collection ID of an item in this data order"
+          },
+          {
+            "in": "path",
+            "name": "granuleId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The granule ID of an item in this order"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Redirected to download",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    },
+                    "url": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "Archive is in progress in the background. Check back with this same endpoint periodically until complete."
+          },
+          "400": {
+            "description": "Failure due to denied authorization.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "$ref": "#/components/schemas/ErrorDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Failure due to denied authorization.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "$ref": "#/components/schemas/ErrorDetails"
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Unable to download because the order was rejected.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Failure due to invalid request schema elements.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "$ref": "#/components/schemas/ValidationErrorDetails"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "Failure due to authorization or not found issues",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/orders/{id}/assets/{collectionId}/{granuleId}/s3push": {
+      "post": {
+        "operationId": "s3PushDataOrderItem",
+        "description": "Triggers background process to copy indicated assets to selected s3 bucket.",
+        "tags": [
+          "Orders"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "The Data Order ID"
+          },
+          {
+            "in": "path",
+            "name": "collectionId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The collection ID of an item in this data order"
+          },
+          {
+            "in": "path",
+            "name": "granuleId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The granule ID of an item in this order"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "s3BucketConfigId": {
+                    "type": "string"
+                  },
+                  "s3BucketConfigIds": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "s3 push has been triggered and is in progress in the background.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "orderId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "collectionId": {
+                      "type": "string"
+                    },
+                    "granuleId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "s3BucketConfigIds": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Failure due to denied authorization.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "$ref": "#/components/schemas/ErrorDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Failure due to denied authorization.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "$ref": "#/components/schemas/ErrorDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Unable to push because the order was rejected or the item requested is not part of the order",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Failure due to invalid request schema elements.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "$ref": "#/components/schemas/ValidationErrorDetails"
+                }
+              }
+            }
+          },
+          "4XX": {
+            "description": "Failure due to authorization or not found issues",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "Orders",
+      "description": "Endpoints for managing orders"
+    }
+  ]
+}
