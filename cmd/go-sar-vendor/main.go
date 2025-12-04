@@ -17,8 +17,6 @@ func main() {
 		Name:  "gosar",
 		Usage: "Command-line helper for Capella Space Tasking & Access API",
 
-		// global flags (still visible in every sub-command)
-
 		// sub-commands (property renamed Subcommands → Commands)
 		Commands: []*cli.Command{
 			umbraCmd(),

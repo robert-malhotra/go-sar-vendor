@@ -46,7 +46,7 @@ func capellaCmd() *cli.Command {
 // helpers ---------------------------------------------------------------------
 // -----------------------------------------------------------------------------
 
-func clientFromCmd(cmd *cli.Command) *capella.Client {
+func capellaClientFromCmd(cmd *cli.Command) *capella.Client {
 	return capella.NewClient(capella.WithBaseURL(cmd.String("base-url")))
 }
 
@@ -79,8 +79,9 @@ func accessCreateAction(ctx context.Context, cmd *cli.Command) error {
 	if err := json.NewDecoder(os.Stdin).Decode(&req); err != nil {
 		return fmt.Errorf("decode JSON: %w", err)
 	}
-	cli := clientFromCmd(cmd)
-	resp, err := cli.CreateAccessRequest(cmd.String("api-key"), req)
+	cli := capellaClientFromCmd(cmd)
+	feasibility := capella.NewFeasibilityService(cli)
+	resp, err := feasibility.CreateAccessRequest(ctx, cmd.String("api-key"), req)
 	if err != nil {
 		return err
 	}
@@ -92,8 +93,9 @@ func accessGetAction(ctx context.Context, cmd *cli.Command) error {
 	if id == "" {
 		return fmt.Errorf("accessRequestId required")
 	}
-	cli := clientFromCmd(cmd)
-	resp, err := cli.GetAccessRequest(cmd.String("api-key"), id)
+	cli := capellaClientFromCmd(cmd)
+	feasibility := capella.NewFeasibilityService(cli)
+	resp, err := feasibility.GetAccessRequest(ctx, cmd.String("api-key"), id)
 	if err != nil {
 		return err
 	}
@@ -150,8 +152,9 @@ func tasksCreateAction(ctx context.Context, cmd *cli.Command) error {
 	if err := json.NewDecoder(os.Stdin).Decode(&req); err != nil {
 		return err
 	}
-	cli := clientFromCmd(cmd)
-	resp, err := cli.CreateTaskingRequest(cmd.String("api-key"), req)
+	cli := capellaClientFromCmd(cmd)
+	tasking := capella.NewTaskingService(cli)
+	resp, err := tasking.CreateTask(ctx, cmd.String("api-key"), req)
 	if err != nil {
 		return err
 	}
@@ -163,8 +166,9 @@ func tasksGetAction(ctx context.Context, cmd *cli.Command) error {
 	if id == "" {
 		return fmt.Errorf("taskingRequestId required")
 	}
-	cli := clientFromCmd(cmd)
-	resp, err := cli.GetTaskingRequest(cmd.String("api-key"), id)
+	cli := capellaClientFromCmd(cmd)
+	tasking := capella.NewTaskingService(cli)
+	resp, err := tasking.GetTask(ctx, cmd.String("api-key"), id)
 	if err != nil {
 		return err
 	}
@@ -176,8 +180,9 @@ func tasksApproveAction(ctx context.Context, cmd *cli.Command) error {
 	if id == "" {
 		return fmt.Errorf("taskingRequestId required")
 	}
-	cli := clientFromCmd(cmd)
-	resp, err := cli.ApproveTaskingRequest(cmd.String("api-key"), id)
+	cli := capellaClientFromCmd(cmd)
+	tasking := capella.NewTaskingService(cli)
+	resp, err := tasking.ApproveTask(ctx, cmd.String("api-key"), id)
 	if err != nil {
 		return err
 	}
@@ -185,13 +190,14 @@ func tasksApproveAction(ctx context.Context, cmd *cli.Command) error {
 }
 
 func tasksListAction(ctx context.Context, cmd *cli.Command) error {
-	params := capella.PagedTasksParams{
+	params := capella.ListTasksParams{
 		CustomerID:     cmd.String("customer-id"),
 		OrganizationID: cmd.String("organization-id"),
-		Limit:          cmd.Int("limit"),
+		Limit:          int(cmd.Int("limit")),
 	}
-	cli := clientFromCmd(cmd)
-	for t, err := range cli.ListTasksPaged(cmd.String("api-key"), params) {
+	cli := capellaClientFromCmd(cmd)
+	tasking := capella.NewTaskingService(cli)
+	for t, err := range tasking.ListTasks(ctx, cmd.String("api-key"), params) {
 		if err != nil {
 			return err
 		}
@@ -209,8 +215,9 @@ func tasksSearchAction(ctx context.Context, cmd *cli.Command) error {
 	if err := json.NewDecoder(os.Stdin).Decode(&req); err != nil {
 		return fmt.Errorf("decode JSON: %w", err)
 	}
-	cli := clientFromCmd(cmd)
-	resp, err := cli.SearchTasks(cmd.String("api-key"), req)
+	cli := capellaClientFromCmd(cmd)
+	tasking := capella.NewTaskingService(cli)
+	resp, err := tasking.SearchTasks(ctx, cmd.String("api-key"), req)
 	if err != nil {
 		return err
 	}

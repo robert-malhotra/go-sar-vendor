@@ -1,70 +1,82 @@
 package capella
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
+	"iter"
 	"net/http"
-	"path"
 	"time"
+
+	"github.com/paulmach/orb/geojson"
 )
 
-//--- Enums ---
-
-type GeoJSONGeometryType string
-
-const (
-	Point        GeoJSONGeometryType = "Point"
-	Polygon      GeoJSONGeometryType = "Polygon"
-	MultiPolygon GeoJSONGeometryType = "MultiPolygon"
-)
-
-type ProcessingStatus string
-
-const (
-	Queued     ProcessingStatus = "queued"
-	Processing ProcessingStatus = "processing"
-	Completed  ProcessingStatus = "completed"
-	Error      ProcessingStatus = "error"
-)
-
-type AccessibilityStatus string
-
-const (
-	Unknown      AccessibilityStatus = "unknown"
-	Accessible   AccessibilityStatus = "accessible"
-	Inaccessible AccessibilityStatus = "inaccessible"
-	Rejected     AccessibilityStatus = "rejected"
-)
-
-//--- Data Models ---
-// These are unchanged from the previous refactoring
-
-// AccessRequest represents the payload for creating an access request.
-type AccessRequest Feature[AccessRequestProperties]
-
-// AccessRequestResponse represents the API response for an access request.
-type AccessRequestResponse struct {
-	Type       string                          `json:"type"`
-	Geometry   GeoJSONGeometry                 `json:"geometry"`
-	Properties AccessRequestPropertiesResponse `json:"properties"`
+// FeasibilityService provides access/feasibility request operations.
+type FeasibilityService struct {
+	client *Client
 }
 
-// GeoJSONGeometry represents a GeoJSON geometry object.
-type GeoJSONGeometry struct {
-	Type        GeoJSONGeometryType `json:"type"`
-	Coordinates any                 `json:"coordinates"`
+// NewFeasibilityService creates a new feasibility service.
+func NewFeasibilityService(client *Client) *FeasibilityService {
+	return &FeasibilityService{client: client}
 }
+
+// ----------------------------------------------------------------------------
+// Access Constraints
+// ----------------------------------------------------------------------------
+
+// AccessConstraints defines the constraints for an access request.
+type AccessConstraints struct {
+	// Look direction: "left", "right", or "either"
+	LookDirection *LookDirection `json:"lookDirection,omitempty"`
+
+	// Pass direction: "asc", "dsc", or "either"
+	AscDsc *OrbitState `json:"ascDsc,omitempty"`
+
+	// Constrained set of orbital planes (e.g., ["45", "53"])
+	OrbitalPlanes []OrbitalPlane `json:"orbitalPlanes,omitempty"`
+
+	// Local time windows (seconds since midnight)
+	LocalTime [][]int `json:"localTime,omitempty"`
+
+	// Off-nadir angle constraints (degrees)
+	OffNadirMin *float64 `json:"offNadirMin,omitempty"`
+	OffNadirMax *float64 `json:"offNadirMax,omitempty"`
+
+	// Grazing angle constraints (degrees)
+	GrazingAngleMin *float64 `json:"grazingAngleMin,omitempty"`
+	GrazingAngleMax *float64 `json:"grazingAngleMax,omitempty"`
+
+	// Azimuth angle constraints (degrees)
+	AzimuthAngleMin *float64 `json:"azimuthAngleMin,omitempty"`
+	AzimuthAngleMax *float64 `json:"azimuthAngleMax,omitempty"`
+
+	// Desired scene dimensions (meters)
+	ImageLength *int `json:"imageLength,omitempty"`
+	ImageWidth  *int `json:"imageWidth,omitempty"`
+}
+
+// ----------------------------------------------------------------------------
+// Access Request Models
+// ----------------------------------------------------------------------------
 
 // AccessRequestProperties defines the properties of an access request.
 type AccessRequestProperties struct {
 	AccessRequestName        string             `json:"accessrequestName,omitempty"`
 	AccessRequestDescription string             `json:"accessrequestDescription,omitempty"`
 	AccessRequestType        string             `json:"accessrequestType,omitempty"`
-	OrgID                    string             `json:"orgId"`
-	UserID                   string             `json:"userId"`
+	OrgID                    string             `json:"orgId,omitempty"`
+	UserID                   string             `json:"userId,omitempty"`
 	WindowOpen               time.Time          `json:"windowOpen"`
 	WindowClose              time.Time          `json:"windowClose"`
 	AccessConstraints        *AccessConstraints `json:"accessConstraints,omitempty"`
+}
+
+// AccessRequest represents an access/feasibility request.
+type AccessRequest struct {
+	Type       string                  `json:"type"` // always "Feature"
+	Geometry   *geojson.Geometry                `json:"geometry"`
+	Properties AccessRequestProperties `json:"properties"`
 }
 
 // AccessRequestPropertiesResponse extends properties with API-generated fields.
@@ -74,90 +86,316 @@ type AccessRequestPropertiesResponse struct {
 	ProcessingStatus     ProcessingStatus    `json:"processingStatus"`
 	AccessibilityStatus  AccessibilityStatus `json:"accessibilityStatus"`
 	AccessibilityMessage string              `json:"accessibilityMessage,omitempty"`
+	CreatedAt            time.Time           `json:"createdAt,omitempty"`
+	UpdatedAt            time.Time           `json:"updatedAt,omitempty"`
 }
 
-// AccessConstraints defines the constraints for an access request.
-type AccessConstraints struct {
-	// Cardinal look direction of the sensor: "left", "right", or "either".
-	LookDirection *string `json:"lookDirection,omitempty"`
-
-	// Pass direction: "asc", "dsc", or "either".
-	AscDsc *string `json:"ascDsc,omitempty"`
-
-	// Constrained set of orbital planes (e.g. ["A", "C"]).  Empty slice means
-	// “no preference”.
-	OrbitalPlanes []string `json:"orbitalPlanes,omitempty"`
-
-	// One-or-more local-solar-time windows expressed as seconds-since-midnight,
-	// e.g. [[0, 86400]] for “any time of day”.
-	LocalTime [][]int `json:"localTime,omitempty"`
-
-	// Sensor-to-nadir angle constraints (degrees).
-	OffNadirMin *float64 `json:"offNadirMin,omitempty"`
-	OffNadirMax *float64 `json:"offNadirMax,omitempty"`
-
-	// Grazing-angle constraints (degrees).
-	GrazingAngleMin *float64 `json:"grazingAngleMin,omitempty"`
-	GrazingAngleMax *float64 `json:"grazingAngleMax,omitempty"`
-
-	// Azimuth-angle constraints (degrees).
-	AzimuthAngleMin *float64 `json:"azimuthAngleMin,omitempty"`
-	AzimuthAngleMax *float64 `json:"azimuthAngleMax,omitempty"`
-
-	// Desired scene dimensions (meters).
-	ImageLength *int `json:"imageLength,omitempty"`
-	ImageWidth  *int `json:"imageWidth,omitempty"`
+// AccessRequestResponse represents the response for an access request.
+type AccessRequestResponse struct {
+	Type       string                          `json:"type"`
+	Geometry   *geojson.Geometry                        `json:"geometry"`
+	Properties AccessRequestPropertiesResponse `json:"properties"`
 }
 
-// HTTPValidationError is the structure for a 422 response.
-type HTTPValidationError struct {
-	Detail []ValidationError `json:"detail"`
+// AccessWindow represents an available collection window.
+type AccessWindow struct {
+	WindowOpen    time.Time `json:"windowOpen"`
+	WindowClose   time.Time `json:"windowClose"`
+	OrbitalPlane  string    `json:"orbitalPlane,omitempty"`
+	LookDirection string    `json:"lookDirection,omitempty"`
+	AscDesc       string    `json:"ascDesc,omitempty"`
+	OffNadir      float64   `json:"offNadir,omitempty"`
+	GrazingAngle  float64   `json:"grazingAngle,omitempty"`
+	AzimuthAngle  float64   `json:"azimuthAngle,omitempty"`
 }
 
-// ValidationError provides details about a specific validation failure.
-type ValidationError struct {
-	Loc  []string `json:"loc"`
-	Msg  string   `json:"msg"`
-	Type string   `json:"type"`
+// AccessRequestDetailResponse includes the access windows.
+type AccessRequestDetailResponse struct {
+	AccessRequestResponse
+	AccessWindows []AccessWindow `json:"accessWindows,omitempty"`
 }
 
-//--- API Methods ---
+// ----------------------------------------------------------------------------
+// CRUD Operations
+// ----------------------------------------------------------------------------
 
-// CreateAccessRequest submits a new access request, authenticated by the provided API key.
-func (c *Client) CreateAccessRequest(apiKey string, request AccessRequest) (*AccessRequestResponse, error) {
-	endpoint := "/ma/accessrequests/"
-
-	reqBody, err := json.Marshal(request)
-	if err != nil {
-		return nil, fmt.Errorf("failed to marshal request body: %w", err)
+// CreateAccessRequest submits a new access/feasibility request.
+func (s *FeasibilityService) CreateAccessRequest(ctx context.Context, apiKey string, req AccessRequest) (*AccessRequestResponse, error) {
+	if req.Type == "" {
+		req.Type = "Feature"
 	}
 
-	httpReq, err := c.newRequest(apiKey, http.MethodPost, endpoint, reqBody)
+	body, err := json.Marshal(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal access request: %w", err)
+	}
+
+	httpReq, err := s.client.newRequest(ctx, apiKey, http.MethodPost, "/ma/accessrequests", body)
 	if err != nil {
 		return nil, err
 	}
 
-	var accessResponse AccessRequestResponse
-	if err := c.do(httpReq, &accessResponse); err != nil {
+	var resp AccessRequestResponse
+	if err := s.client.do(httpReq, &resp); err != nil {
 		return nil, err
 	}
 
-	return &accessResponse, nil
+	return &resp, nil
 }
 
-// GetAccessRequest retrieves a specific access request, authenticated by the provided API key.
-func (c *Client) GetAccessRequest(apiKey, accessRequestID string) (*AccessRequestResponse, error) {
-	endpoint := path.Join("/ma/accessrequests/", accessRequestID)
-
-	httpReq, err := c.newRequest(apiKey, http.MethodGet, endpoint, nil)
+// GetAccessRequest retrieves an access request by ID.
+func (s *FeasibilityService) GetAccessRequest(ctx context.Context, apiKey, accessRequestID string) (*AccessRequestResponse, error) {
+	httpReq, err := s.client.newRequest(ctx, apiKey, http.MethodGet, "/ma/accessrequests/"+accessRequestID, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	var accessResponse AccessRequestResponse
-	if err := c.do(httpReq, &accessResponse); err != nil {
+	var resp AccessRequestResponse
+	if err := s.client.do(httpReq, &resp); err != nil {
 		return nil, err
 	}
 
-	return &accessResponse, nil
+	return &resp, nil
+}
+
+// GetAccessRequestDetail retrieves an access request with access windows.
+func (s *FeasibilityService) GetAccessRequestDetail(ctx context.Context, apiKey, accessRequestID string) (*AccessRequestDetailResponse, error) {
+	httpReq, err := s.client.newRequest(ctx, apiKey, http.MethodGet, "/ma/accessrequests/"+accessRequestID+"/detail", nil)
+	if err != nil {
+		return nil, err
+	}
+
+	var resp AccessRequestDetailResponse
+	if err := s.client.do(httpReq, &resp); err != nil {
+		return nil, err
+	}
+
+	return &resp, nil
+}
+
+// DeleteAccessRequest deletes an access request.
+func (s *FeasibilityService) DeleteAccessRequest(ctx context.Context, apiKey, accessRequestID string) error {
+	httpReq, err := s.client.newRequest(ctx, apiKey, http.MethodDelete, "/ma/accessrequests/"+accessRequestID, nil)
+	if err != nil {
+		return err
+	}
+
+	return s.client.do(httpReq, nil)
+}
+
+// ----------------------------------------------------------------------------
+// Polling and Waiting
+// ----------------------------------------------------------------------------
+
+// WaitForAccessRequest polls the access request status until processing completes.
+func (s *FeasibilityService) WaitForAccessRequest(ctx context.Context, apiKey, accessRequestID string, pollInterval time.Duration) (*AccessRequestResponse, error) {
+	ticker := time.NewTicker(pollInterval)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		case <-ticker.C:
+			resp, err := s.GetAccessRequest(ctx, apiKey, accessRequestID)
+			if err != nil {
+				return nil, err
+			}
+
+			switch resp.Properties.ProcessingStatus {
+			case ProcessingCompleted, ProcessingError:
+				return resp, nil
+			}
+			// Continue polling for queued/processing status
+		}
+	}
+}
+
+// ----------------------------------------------------------------------------
+// Convenience Functions
+// ----------------------------------------------------------------------------
+
+// CheckFeasibility is a convenience function that creates an access request,
+// waits for processing, and returns the result.
+func (s *FeasibilityService) CheckFeasibility(ctx context.Context, apiKey string, req AccessRequest, pollInterval time.Duration) (*AccessRequestDetailResponse, error) {
+	// Create the access request
+	created, err := s.CreateAccessRequest(ctx, apiKey, req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create access request: %w", err)
+	}
+
+	// Wait for processing to complete
+	ticker := time.NewTicker(pollInterval)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		case <-ticker.C:
+			resp, err := s.GetAccessRequest(ctx, apiKey, created.Properties.AccessRequestID)
+			if err != nil {
+				return nil, err
+			}
+
+			switch resp.Properties.ProcessingStatus {
+			case ProcessingCompleted:
+				// Get detailed response with access windows
+				return s.GetAccessRequestDetail(ctx, apiKey, created.Properties.AccessRequestID)
+			case ProcessingError:
+				return nil, fmt.Errorf("access request processing failed: %s", resp.Properties.AccessibilityMessage)
+			}
+		}
+	}
+}
+
+// ----------------------------------------------------------------------------
+// Builder Pattern
+// ----------------------------------------------------------------------------
+
+// AccessRequestBuilder provides a fluent API for building access requests.
+type AccessRequestBuilder struct {
+	req AccessRequest
+}
+
+// NewAccessRequestBuilder creates a new access request builder.
+func NewAccessRequestBuilder() *AccessRequestBuilder {
+	return &AccessRequestBuilder{
+		req: AccessRequest{
+			Type: "Feature",
+		},
+	}
+}
+
+// Point sets a point geometry for the request.
+func (b *AccessRequestBuilder) Point(lon, lat float64) *AccessRequestBuilder {
+	b.req.Geometry = Point(lon, lat)
+	return b
+}
+
+// Polygon sets a polygon geometry for the request.
+func (b *AccessRequestBuilder) Polygon(coordinates [][][]float64) *AccessRequestBuilder {
+	b.req.Geometry = Polygon(coordinates)
+	return b
+}
+
+// BBox sets a bounding box geometry for the request.
+func (b *AccessRequestBuilder) BBox(bbox BoundingBox) *AccessRequestBuilder {
+	b.req.Geometry = BBoxToPolygon(bbox)
+	return b
+}
+
+// Name sets the access request name.
+func (b *AccessRequestBuilder) Name(name string) *AccessRequestBuilder {
+	b.req.Properties.AccessRequestName = name
+	return b
+}
+
+// Description sets the access request description.
+func (b *AccessRequestBuilder) Description(desc string) *AccessRequestBuilder {
+	b.req.Properties.AccessRequestDescription = desc
+	return b
+}
+
+// Window sets the access time window.
+func (b *AccessRequestBuilder) Window(open, close time.Time) *AccessRequestBuilder {
+	b.req.Properties.WindowOpen = open
+	b.req.Properties.WindowClose = close
+	return b
+}
+
+// Constraints sets the access constraints.
+func (b *AccessRequestBuilder) Constraints(constraints AccessConstraints) *AccessRequestBuilder {
+	b.req.Properties.AccessConstraints = &constraints
+	return b
+}
+
+// LookDirection sets the look direction constraint.
+func (b *AccessRequestBuilder) LookDirection(dir LookDirection) *AccessRequestBuilder {
+	if b.req.Properties.AccessConstraints == nil {
+		b.req.Properties.AccessConstraints = &AccessConstraints{}
+	}
+	b.req.Properties.AccessConstraints.LookDirection = &dir
+	return b
+}
+
+// OrbitDirection sets the orbit direction constraint.
+func (b *AccessRequestBuilder) OrbitDirection(dir OrbitState) *AccessRequestBuilder {
+	if b.req.Properties.AccessConstraints == nil {
+		b.req.Properties.AccessConstraints = &AccessConstraints{}
+	}
+	b.req.Properties.AccessConstraints.AscDsc = &dir
+	return b
+}
+
+// OffNadirRange sets the off-nadir angle range constraint.
+func (b *AccessRequestBuilder) OffNadirRange(min, max float64) *AccessRequestBuilder {
+	if b.req.Properties.AccessConstraints == nil {
+		b.req.Properties.AccessConstraints = &AccessConstraints{}
+	}
+	b.req.Properties.AccessConstraints.OffNadirMin = &min
+	b.req.Properties.AccessConstraints.OffNadirMax = &max
+	return b
+}
+
+// Build returns the constructed AccessRequest.
+func (b *AccessRequestBuilder) Build() AccessRequest {
+	return b.req
+}
+
+// ----------------------------------------------------------------------------
+// Listing
+// ----------------------------------------------------------------------------
+
+// ListAccessRequestsParams defines parameters for listing access requests.
+type ListAccessRequestsParams struct {
+	Page  int
+	Limit int
+}
+
+// AccessRequestsPagedResponse represents a paginated list of access requests.
+type AccessRequestsPagedResponse struct {
+	Results     []AccessRequestResponse `json:"results"`
+	CurrentPage int                     `json:"currentPage"`
+	TotalPages  int                     `json:"totalPages"`
+	TotalItems  int                     `json:"totalItems,omitempty"`
+}
+
+// ListAccessRequests returns an iterator over all access requests.
+func (s *FeasibilityService) ListAccessRequests(ctx context.Context, apiKey string, params ListAccessRequestsParams) iter.Seq2[AccessRequestResponse, error] {
+	if params.Page <= 0 {
+		params.Page = 1
+	}
+	if params.Limit <= 0 {
+		params.Limit = 25
+	}
+
+	return func(yield func(AccessRequestResponse, error) bool) {
+		page := params.Page
+
+		for {
+			httpReq, err := s.client.newRequest(ctx, apiKey, http.MethodGet, fmt.Sprintf("/ma/accessrequests?page=%d&limit=%d", page, params.Limit), nil)
+			if err != nil {
+				yield(AccessRequestResponse{}, err)
+				return
+			}
+
+			var resp AccessRequestsPagedResponse
+			if err := s.client.do(httpReq, &resp); err != nil {
+				yield(AccessRequestResponse{}, err)
+				return
+			}
+
+			for _, item := range resp.Results {
+				if !yield(item, nil) {
+					return
+				}
+			}
+
+			if page >= resp.TotalPages {
+				return
+			}
+			page++
+		}
+	}
 }

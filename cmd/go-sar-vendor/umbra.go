@@ -20,20 +20,21 @@ func umbraCmd() *cli.Command {
 		Flags: []cli.Flag{
 			&cli.StringFlag{
 				Name:  "vendor-base-url",
-				Value: "https://api.umbra.space/",
+				Value: "https://api.canopy.umbra.space/",
 				Usage: "Override Umbra API base URL",
 			},
 			&cli.StringFlag{
 				Name:     "api-key",
 				Required: true,
 				Usage:    "Umbra bearer token",
+				Sources:  cli.EnvVars("UMBRA_API_KEY"),
 			},
 		},
 
 		Commands: []*cli.Command{
 			feasibilityCmd(),
 			taskCmd(),
-			collectsCmd(), // NEW
+			collectsCmd(),
 		},
 	}
 }
@@ -120,24 +121,23 @@ func collectsCmd() *cli.Command {
 
 /*──────────────── helpers ───────────────────────────────────────────────────*/
 
-func umbraClientFromCmd(cmd *cli.Command) (*umbra.Client, error) {
-	return umbra.NewClient(cmd.String("vendor-base-url"))
+func umbraClientFromCmd(cmd *cli.Command) *umbra.Client {
+	return umbra.NewClient(
+		cmd.String("api-key"),
+		umbra.WithBaseURL(cmd.String("vendor-base-url")),
+	)
 }
 
 /*──────────────── feasibility actions ───────────────────────────────────────*/
 
 func umbraCreateFeasAction(ctx context.Context, cmd *cli.Command) error {
-	var req umbra.TaskingRequest
+	var req umbra.CreateFeasibilityRequest
 	if err := json.NewDecoder(os.Stdin).Decode(&req); err != nil {
 		return fmt.Errorf("decode JSON: %w", err)
 	}
 
-	cli, err := umbraClientFromCmd(cmd)
-	if err != nil {
-		return err
-	}
-
-	resp, err := cli.CreateFeasibility(cmd.String("api-key"), &req)
+	cli := umbraClientFromCmd(cmd)
+	resp, err := cli.CreateFeasibility(ctx, &req)
 	if err != nil {
 		return err
 	}
@@ -150,12 +150,8 @@ func umbraGetFeasAction(ctx context.Context, cmd *cli.Command) error {
 		return fmt.Errorf("feasibilityId required")
 	}
 
-	cli, err := umbraClientFromCmd(cmd)
-	if err != nil {
-		return err
-	}
-
-	resp, err := cli.GetFeasibility(cmd.String("api-key"), id)
+	cli := umbraClientFromCmd(cmd)
+	resp, err := cli.GetFeasibility(ctx, id)
 	if err != nil {
 		return err
 	}
@@ -165,17 +161,13 @@ func umbraGetFeasAction(ctx context.Context, cmd *cli.Command) error {
 /*──────────────── task actions ──────────────────────────────────────────────*/
 
 func umbraCreateTaskAction(ctx context.Context, cmd *cli.Command) error {
-	var req umbra.TaskRequest
+	var req umbra.CreateTaskRequest
 	if err := json.NewDecoder(os.Stdin).Decode(&req); err != nil {
 		return fmt.Errorf("decode JSON: %w", err)
 	}
 
-	cli, err := umbraClientFromCmd(cmd)
-	if err != nil {
-		return err
-	}
-
-	resp, err := cli.CreateTask(cmd.String("api-key"), &req)
+	cli := umbraClientFromCmd(cmd)
+	resp, err := cli.CreateTask(ctx, &req)
 	if err != nil {
 		return err
 	}
@@ -188,12 +180,8 @@ func umbraGetTaskAction(ctx context.Context, cmd *cli.Command) error {
 		return fmt.Errorf("taskId required")
 	}
 
-	cli, err := umbraClientFromCmd(cmd)
-	if err != nil {
-		return err
-	}
-
-	resp, err := cli.GetTask(cmd.String("api-key"), id)
+	cli := umbraClientFromCmd(cmd)
+	resp, err := cli.GetTask(ctx, id)
 	if err != nil {
 		return err
 	}
@@ -206,12 +194,8 @@ func umbraCancelTaskAction(ctx context.Context, cmd *cli.Command) error {
 		return fmt.Errorf("taskId required")
 	}
 
-	cli, err := umbraClientFromCmd(cmd)
-	if err != nil {
-		return err
-	}
-
-	resp, err := cli.CancelTask(cmd.String("api-key"), id)
+	cli := umbraClientFromCmd(cmd)
+	resp, err := cli.CancelTask(ctx, id)
 	if err != nil {
 		return err
 	}
@@ -224,12 +208,8 @@ func umbraSearchTaskAction(ctx context.Context, cmd *cli.Command) error {
 		return fmt.Errorf("decode JSON: %w", err)
 	}
 
-	cli, err := umbraClientFromCmd(cmd)
-	if err != nil {
-		return err
-	}
-
-	seq := cli.SearchTasks(cmd.String("api-key"), req)
+	cli := umbraClientFromCmd(cmd)
+	seq := cli.SearchTasks(ctx, req)
 	for task, err := range seq {
 		if err != nil {
 			return err
@@ -249,12 +229,8 @@ func umbraGetCollectAction(ctx context.Context, cmd *cli.Command) error {
 		return fmt.Errorf("collectId required")
 	}
 
-	cli, err := umbraClientFromCmd(cmd)
-	if err != nil {
-		return err
-	}
-
-	resp, err := cli.GetCollect(cmd.String("api-key"), id)
+	cli := umbraClientFromCmd(cmd)
+	resp, err := cli.GetCollect(ctx, id)
 	if err != nil {
 		return err
 	}
@@ -267,12 +243,8 @@ func umbraSearchCollectAction(ctx context.Context, cmd *cli.Command) error {
 		return fmt.Errorf("decode JSON: %w", err)
 	}
 
-	cli, err := umbraClientFromCmd(cmd)
-	if err != nil {
-		return err
-	}
-
-	seq := cli.SearchCollects(cmd.String("api-key"), req)
+	cli := umbraClientFromCmd(cmd)
+	seq := cli.SearchCollects(ctx, req)
 	for col, err := range seq {
 		if err != nil {
 			return err
