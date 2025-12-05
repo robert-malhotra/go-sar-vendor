@@ -40,7 +40,7 @@ type AuthConfig struct {
 func NewAuthClient(client *Client, cfg AuthConfig) *AuthClient {
 	tokenURL := cfg.TokenURL
 	if tokenURL == "" {
-		tokenURL = client.baseURL + "/token"
+		tokenURL = client.BaseURL().String() + "/token"
 	}
 	return &AuthClient{
 		client:   client,
@@ -90,7 +90,7 @@ func (a *AuthClient) refreshToken(ctx context.Context) (string, error) {
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.Header.Set("Accept", "application/json")
 
-	resp, err := a.client.httpClient.Do(req)
+	resp, err := a.client.HTTPClient().Do(req)
 	if err != nil {
 		return "", fmt.Errorf("failed to execute token request: %w", err)
 	}
@@ -149,46 +149,24 @@ type APIKeyCreateResponse struct {
 }
 
 // Create creates a new API key.
-func (s *APIKeyService) Create(ctx context.Context, apiKey string, req APIKeyCreateRequest) (*APIKeyCreateResponse, error) {
-	body, err := json.Marshal(req)
-	if err != nil {
-		return nil, fmt.Errorf("failed to marshal request: %w", err)
-	}
-
-	httpReq, err := s.client.newRequest(ctx, apiKey, http.MethodPost, "/keys", body)
-	if err != nil {
-		return nil, err
-	}
-
+func (s *APIKeyService) Create(ctx context.Context, req APIKeyCreateRequest) (*APIKeyCreateResponse, error) {
 	var resp APIKeyCreateResponse
-	if err := s.client.do(httpReq, &resp); err != nil {
+	if err := s.client.Do(ctx, http.MethodPost, "/keys", 0, req, &resp); err != nil {
 		return nil, err
 	}
-
 	return &resp, nil
 }
 
 // List lists all API keys.
-func (s *APIKeyService) List(ctx context.Context, apiKey string) ([]APIKey, error) {
-	httpReq, err := s.client.newRequest(ctx, apiKey, http.MethodGet, "/keys", nil)
-	if err != nil {
-		return nil, err
-	}
-
+func (s *APIKeyService) List(ctx context.Context) ([]APIKey, error) {
 	var resp []APIKey
-	if err := s.client.do(httpReq, &resp); err != nil {
+	if err := s.client.Do(ctx, http.MethodGet, "/keys", 0, nil, &resp); err != nil {
 		return nil, err
 	}
-
 	return resp, nil
 }
 
 // Delete deletes an API key by ID.
-func (s *APIKeyService) Delete(ctx context.Context, apiKey, keyID string) error {
-	httpReq, err := s.client.newRequest(ctx, apiKey, http.MethodDelete, "/keys/"+keyID, nil)
-	if err != nil {
-		return err
-	}
-
-	return s.client.do(httpReq, nil)
+func (s *APIKeyService) Delete(ctx context.Context, keyID string) error {
+	return s.client.Do(ctx, http.MethodDelete, "/keys/"+keyID, 0, nil, nil)
 }

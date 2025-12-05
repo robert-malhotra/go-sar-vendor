@@ -2,7 +2,6 @@ package capella
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -95,87 +94,47 @@ type DownloadURLsResponse struct {
 // ----------------------------------------------------------------------------
 
 // ReviewOrder reviews an order to get cost information before submission.
-func (s *OrderService) ReviewOrder(ctx context.Context, apiKey string, req OrderReviewRequest) (*OrderReviewResponse, error) {
-	body, err := json.Marshal(req)
-	if err != nil {
-		return nil, fmt.Errorf("failed to marshal review request: %w", err)
-	}
-
-	httpReq, err := s.client.newRequest(ctx, apiKey, http.MethodPost, "/orders/review", body)
-	if err != nil {
-		return nil, err
-	}
-
+func (s *OrderService) ReviewOrder(ctx context.Context, req OrderReviewRequest) (*OrderReviewResponse, error) {
 	var resp OrderReviewResponse
-	if err := s.client.do(httpReq, &resp); err != nil {
+	if err := s.client.Do(ctx, http.MethodPost, "/orders/review", 0, req, &resp); err != nil {
 		return nil, err
 	}
-
 	return &resp, nil
 }
 
 // SubmitOrder submits an order for processing.
-func (s *OrderService) SubmitOrder(ctx context.Context, apiKey string, req OrderRequest) (*Order, error) {
-	body, err := json.Marshal(req)
-	if err != nil {
-		return nil, fmt.Errorf("failed to marshal order request: %w", err)
-	}
-
-	httpReq, err := s.client.newRequest(ctx, apiKey, http.MethodPost, "/orders", body)
-	if err != nil {
-		return nil, err
-	}
-
+func (s *OrderService) SubmitOrder(ctx context.Context, req OrderRequest) (*Order, error) {
 	var resp Order
-	if err := s.client.do(httpReq, &resp); err != nil {
+	if err := s.client.Do(ctx, http.MethodPost, "/orders", 0, req, &resp); err != nil {
 		return nil, err
 	}
-
 	return &resp, nil
 }
 
 // GetOrder retrieves an order by ID.
-func (s *OrderService) GetOrder(ctx context.Context, apiKey, orderID string) (*Order, error) {
-	httpReq, err := s.client.newRequest(ctx, apiKey, http.MethodGet, "/orders/"+orderID, nil)
-	if err != nil {
-		return nil, err
-	}
-
+func (s *OrderService) GetOrder(ctx context.Context, orderID string) (*Order, error) {
 	var resp Order
-	if err := s.client.do(httpReq, &resp); err != nil {
+	if err := s.client.Do(ctx, http.MethodGet, "/orders/"+orderID, 0, nil, &resp); err != nil {
 		return nil, err
 	}
-
 	return &resp, nil
 }
 
 // GetDownloadURLs retrieves presigned download URLs for an order.
-func (s *OrderService) GetDownloadURLs(ctx context.Context, apiKey, orderID string) (*DownloadURLsResponse, error) {
-	httpReq, err := s.client.newRequest(ctx, apiKey, http.MethodGet, "/orders/"+orderID+"/download", nil)
-	if err != nil {
-		return nil, err
-	}
-
+func (s *OrderService) GetDownloadURLs(ctx context.Context, orderID string) (*DownloadURLsResponse, error) {
 	var resp DownloadURLsResponse
-	if err := s.client.do(httpReq, &resp); err != nil {
+	if err := s.client.Do(ctx, http.MethodGet, "/orders/"+orderID+"/download", 0, nil, &resp); err != nil {
 		return nil, err
 	}
-
 	return &resp, nil
 }
 
 // OrderTaskingRequest orders all assets for a tasking request.
-func (s *OrderService) OrderTaskingRequest(ctx context.Context, apiKey, taskingRequestID string) (*Order, error) {
-	httpReq, err := s.client.newRequest(ctx, apiKey, http.MethodPost, "/orders/task/"+taskingRequestID, nil)
-	if err != nil {
-		return nil, err
-	}
-
+func (s *OrderService) OrderTaskingRequest(ctx context.Context, taskingRequestID string) (*Order, error) {
 	var resp Order
-	if err := s.client.do(httpReq, &resp); err != nil {
+	if err := s.client.Do(ctx, http.MethodPost, "/orders/task/"+taskingRequestID, 0, nil, &resp); err != nil {
 		return nil, err
 	}
-
 	return &resp, nil
 }
 
@@ -236,7 +195,7 @@ func (s *DownloadService) ToFile(ctx context.Context, downloadURL, destPath stri
 	}
 
 	// Execute request
-	resp, err := s.client.httpClient.Do(req)
+	resp, err := s.client.HTTPClient().Do(req)
 	if err != nil {
 		return fmt.Errorf("failed to execute download request: %w", err)
 	}
@@ -318,9 +277,9 @@ func (s *DownloadService) ToDirectory(ctx context.Context, downloadURL, destDir 
 // ----------------------------------------------------------------------------
 
 // QuickOrder is a convenience method that reviews and submits an order in one call.
-func (s *OrderService) QuickOrder(ctx context.Context, apiKey string, items []OrderItem) (*Order, error) {
+func (s *OrderService) QuickOrder(ctx context.Context, items []OrderItem) (*Order, error) {
 	// First review the order
-	review, err := s.ReviewOrder(ctx, apiKey, OrderReviewRequest{Items: items})
+	review, err := s.ReviewOrder(ctx, OrderReviewRequest{Items: items})
 	if err != nil {
 		return nil, fmt.Errorf("order review failed: %w", err)
 	}
@@ -331,11 +290,11 @@ func (s *OrderService) QuickOrder(ctx context.Context, apiKey string, items []Or
 	}
 
 	// Submit the order
-	return s.SubmitOrder(ctx, apiKey, OrderRequest{Items: items})
+	return s.SubmitOrder(ctx, OrderRequest{Items: items})
 }
 
 // WaitForOrder polls the order status until it completes or times out.
-func (s *OrderService) WaitForOrder(ctx context.Context, apiKey, orderID string, pollInterval time.Duration) (*Order, error) {
+func (s *OrderService) WaitForOrder(ctx context.Context, orderID string, pollInterval time.Duration) (*Order, error) {
 	ticker := time.NewTicker(pollInterval)
 	defer ticker.Stop()
 
@@ -344,7 +303,7 @@ func (s *OrderService) WaitForOrder(ctx context.Context, apiKey, orderID string,
 		case <-ctx.Done():
 			return nil, ctx.Err()
 		case <-ticker.C:
-			order, err := s.GetOrder(ctx, apiKey, orderID)
+			order, err := s.GetOrder(ctx, orderID)
 			if err != nil {
 				return nil, err
 			}

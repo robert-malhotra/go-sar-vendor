@@ -38,9 +38,20 @@ func NewAPIKeyAuth(apiKey, tokenURL string, httpClient *http.Client) *APIKeyAuth
 	}
 }
 
-// Authenticate obtains or refreshes the bearer token if needed.
+// Apply applies authentication to the HTTP request.
 // It implements the common.Authenticator interface.
-func (a *APIKeyAuth) Authenticate(ctx context.Context) error {
+func (a *APIKeyAuth) Apply(ctx context.Context, req *http.Request) error {
+	if err := a.refreshIfNeeded(ctx); err != nil {
+		return err
+	}
+	a.mu.Lock()
+	req.Header.Set("Authorization", "Bearer "+a.token)
+	a.mu.Unlock()
+	return nil
+}
+
+// refreshIfNeeded obtains or refreshes the bearer token if needed.
+func (a *APIKeyAuth) refreshIfNeeded(ctx context.Context) error {
 	a.mu.Lock()
 	// Check if token is still valid (with 5 minute buffer)
 	if time.Until(a.exp) > 5*time.Minute {
@@ -56,15 +67,15 @@ func (a *APIKeyAuth) Authenticate(ctx context.Context) error {
 		"client_id":  {"IDP"},
 	}
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, a.tokenURL, bytes.NewBufferString(form.Encode()))
+	tokenReq, err := http.NewRequestWithContext(ctx, http.MethodPost, a.tokenURL, bytes.NewBufferString(form.Encode()))
 	if err != nil {
 		return fmt.Errorf("create token request: %w", err)
 	}
 
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	req.Header.Set("Accept", "application/json")
+	tokenReq.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	tokenReq.Header.Set("Accept", "application/json")
 
-	resp, err := a.httpClient.Do(req)
+	resp, err := a.httpClient.Do(tokenReq)
 	if err != nil {
 		return fmt.Errorf("token request: %w", err)
 	}
@@ -101,14 +112,6 @@ func (a *APIKeyAuth) Authenticate(ctx context.Context) error {
 	a.mu.Unlock()
 
 	return nil
-}
-
-// AuthHeader returns the Authorization header value.
-// It implements the common.Authenticator interface.
-func (a *APIKeyAuth) AuthHeader() string {
-	a.mu.Lock()
-	defer a.mu.Unlock()
-	return "Bearer " + a.token
 }
 
 // Token returns the current access token.

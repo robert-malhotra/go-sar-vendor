@@ -56,7 +56,7 @@ func TestTaskingService_CreateTask(t *testing.T) {
 		},
 	}
 
-	resp, err := tasking.CreateTask(context.Background(), "test-api-key", req)
+	resp, err := tasking.CreateTask(context.Background(), req)
 	if err != nil {
 		t.Fatalf("CreateTask failed: %v", err)
 	}
@@ -88,7 +88,7 @@ func TestTaskingService_GetTask(t *testing.T) {
 	cli, _ := newTestClient(t, handler)
 	tasking := capella.NewTaskingService(cli)
 
-	resp, err := tasking.GetTask(context.Background(), "test-api-key", "tr-123")
+	resp, err := tasking.GetTask(context.Background(), "tr-123")
 	if err != nil {
 		t.Fatalf("GetTask failed: %v", err)
 	}
@@ -119,7 +119,7 @@ func TestTaskingService_ApproveTask(t *testing.T) {
 	cli, _ := newTestClient(t, handler)
 	tasking := capella.NewTaskingService(cli)
 
-	resp, err := tasking.ApproveTask(context.Background(), "test-api-key", "tr-123")
+	resp, err := tasking.ApproveTask(context.Background(), "tr-123")
 	if err != nil {
 		t.Fatalf("ApproveTask failed: %v", err)
 	}
@@ -150,7 +150,7 @@ func TestTaskingService_CancelTask(t *testing.T) {
 	cli, _ := newTestClient(t, handler)
 	tasking := capella.NewTaskingService(cli)
 
-	resp, err := tasking.CancelTask(context.Background(), "test-api-key", "tr-123")
+	resp, err := tasking.CancelTask(context.Background(), "tr-123")
 	if err != nil {
 		t.Fatalf("CancelTask failed: %v", err)
 	}
@@ -184,7 +184,7 @@ func TestTaskingService_SearchTasks(t *testing.T) {
 	cli, _ := newTestClient(t, handler)
 	tasking := capella.NewTaskingService(cli)
 
-	resp, err := tasking.SearchTasks(context.Background(), "test-api-key", capella.TaskSearchRequest{
+	resp, err := tasking.SearchTasks(context.Background(), capella.TaskSearchRequest{
 		Query: map[string]any{"status": "active"},
 		Limit: 10,
 	})
@@ -229,7 +229,7 @@ func TestTaskingService_ListTasks_Pagination(t *testing.T) {
 	tasking := capella.NewTaskingService(cli)
 
 	var tasks []capella.TaskingRequestResponse
-	for task, err := range tasking.ListTasks(context.Background(), "test-api-key", capella.ListTasksParams{}) {
+	for task, err := range tasking.ListTasks(context.Background(), capella.ListTasksParams{}) {
 		if err != nil {
 			t.Fatalf("iterator error: %v", err)
 		}
@@ -257,7 +257,7 @@ func TestTaskingService_ListTasks_ErrorPropagates(t *testing.T) {
 	cli, _ := newTestClient(t, handler)
 	tasking := capella.NewTaskingService(cli)
 
-	for _, err := range tasking.ListTasks(context.Background(), "test-api-key", capella.ListTasksParams{}) {
+	for _, err := range tasking.ListTasks(context.Background(), capella.ListTasksParams{}) {
 		if err == nil {
 			t.Fatal("expected error from iterator, got nil")
 		}
@@ -280,7 +280,7 @@ func TestTaskingService_GetCollectionTypes(t *testing.T) {
 	cli, _ := newTestClient(t, handler)
 	tasking := capella.NewTaskingService(cli)
 
-	types, err := tasking.GetCollectionTypes(context.Background(), "test-api-key")
+	types, err := tasking.GetCollectionTypes(context.Background())
 	if err != nil {
 		t.Fatalf("GetCollectionTypes failed: %v", err)
 	}
@@ -328,7 +328,7 @@ func TestTaskingService_CreateRepeatRequest(t *testing.T) {
 		},
 	}
 
-	resp, err := tasking.CreateRepeatRequest(context.Background(), "test-api-key", req)
+	resp, err := tasking.CreateRepeatRequest(context.Background(), req)
 	if err != nil {
 		t.Fatalf("CreateRepeatRequest failed: %v", err)
 	}

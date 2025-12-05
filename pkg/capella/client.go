@@ -16,15 +16,13 @@
 package capella
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
 	"net/url"
-	"path"
 	"time"
+
+	"github.com/robert.malhotra/go-sar-vendor/pkg/common"
 )
 
 const (
@@ -34,111 +32,98 @@ const (
 
 // Client is the Capella Space API client. It is thread-safe.
 type Client struct {
+	*common.Client
+}
+
+// clientConfig holds configuration for building a Client.
+type clientConfig struct {
 	baseURL    string
 	httpClient *http.Client
-	apiKey     string
+	auth       common.Authenticator
 	userAgent  string
+	timeout    time.Duration
 }
 
 // ClientOption is a function that configures a Client.
-type ClientOption func(*Client)
+type ClientOption func(*clientConfig)
 
 // WithBaseURL sets the base URL for API requests.
 func WithBaseURL(baseURL string) ClientOption {
-	return func(c *Client) {
+	return func(c *clientConfig) {
 		c.baseURL = baseURL
 	}
 }
 
 // WithHTTPClient sets a custom HTTP client.
 func WithHTTPClient(httpClient *http.Client) ClientOption {
-	return func(c *Client) {
+	return func(c *clientConfig) {
 		c.httpClient = httpClient
 	}
 }
 
 // WithAPIKey sets the API key for authentication.
 func WithAPIKey(key string) ClientOption {
-	return func(c *Client) {
-		c.apiKey = key
+	return func(c *clientConfig) {
+		c.auth = common.NewAPIKeyAuth(key)
+	}
+}
+
+// WithAuth sets a custom authenticator.
+func WithAuth(auth common.Authenticator) ClientOption {
+	return func(c *clientConfig) {
+		c.auth = auth
 	}
 }
 
 // WithUserAgent sets the User-Agent header for API requests.
 func WithUserAgent(userAgent string) ClientOption {
-	return func(c *Client) {
+	return func(c *clientConfig) {
 		c.userAgent = userAgent
+	}
+}
+
+// WithTimeout sets the HTTP client timeout.
+func WithTimeout(timeout time.Duration) ClientOption {
+	return func(c *clientConfig) {
+		c.timeout = timeout
 	}
 }
 
 // NewClient creates a new Capella Space API client.
 // It uses sensible defaults which can be overridden with functional options.
 func NewClient(opts ...ClientOption) *Client {
-	c := &Client{
-		baseURL:    defaultBaseURL,
-		httpClient: &http.Client{Timeout: defaultTimeout},
+	cfg := &clientConfig{
+		baseURL: defaultBaseURL,
+		timeout: defaultTimeout,
 	}
 	for _, opt := range opts {
-		opt(c)
+		opt(cfg)
 	}
-	return c
+
+	httpClient := cfg.httpClient
+	if httpClient == nil {
+		httpClient = &http.Client{Timeout: cfg.timeout}
+	}
+
+	c, _ := common.NewClient(common.ClientConfig{
+		BaseURL:    cfg.baseURL,
+		HTTPClient: httpClient,
+		Auth:       cfg.auth,
+		UserAgent:  cfg.userAgent,
+	})
+
+	return &Client{Client: c}
 }
 
-// newRequest creates an http.Request with the necessary headers.
-func (c *Client) newRequest(ctx context.Context, apiKey, method, endpoint string, body []byte) (*http.Request, error) {
-	u, err := url.Parse(c.baseURL)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse base URL: %w", err)
-	}
-	u.Path = path.Join(u.Path, endpoint)
-
-	var reader io.Reader
-	if body != nil {
-		reader = bytes.NewReader(body)
-	}
-
-	req, err := http.NewRequestWithContext(ctx, method, u.String(), reader)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create request: %w", err)
-	}
-
-	// Use provided apiKey, fallback to client's stored key
-	key := apiKey
-	if key == "" {
-		key = c.apiKey
-	}
-	if key != "" {
-		req.Header.Set("Authorization", "ApiKey "+key)
-	}
-
-	req.Header.Set("Accept", "application/json")
-	if body != nil {
-		req.Header.Set("Content-Type", "application/json")
-	}
-	if c.userAgent != "" {
-		req.Header.Set("User-Agent", c.userAgent)
-	}
-
-	return req, nil
+// doRequest performs an HTTP request and decodes the response.
+func (c *Client) doRequest(ctx context.Context, method string, u *url.URL, body io.Reader, want int, out any) error {
+	return c.Client.DoRaw(ctx, method, u, body, want, out)
 }
 
-// do sends an API request and handles the response.
-func (c *Client) do(req *http.Request, v any) error {
-	resp, err := c.httpClient.Do(req)
-	if err != nil {
-		return fmt.Errorf("failed to execute request: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return parseError(resp)
-	}
-
-	if v != nil {
-		if err = json.NewDecoder(resp.Body).Decode(v); err != nil {
-			return fmt.Errorf("failed to decode response: %w", err)
-		}
-	}
-
-	return nil
+// doRequestRaw performs an HTTP request and returns the raw response body.
+func (c *Client) doRequestRaw(ctx context.Context, method string, u *url.URL, body io.Reader, want int) ([]byte, error) {
+	return c.Client.DoRawResponse(ctx, method, u, body, want)
 }
+
+// marshalBody marshals v to JSON and returns a bytes.Buffer.
+var marshalBody = common.MarshalBody

@@ -102,22 +102,19 @@ func (c *Client) DoURL(ctx context.Context, method string, u *url.URL, expectedS
 
 // DoRaw performs an HTTP request with a raw body reader.
 func (c *Client) DoRaw(ctx context.Context, method string, u *url.URL, body io.Reader, expectedStatus int, respBody any) error {
-	// Authenticate if needed
-	if c.auth != nil {
-		if err := c.auth.Authenticate(ctx); err != nil {
-			return fmt.Errorf("authenticate: %w", err)
-		}
-	}
-
 	req, err := http.NewRequestWithContext(ctx, method, u.String(), body)
 	if err != nil {
 		return fmt.Errorf("create request: %w", err)
 	}
 
-	// Set headers
+	// Apply authentication
 	if c.auth != nil {
-		req.Header.Set("Authorization", c.auth.AuthHeader())
+		if err := c.auth.Apply(ctx, req); err != nil {
+			return fmt.Errorf("authenticate: %w", err)
+		}
 	}
+
+	// Set headers
 	req.Header.Set("Accept", "application/json")
 	if body != nil {
 		req.Header.Set("Content-Type", "application/json")
@@ -153,22 +150,19 @@ func (c *Client) DoRaw(ctx context.Context, method string, u *url.URL, body io.R
 
 // DoRawResponse performs an HTTP request and returns the raw response body.
 func (c *Client) DoRawResponse(ctx context.Context, method string, u *url.URL, body io.Reader, expectedStatus int) ([]byte, error) {
-	// Authenticate if needed
-	if c.auth != nil {
-		if err := c.auth.Authenticate(ctx); err != nil {
-			return nil, fmt.Errorf("authenticate: %w", err)
-		}
-	}
-
 	req, err := http.NewRequestWithContext(ctx, method, u.String(), body)
 	if err != nil {
 		return nil, fmt.Errorf("create request: %w", err)
 	}
 
-	// Set headers
+	// Apply authentication
 	if c.auth != nil {
-		req.Header.Set("Authorization", c.auth.AuthHeader())
+		if err := c.auth.Apply(ctx, req); err != nil {
+			return nil, fmt.Errorf("authenticate: %w", err)
+		}
 	}
+
+	// Set headers
 	if c.userAgent != "" {
 		req.Header.Set("User-Agent", c.userAgent)
 	}
@@ -212,12 +206,11 @@ func (c *Client) NewRequest(ctx context.Context, method, path string, body io.Re
 		return nil, fmt.Errorf("create request: %w", err)
 	}
 
-	// Authenticate if needed
+	// Apply authentication
 	if c.auth != nil {
-		if err := c.auth.Authenticate(ctx); err != nil {
+		if err := c.auth.Apply(ctx, req); err != nil {
 			return nil, fmt.Errorf("authenticate: %w", err)
 		}
-		req.Header.Set("Authorization", c.auth.AuthHeader())
 	}
 
 	req.Header.Set("Accept", "application/json")

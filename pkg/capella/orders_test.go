@@ -40,7 +40,7 @@ func TestOrderService_ReviewOrder(t *testing.T) {
 	cli, _ := newTestClient(t, handler)
 	orders := capella.NewOrderService(cli)
 
-	resp, err := orders.ReviewOrder(context.Background(), "test-api-key", capella.OrderReviewRequest{
+	resp, err := orders.ReviewOrder(context.Background(), capella.OrderReviewRequest{
 		Items: []capella.OrderItem{
 			{CollectionID: "capella-geo", GranuleID: "item-1"},
 			{CollectionID: "capella-geo", GranuleID: "item-2"},
@@ -78,7 +78,7 @@ func TestOrderService_SubmitOrder(t *testing.T) {
 	cli, _ := newTestClient(t, handler)
 	orders := capella.NewOrderService(cli)
 
-	order, err := orders.SubmitOrder(context.Background(), "test-api-key", capella.OrderRequest{
+	order, err := orders.SubmitOrder(context.Background(), capella.OrderRequest{
 		Items: []capella.OrderItem{
 			{CollectionID: "capella-geo", GranuleID: "item-1"},
 		},
@@ -123,7 +123,7 @@ func TestOrderService_GetOrder(t *testing.T) {
 	cli, _ := newTestClient(t, handler)
 	orders := capella.NewOrderService(cli)
 
-	order, err := orders.GetOrder(context.Background(), "test-api-key", "order-123")
+	order, err := orders.GetOrder(context.Background(), "order-123")
 	if err != nil {
 		t.Fatalf("GetOrder failed: %v", err)
 	}
@@ -160,7 +160,7 @@ func TestOrderService_GetDownloadURLs(t *testing.T) {
 	cli, _ := newTestClient(t, handler)
 	orders := capella.NewOrderService(cli)
 
-	resp, err := orders.GetDownloadURLs(context.Background(), "test-api-key", "order-123")
+	resp, err := orders.GetDownloadURLs(context.Background(), "order-123")
 	if err != nil {
 		t.Fatalf("GetDownloadURLs failed: %v", err)
 	}
@@ -193,7 +193,7 @@ func TestOrderService_OrderTaskingRequest(t *testing.T) {
 	cli, _ := newTestClient(t, handler)
 	orders := capella.NewOrderService(cli)
 
-	order, err := orders.OrderTaskingRequest(context.Background(), "test-api-key", "tr-123")
+	order, err := orders.OrderTaskingRequest(context.Background(), "tr-123")
 	if err != nil {
 		t.Fatalf("OrderTaskingRequest failed: %v", err)
 	}
@@ -226,7 +226,7 @@ func TestOrderService_QuickOrder(t *testing.T) {
 	cli, _ := newTestClient(t, handler)
 	orders := capella.NewOrderService(cli)
 
-	order, err := orders.QuickOrder(context.Background(), "test-api-key", []capella.OrderItem{
+	order, err := orders.QuickOrder(context.Background(), []capella.OrderItem{
 		{CollectionID: "capella-geo", GranuleID: "item-1"},
 	})
 	if err != nil {
@@ -255,7 +255,7 @@ func TestOrderService_QuickOrder_ReviewErrors(t *testing.T) {
 	cli, _ := newTestClient(t, handler)
 	orders := capella.NewOrderService(cli)
 
-	_, err := orders.QuickOrder(context.Background(), "test-api-key", []capella.OrderItem{
+	_, err := orders.QuickOrder(context.Background(), []capella.OrderItem{
 		{CollectionID: "capella-geo", GranuleID: "item-1"},
 	})
 	if err == nil {
@@ -284,7 +284,7 @@ func TestOrderService_WaitForOrder(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	order, err := orders.WaitForOrder(ctx, "test-api-key", "order-123", 10*time.Millisecond)
+	order, err := orders.WaitForOrder(ctx, "order-123", 10*time.Millisecond)
 	if err != nil {
 		t.Fatalf("WaitForOrder failed: %v", err)
 	}
@@ -312,7 +312,7 @@ func TestOrderService_WaitForOrder_Failed(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	_, err := orders.WaitForOrder(ctx, "test-api-key", "order-123", 10*time.Millisecond)
+	_, err := orders.WaitForOrder(ctx, "order-123", 10*time.Millisecond)
 	if err == nil {
 		t.Fatal("expected error for failed order, got nil")
 	}
