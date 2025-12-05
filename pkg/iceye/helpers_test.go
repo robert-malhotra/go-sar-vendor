@@ -7,7 +7,7 @@ import (
 	"sync/atomic"
 	"testing"
 
-	"github.com/robert.malhotra/go-sar-vendor/pkg/iceye"
+	"github.com/robert-malhotra/go-sar-vendor/pkg/iceye"
 )
 
 // newTestClient creates a mock auth+API server pair and configured client.

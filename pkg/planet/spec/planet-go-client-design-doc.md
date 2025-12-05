@@ -249,7 +249,7 @@ import (
     "time"
 
     "github.com/paulmach/orb/geojson"
-    "github.com/robert.malhotra/go-sar-vendor/pkg/planet"
+    "github.com/robert-malhotra/go-sar-vendor/pkg/planet"
 )
 
 func main() {
@@ -323,4 +323,4 @@ var (
 ## Dependencies
 
 - `github.com/paulmach/orb` - GeoJSON support
-- `github.com/robert.malhotra/go-sar-vendor/pkg/common` - Shared client infrastructure
+- `github.com/robert-malhotra/go-sar-vendor/pkg/common` - Shared client infrastructure

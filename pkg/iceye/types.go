@@ -3,7 +3,7 @@ package iceye
 import (
 	"github.com/paulmach/orb"
 	"github.com/paulmach/orb/geojson"
-	"github.com/robert.malhotra/go-sar-vendor/pkg/common"
+	"github.com/robert-malhotra/go-sar-vendor/pkg/common"
 )
 
 // ----------------------------------------------------------------------------

@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/robert.malhotra/go-sar-vendor/pkg/umbra"
+	"github.com/robert-malhotra/go-sar-vendor/pkg/umbra"
 )
 
 func TestCreateTask(t *testing.T) {

@@ -5,7 +5,7 @@ import (
 
 	"github.com/paulmach/orb"
 	"github.com/paulmach/orb/geojson"
-	"github.com/robert.malhotra/go-sar-vendor/pkg/common"
+	"github.com/robert-malhotra/go-sar-vendor/pkg/common"
 )
 
 // Common type aliases for convenience.
@@ -56,17 +56,17 @@ func BBoxToPolygon(minLon, minLat, maxLon, maxLat float64) *geojson.Geometry {
 type TaskingOrderStatus string
 
 const (
-	TaskingOrderStatusReceived           TaskingOrderStatus = "RECEIVED"
-	TaskingOrderStatusPending            TaskingOrderStatus = "PENDING"
-	TaskingOrderStatusInProgress         TaskingOrderStatus = "IN_PROGRESS"
-	TaskingOrderStatusExpired            TaskingOrderStatus = "EXPIRED"
-	TaskingOrderStatusFulfilled          TaskingOrderStatus = "FULFILLED"
-	TaskingOrderStatusFailed             TaskingOrderStatus = "FAILED"
-	TaskingOrderStatusCancelled          TaskingOrderStatus = "CANCELLED"
-	TaskingOrderStatusRequested          TaskingOrderStatus = "REQUESTED"
-	TaskingOrderStatusFinalizing         TaskingOrderStatus = "FINALIZING"
+	TaskingOrderStatusReceived            TaskingOrderStatus = "RECEIVED"
+	TaskingOrderStatusPending             TaskingOrderStatus = "PENDING"
+	TaskingOrderStatusInProgress          TaskingOrderStatus = "IN_PROGRESS"
+	TaskingOrderStatusExpired             TaskingOrderStatus = "EXPIRED"
+	TaskingOrderStatusFulfilled           TaskingOrderStatus = "FULFILLED"
+	TaskingOrderStatusFailed              TaskingOrderStatus = "FAILED"
+	TaskingOrderStatusCancelled           TaskingOrderStatus = "CANCELLED"
+	TaskingOrderStatusRequested           TaskingOrderStatus = "REQUESTED"
+	TaskingOrderStatusFinalizing          TaskingOrderStatus = "FINALIZING"
 	TaskingOrderStatusPendingCancellation TaskingOrderStatus = "PENDING_CANCELLATION"
-	TaskingOrderStatusRejected           TaskingOrderStatus = "REJECTED"
+	TaskingOrderStatusRejected            TaskingOrderStatus = "REJECTED"
 )
 
 // IsTerminal returns true if the status is a terminal state.
@@ -259,12 +259,12 @@ type Capture struct {
 
 // ListCapturesOptions represents options for listing captures.
 type ListCapturesOptions struct {
-	OrderID     string          `url:"order_id,omitempty"`
-	Status      []CaptureStatus `url:"status__in,omitempty"`
-	Fulfilling  *bool           `url:"fulfilling,omitempty"`
-	Ordering    string          `url:"ordering,omitempty"`
-	Limit       int             `url:"limit,omitempty"`
-	Offset      int             `url:"offset,omitempty"`
+	OrderID    string          `url:"order_id,omitempty"`
+	Status     []CaptureStatus `url:"status__in,omitempty"`
+	Fulfilling *bool           `url:"fulfilling,omitempty"`
+	Ordering   string          `url:"ordering,omitempty"`
+	Limit      int             `url:"limit,omitempty"`
+	Offset     int             `url:"offset,omitempty"`
 }
 
 // =============================================================================

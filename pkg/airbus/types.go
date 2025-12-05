@@ -18,7 +18,7 @@ import (
 
 	"github.com/paulmach/orb"
 	"github.com/paulmach/orb/geojson"
-	"github.com/robert.malhotra/go-sar-vendor/pkg/common"
+	"github.com/robert-malhotra/go-sar-vendor/pkg/common"
 )
 
 // ----------------------------------------------------------------------------
@@ -292,51 +292,51 @@ const (
 type Purpose string
 
 const (
-	PurposeAerospaceIndustry          Purpose = "Aerospace Industry Company"
-	PurposeAgroCompany                Purpose = "Agro Company"
-	PurposeAgroServiceCompany         Purpose = "Agro Service Company"
-	PurposeBank                       Purpose = "Bank"
-	PurposeConsultingCompany          Purpose = "Consulting Company"
-	PurposeConsumer                   Purpose = "Consumer"
-	PurposeCooperativeCompany         Purpose = "Cooperative Company"
-	PurposeDefenceCompany             Purpose = "Defence Company"
-	PurposeDEM                        Purpose = "DEM"
-	PurposeEditionCommunication       Purpose = "Edition & Communication Company"
-	PurposeEducationResearch          Purpose = "Education / Research"
-	PurposeElectronicSystemCompany    Purpose = "Electronic System company"
-	PurposeEmergencyResponse          Purpose = "Emergency Response & Crisis Management"
-	PurposeEnergyCompany              Purpose = "Energy Company"
-	PurposeEnergyServiceCompany       Purpose = "Energy Service Company"
-	PurposeEngineeringCompany         Purpose = "Engineering Company"
-	PurposeEngineeringServiceCompany  Purpose = "Engineering Service Company"
-	PurposeEnvironment                Purpose = "Environment"
-	PurposeForestCompany              Purpose = "Forest Company"
-	PurposeForestServiceCompany       Purpose = "Forest Service Company"
-	PurposeGeoservicesCompany         Purpose = "Geoservices Company"
-	PurposeGovernment                 Purpose = "Government"
-	PurposeHumanitarianOrganization   Purpose = "Humanitarian Organization"
-	PurposeInfrastructuresMonitoring  Purpose = "Infrastructures Monitoring"
-	PurposeInsuranceCompany           Purpose = "Insurance Company"
-	PurposeLocationBasedServices      Purpose = "Location Based Services"
-	PurposeLogisticsCompany           Purpose = "Logistics Company"
-	PurposeMaritimeServices           Purpose = "Maritime services"
-	PurposeMiningCompany              Purpose = "Mining Company"
-	PurposeNetworkOperator            Purpose = "Network Operator"
-	PurposeNGO                        Purpose = "NGO"
-	PurposeOilGasCompany              Purpose = "Oil and Gas Company"
-	PurposeOther                      Purpose = "Other"
-	PurposePublicAdministration       Purpose = "Public Administration"
-	PurposeRealEstateCompany          Purpose = "Real estate Company"
-	PurposeSecurityCompany            Purpose = "Security Company"
-	PurposeSpaceAgency                Purpose = "Space Agency"
-	PurposeTelecomCompany             Purpose = "Telecom Company"
-	PurposeTransportCompany           Purpose = "Transport Company"
-	PurposeUrbanPlanningCompany       Purpose = "Urban planning Company"
-	PurposeUtilitiesCompany           Purpose = "Utilities Company"
-	PurposeWaterCompany               Purpose = "Water Company"
-	PurposeWaterServiceCompany        Purpose = "Water Service Company"
-	PurposeInternalUse                Purpose = "Internal Use"
-	PurposeValueAdding                Purpose = "Value Adding"
+	PurposeAerospaceIndustry         Purpose = "Aerospace Industry Company"
+	PurposeAgroCompany               Purpose = "Agro Company"
+	PurposeAgroServiceCompany        Purpose = "Agro Service Company"
+	PurposeBank                      Purpose = "Bank"
+	PurposeConsultingCompany         Purpose = "Consulting Company"
+	PurposeConsumer                  Purpose = "Consumer"
+	PurposeCooperativeCompany        Purpose = "Cooperative Company"
+	PurposeDefenceCompany            Purpose = "Defence Company"
+	PurposeDEM                       Purpose = "DEM"
+	PurposeEditionCommunication      Purpose = "Edition & Communication Company"
+	PurposeEducationResearch         Purpose = "Education / Research"
+	PurposeElectronicSystemCompany   Purpose = "Electronic System company"
+	PurposeEmergencyResponse         Purpose = "Emergency Response & Crisis Management"
+	PurposeEnergyCompany             Purpose = "Energy Company"
+	PurposeEnergyServiceCompany      Purpose = "Energy Service Company"
+	PurposeEngineeringCompany        Purpose = "Engineering Company"
+	PurposeEngineeringServiceCompany Purpose = "Engineering Service Company"
+	PurposeEnvironment               Purpose = "Environment"
+	PurposeForestCompany             Purpose = "Forest Company"
+	PurposeForestServiceCompany      Purpose = "Forest Service Company"
+	PurposeGeoservicesCompany        Purpose = "Geoservices Company"
+	PurposeGovernment                Purpose = "Government"
+	PurposeHumanitarianOrganization  Purpose = "Humanitarian Organization"
+	PurposeInfrastructuresMonitoring Purpose = "Infrastructures Monitoring"
+	PurposeInsuranceCompany          Purpose = "Insurance Company"
+	PurposeLocationBasedServices     Purpose = "Location Based Services"
+	PurposeLogisticsCompany          Purpose = "Logistics Company"
+	PurposeMaritimeServices          Purpose = "Maritime services"
+	PurposeMiningCompany             Purpose = "Mining Company"
+	PurposeNetworkOperator           Purpose = "Network Operator"
+	PurposeNGO                       Purpose = "NGO"
+	PurposeOilGasCompany             Purpose = "Oil and Gas Company"
+	PurposeOther                     Purpose = "Other"
+	PurposePublicAdministration      Purpose = "Public Administration"
+	PurposeRealEstateCompany         Purpose = "Real estate Company"
+	PurposeSecurityCompany           Purpose = "Security Company"
+	PurposeSpaceAgency               Purpose = "Space Agency"
+	PurposeTelecomCompany            Purpose = "Telecom Company"
+	PurposeTransportCompany          Purpose = "Transport Company"
+	PurposeUrbanPlanningCompany      Purpose = "Urban planning Company"
+	PurposeUtilitiesCompany          Purpose = "Utilities Company"
+	PurposeWaterCompany              Purpose = "Water Company"
+	PurposeWaterServiceCompany       Purpose = "Water Service Company"
+	PurposeInternalUse               Purpose = "Internal Use"
+	PurposeValueAdding               Purpose = "Value Adding"
 )
 
 // ----------------------------------------------------------------------------
@@ -462,9 +462,9 @@ type CatalogueRequest struct {
 	AOI                   *geojson.Geometry    `json:"aoi,omitempty"`
 	Time                  *TimeRange           `json:"time,omitempty"`
 	CatalogueTime         *TimeRange           `json:"catalogueTime,omitempty"`
-	Mission               any                  `json:"mission,omitempty"`      // Mission, []Mission, or "all"
-	Satellite             any                  `json:"satellite,omitempty"`    // Satellite, []Satellite, or "all"
-	SensorMode            any                  `json:"sensorMode,omitempty"`   // SensorMode, []SensorMode, or "all"
+	Mission               any                  `json:"mission,omitempty"`    // Mission, []Mission, or "all"
+	Satellite             any                  `json:"satellite,omitempty"`  // Satellite, []Satellite, or "all"
+	SensorMode            any                  `json:"sensorMode,omitempty"` // SensorMode, []SensorMode, or "all"
 	PolarizationChannels  any                  `json:"polarizationChannels,omitempty"`
 	IncidenceAngle        *IncidenceAngleRange `json:"incidenceAngle,omitempty"`
 	PathDirection         any                  `json:"pathDirection,omitempty"` // PathDirection, []PathDirection, or "both"
@@ -516,7 +516,7 @@ type FeasibilityRequest struct {
 	Time                  TimeRange            `json:"time"`
 	FeasibilityLevel      FeasibilityLevel     `json:"feasibilityLevel"`
 	SensorMode            SensorMode           `json:"sensorMode"`
-	Mission               any                  `json:"mission,omitempty"`      // Mission, []Mission, or "all"
+	Mission               any                  `json:"mission,omitempty"` // Mission, []Mission, or "all"
 	Priority              Priority             `json:"priority,omitempty"`
 	Periodicity           Periodicity          `json:"periodicity,omitempty"`
 	Occurrences           int                  `json:"occurrences,omitempty"` // 2-50 for datastacks
@@ -758,7 +758,7 @@ type ReorderRequest struct {
 
 // SubmitOrderRequest represents a direct order submission request.
 type SubmitOrderRequest struct {
-	BasketID string `json:"basketId,omitempty"`
+	BasketID string   `json:"basketId,omitempty"`
 	Items    []string `json:"items,omitempty"`
 }
 
@@ -778,13 +778,13 @@ type Config struct {
 
 // Permissions represents user permissions.
 type Permissions struct {
-	CanOrder              bool `json:"canOrder,omitempty"`
-	CanTask               bool `json:"canTask,omitempty"`
-	CanTaskLeftLooking    bool `json:"canTaskLeftLooking,omitempty"`
-	CanTaskOutOfFullPerf  bool `json:"canTaskOutOfFullPerformance,omitempty"`
+	CanOrder                bool `json:"canOrder,omitempty"`
+	CanTask                 bool `json:"canTask,omitempty"`
+	CanTaskLeftLooking      bool `json:"canTaskLeftLooking,omitempty"`
+	CanTaskOutOfFullPerf    bool `json:"canTaskOutOfFullPerformance,omitempty"`
 	CanOrderAcquisitionOnly bool `json:"canOrderAcquisitionOnly,omitempty"`
-	IsReseller            bool `json:"isReseller,omitempty"`
-	IsDirectAccess        bool `json:"isDirectAccess,omitempty"`
+	IsReseller              bool `json:"isReseller,omitempty"`
+	IsDirectAccess          bool `json:"isDirectAccess,omitempty"`
 }
 
 // Settings represents user settings.

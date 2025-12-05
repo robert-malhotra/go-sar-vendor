@@ -5,7 +5,7 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/robert.malhotra/go-sar-vendor/pkg/common"
+	"github.com/robert-malhotra/go-sar-vendor/pkg/common"
 )
 
 // Common error codes returned by the Capella API.

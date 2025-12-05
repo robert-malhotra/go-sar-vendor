@@ -57,13 +57,13 @@ go-sar-vendor/
 ### Module consumer
 
 ```bash
-go get github.com/robert.malhotra/go-sar-vendor@latest
+go get github.com/robert-malhotra/go-sar-vendor@latest
 ```
 
 ### Stand‑alone CLI
 
 ```bash
-go install github.com/robert.malhotra/go-sar-vendor/cmd/go-sar-vendor@latest
+go install github.com/robert-malhotra/go-sar-vendor/cmd/go-sar-vendor@latest
 # binary ➝ $GOBIN/gosar
 ```
 

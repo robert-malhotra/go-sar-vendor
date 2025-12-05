@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/robert.malhotra/go-sar-vendor/pkg/capella"
+	"github.com/robert-malhotra/go-sar-vendor/pkg/capella"
 )
 
 func TestCatalogService_Search(t *testing.T) {

@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/robert.malhotra/go-sar-vendor/pkg/umbra"
+	"github.com/robert-malhotra/go-sar-vendor/pkg/umbra"
 )
 
 func TestNewClient(t *testing.T) {
@@ -155,8 +155,8 @@ func TestErrorHelpers(t *testing.T) {
 			isBadReq: true,
 		},
 		{
-			name:    "unauthorized",
-			err:     &umbra.APIError{StatusCode: 401},
+			name:     "unauthorized",
+			err:      &umbra.APIError{StatusCode: 401},
 			isUnauth: true,
 		},
 		{

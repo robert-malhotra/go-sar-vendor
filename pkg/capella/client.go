@@ -22,7 +22,7 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/robert.malhotra/go-sar-vendor/pkg/common"
+	"github.com/robert-malhotra/go-sar-vendor/pkg/common"
 )
 
 const (

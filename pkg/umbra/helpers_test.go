@@ -6,7 +6,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/robert.malhotra/go-sar-vendor/pkg/umbra"
+	"github.com/robert-malhotra/go-sar-vendor/pkg/umbra"
 )
 
 // newTestClient creates a mock server and configured client for testing.

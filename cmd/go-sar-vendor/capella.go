@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/robert.malhotra/go-sar-vendor/pkg/capella"
+	"github.com/robert-malhotra/go-sar-vendor/pkg/capella"
 	"github.com/urfave/cli/v3"
 )
 

@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/robert.malhotra/go-sar-vendor/pkg/planet"
+	"github.com/robert-malhotra/go-sar-vendor/pkg/planet"
 )
 
 func TestNewClient(t *testing.T) {

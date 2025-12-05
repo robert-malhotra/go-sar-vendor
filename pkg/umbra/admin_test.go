@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/robert.malhotra/go-sar-vendor/pkg/umbra"
+	"github.com/robert-malhotra/go-sar-vendor/pkg/umbra"
 )
 
 func TestGetRestrictedAccessAreas(t *testing.T) {

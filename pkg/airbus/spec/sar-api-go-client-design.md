@@ -55,7 +55,7 @@ import (
     "net/http"
     "time"
 
-    "github.com/robert.malhotra/go-sar-vendor/pkg/common"
+    "github.com/robert-malhotra/go-sar-vendor/pkg/common"
 )
 
 const (
@@ -571,7 +571,7 @@ import (
     "log"
     "time"
 
-    "github.com/robert.malhotra/go-sar-vendor/pkg/airbus"
+    "github.com/robert-malhotra/go-sar-vendor/pkg/airbus"
 )
 
 func main() {
@@ -686,7 +686,7 @@ func TestIntegration_FullWorkflow(t *testing.T) {
 **Required:**
 - Go 1.23+
 - `github.com/paulmach/orb` — GeoJSON geometry handling
-- `github.com/robert.malhotra/go-sar-vendor/pkg/common` — Shared HTTP client
+- `github.com/robert-malhotra/go-sar-vendor/pkg/common` — Shared HTTP client
 
 ---
 

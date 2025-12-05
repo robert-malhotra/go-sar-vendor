@@ -6,18 +6,18 @@ import (
 	"testing"
 	"time"
 
-	"github.com/robert.malhotra/go-sar-vendor/pkg/umbra"
+	"github.com/robert-malhotra/go-sar-vendor/pkg/umbra"
 )
 
 func TestCreateDeliveryConfig(t *testing.T) {
 	expected := umbra.DeliveryConfig{
-		ID:     "dc-123",
-		Name:   "My S3 Bucket",
-		Type:   umbra.DeliveryTypeS3UmbraRole,
-		Status: umbra.DeliveryConfigStatusUnverified,
-		Bucket: "my-bucket",
-		Path:   "/data",
-		Region: "us-west-2",
+		ID:        "dc-123",
+		Name:      "My S3 Bucket",
+		Type:      umbra.DeliveryTypeS3UmbraRole,
+		Status:    umbra.DeliveryConfigStatusUnverified,
+		Bucket:    "my-bucket",
+		Path:      "/data",
+		Region:    "us-west-2",
 		CreatedAt: time.Now(),
 	}
 

@@ -1,7 +1,7 @@
 package planet
 
 import (
-	"github.com/robert.malhotra/go-sar-vendor/pkg/common"
+	"github.com/robert-malhotra/go-sar-vendor/pkg/common"
 )
 
 // APIError is an alias for common.APIError for backwards compatibility.

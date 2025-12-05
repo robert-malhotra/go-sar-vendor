@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/robert.malhotra/go-sar-vendor/pkg/iceye"
+	"github.com/robert-malhotra/go-sar-vendor/pkg/iceye"
 	"github.com/urfave/cli/v3"
 )
 
