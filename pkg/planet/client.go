@@ -148,14 +148,10 @@ func newAPIKeyAuth(apiKey string) *apiKeyAuth {
 	return &apiKeyAuth{apiKey: apiKey}
 }
 
-// Authenticate is a no-op for API key auth since keys don't expire.
-func (a *apiKeyAuth) Authenticate(ctx context.Context) error {
+// Apply applies authentication to the HTTP request.
+func (a *apiKeyAuth) Apply(ctx context.Context, req *http.Request) error {
+	req.Header.Set("Authorization", "api-key "+a.apiKey)
 	return nil
-}
-
-// AuthHeader returns the Authorization header value.
-func (a *apiKeyAuth) AuthHeader() string {
-	return "api-key " + a.apiKey
 }
 
 // marshalBody marshals v to JSON and returns a bytes.Buffer.

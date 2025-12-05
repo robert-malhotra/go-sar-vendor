@@ -2,8 +2,6 @@ package capella
 
 import (
 	"context"
-	"encoding/json"
-	"fmt"
 	"iter"
 	"net/http"
 	"net/url"
@@ -147,90 +145,51 @@ type TaskingRequestsPagedResponse struct {
 // ----------------------------------------------------------------------------
 
 // CreateTask submits a new tasking request.
-func (s *TaskingService) CreateTask(ctx context.Context, apiKey string, req TaskingRequest) (*TaskingRequestResponse, error) {
+func (s *TaskingService) CreateTask(ctx context.Context, req TaskingRequest) (*TaskingRequestResponse, error) {
 	// Set default type if not specified
 	if req.Type == "" {
 		req.Type = "Feature"
 	}
 
-	body, err := json.Marshal(req)
-	if err != nil {
-		return nil, fmt.Errorf("failed to marshal tasking request: %w", err)
-	}
-
-	httpReq, err := s.client.newRequest(ctx, apiKey, http.MethodPost, "/task", body)
-	if err != nil {
-		return nil, err
-	}
-
 	var resp TaskingRequestResponse
-	if err := s.client.do(httpReq, &resp); err != nil {
+	if err := s.client.Do(ctx, http.MethodPost, "/task", 0, req, &resp); err != nil {
 		return nil, err
 	}
-
 	return &resp, nil
 }
 
 // GetTask retrieves a tasking request by ID.
-func (s *TaskingService) GetTask(ctx context.Context, apiKey, taskID string) (*TaskingRequestResponse, error) {
-	httpReq, err := s.client.newRequest(ctx, apiKey, http.MethodGet, "/task/"+taskID, nil)
-	if err != nil {
-		return nil, err
-	}
-
+func (s *TaskingService) GetTask(ctx context.Context, taskID string) (*TaskingRequestResponse, error) {
 	var resp TaskingRequestResponse
-	if err := s.client.do(httpReq, &resp); err != nil {
+	if err := s.client.Do(ctx, http.MethodGet, "/task/"+taskID, 0, nil, &resp); err != nil {
 		return nil, err
 	}
-
 	return &resp, nil
 }
 
 // ApproveTask approves a tasking request (cost review).
-func (s *TaskingService) ApproveTask(ctx context.Context, apiKey, taskID string) (*TaskingRequestResponse, error) {
+func (s *TaskingService) ApproveTask(ctx context.Context, taskID string) (*TaskingRequestResponse, error) {
 	payload := struct {
 		Status TaskStatus `json:"status"`
 	}{Status: TaskApproved}
 
-	body, err := json.Marshal(payload)
-	if err != nil {
-		return nil, err
-	}
-
-	httpReq, err := s.client.newRequest(ctx, apiKey, http.MethodPatch, "/task/"+taskID, body)
-	if err != nil {
-		return nil, err
-	}
-
 	var resp TaskingRequestResponse
-	if err := s.client.do(httpReq, &resp); err != nil {
+	if err := s.client.Do(ctx, http.MethodPatch, "/task/"+taskID, 0, payload, &resp); err != nil {
 		return nil, err
 	}
-
 	return &resp, nil
 }
 
 // CancelTask cancels a tasking request.
-func (s *TaskingService) CancelTask(ctx context.Context, apiKey, taskID string) (*TaskingRequestResponse, error) {
+func (s *TaskingService) CancelTask(ctx context.Context, taskID string) (*TaskingRequestResponse, error) {
 	payload := struct {
 		Status TaskStatus `json:"status"`
 	}{Status: TaskCanceled}
 
-	body, err := json.Marshal(payload)
-	if err != nil {
-		return nil, err
-	}
-
-	httpReq, err := s.client.newRequest(ctx, apiKey, http.MethodPatch, "/task/"+taskID, body)
-	if err != nil {
-		return nil, err
-	}
-
 	var resp TaskingRequestResponse
-	if err := s.client.do(httpReq, &resp); err != nil {
+	if err := s.client.Do(ctx, http.MethodPatch, "/task/"+taskID, 0, payload, &resp); err != nil {
 		return nil, err
 	}
-
 	return &resp, nil
 }
 
@@ -239,50 +198,28 @@ func (s *TaskingService) CancelTask(ctx context.Context, apiKey, taskID string) 
 // ----------------------------------------------------------------------------
 
 // Retask submits a retask request for an existing task.
-func (s *TaskingService) Retask(ctx context.Context, apiKey, taskID string, req TaskingRequest) (*TaskingRequestResponse, error) {
+func (s *TaskingService) Retask(ctx context.Context, taskID string, req TaskingRequest) (*TaskingRequestResponse, error) {
 	if req.Type == "" {
 		req.Type = "Feature"
 	}
 
-	body, err := json.Marshal(req)
-	if err != nil {
-		return nil, fmt.Errorf("failed to marshal retask request: %w", err)
-	}
-
-	httpReq, err := s.client.newRequest(ctx, apiKey, http.MethodPost, "/task/"+taskID+"/retask", body)
-	if err != nil {
-		return nil, err
-	}
-
 	var resp TaskingRequestResponse
-	if err := s.client.do(httpReq, &resp); err != nil {
+	if err := s.client.Do(ctx, http.MethodPost, "/task/"+taskID+"/retask", 0, req, &resp); err != nil {
 		return nil, err
 	}
-
 	return &resp, nil
 }
 
 // RetaskFromCollect submits a retask request from an archive collect.
-func (s *TaskingService) RetaskFromCollect(ctx context.Context, apiKey, collectID string, req TaskingRequest) (*TaskingRequestResponse, error) {
+func (s *TaskingService) RetaskFromCollect(ctx context.Context, collectID string, req TaskingRequest) (*TaskingRequestResponse, error) {
 	if req.Type == "" {
 		req.Type = "Feature"
 	}
 
-	body, err := json.Marshal(req)
-	if err != nil {
-		return nil, fmt.Errorf("failed to marshal retask request: %w", err)
-	}
-
-	httpReq, err := s.client.newRequest(ctx, apiKey, http.MethodPost, "/collects/"+collectID+"/retask", body)
-	if err != nil {
-		return nil, err
-	}
-
 	var resp TaskingRequestResponse
-	if err := s.client.do(httpReq, &resp); err != nil {
+	if err := s.client.Do(ctx, http.MethodPost, "/collects/"+collectID+"/retask", 0, req, &resp); err != nil {
 		return nil, err
 	}
-
 	return &resp, nil
 }
 
@@ -302,7 +239,7 @@ type ListTasksParams struct {
 }
 
 // fetchTasksPage fetches a single page of tasking requests.
-func (s *TaskingService) fetchTasksPage(ctx context.Context, apiKey string, params ListTasksParams) (*TaskingRequestsPagedResponse, error) {
+func (s *TaskingService) fetchTasksPage(ctx context.Context, params ListTasksParams) (*TaskingRequestsPagedResponse, error) {
 	v := url.Values{}
 
 	if params.CustomerID != "" {
@@ -327,14 +264,11 @@ func (s *TaskingService) fetchTasksPage(ctx context.Context, apiKey string, para
 		v.Set("order", params.Order)
 	}
 
-	httpReq, err := s.client.newRequest(ctx, apiKey, http.MethodGet, "/tasks/paged", nil)
-	if err != nil {
-		return nil, err
-	}
-	httpReq.URL.RawQuery = v.Encode()
+	u := s.client.BuildURL("/tasks/paged")
+	u.RawQuery = v.Encode()
 
 	var resp TaskingRequestsPagedResponse
-	if err := s.client.do(httpReq, &resp); err != nil {
+	if err := s.client.doRequest(ctx, http.MethodGet, u, nil, 0, &resp); err != nil {
 		return nil, err
 	}
 
@@ -342,7 +276,7 @@ func (s *TaskingService) fetchTasksPage(ctx context.Context, apiKey string, para
 }
 
 // ListTasks returns an iterator over all tasking requests with automatic pagination.
-func (s *TaskingService) ListTasks(ctx context.Context, apiKey string, params ListTasksParams) iter.Seq2[TaskingRequestResponse, error] {
+func (s *TaskingService) ListTasks(ctx context.Context, params ListTasksParams) iter.Seq2[TaskingRequestResponse, error] {
 	if params.Page <= 0 {
 		params.Page = 1
 	}
@@ -356,7 +290,7 @@ func (s *TaskingService) ListTasks(ctx context.Context, apiKey string, params Li
 		for {
 			params.Page = page
 
-			resp, err := s.fetchTasksPage(ctx, apiKey, params)
+			resp, err := s.fetchTasksPage(ctx, params)
 			if err != nil {
 				yield(TaskingRequestResponse{}, err)
 				return
@@ -390,27 +324,16 @@ type TaskSearchRequest struct {
 }
 
 // SearchTasks performs an advanced search on tasking requests.
-func (s *TaskingService) SearchTasks(ctx context.Context, apiKey string, req TaskSearchRequest) (*TaskingRequestsPagedResponse, error) {
-	body, err := json.Marshal(req)
-	if err != nil {
-		return nil, fmt.Errorf("failed to marshal search request: %w", err)
-	}
-
-	httpReq, err := s.client.newRequest(ctx, apiKey, http.MethodPost, "/tasks/search", body)
-	if err != nil {
-		return nil, err
-	}
-
+func (s *TaskingService) SearchTasks(ctx context.Context, req TaskSearchRequest) (*TaskingRequestsPagedResponse, error) {
 	var resp TaskingRequestsPagedResponse
-	if err := s.client.do(httpReq, &resp); err != nil {
+	if err := s.client.Do(ctx, http.MethodPost, "/tasks/search", 0, req, &resp); err != nil {
 		return nil, err
 	}
-
 	return &resp, nil
 }
 
 // SearchTasksIterator returns an iterator over search results with automatic pagination.
-func (s *TaskingService) SearchTasksIterator(ctx context.Context, apiKey string, req TaskSearchRequest) iter.Seq2[TaskingRequestResponse, error] {
+func (s *TaskingService) SearchTasksIterator(ctx context.Context, req TaskSearchRequest) iter.Seq2[TaskingRequestResponse, error] {
 	if req.Page <= 0 {
 		req.Page = 1
 	}
@@ -424,7 +347,7 @@ func (s *TaskingService) SearchTasksIterator(ctx context.Context, apiKey string,
 		for {
 			req.Page = page
 
-			resp, err := s.SearchTasks(ctx, apiKey, req)
+			resp, err := s.SearchTasks(ctx, req)
 			if err != nil {
 				yield(TaskingRequestResponse{}, err)
 				return
@@ -459,17 +382,11 @@ type CollectionTypeInfo struct {
 }
 
 // GetCollectionTypes retrieves available collection types.
-func (s *TaskingService) GetCollectionTypes(ctx context.Context, apiKey string) ([]CollectionTypeInfo, error) {
-	httpReq, err := s.client.newRequest(ctx, apiKey, http.MethodGet, "/collectiontypes", nil)
-	if err != nil {
-		return nil, err
-	}
-
+func (s *TaskingService) GetCollectionTypes(ctx context.Context) ([]CollectionTypeInfo, error) {
 	var resp []CollectionTypeInfo
-	if err := s.client.do(httpReq, &resp); err != nil {
+	if err := s.client.Do(ctx, http.MethodGet, "/collectiontypes", 0, nil, &resp); err != nil {
 		return nil, err
 	}
-
 	return resp, nil
 }
 
@@ -516,50 +433,28 @@ type RepeatRequestResponse struct {
 }
 
 // CreateRepeatRequest submits a new repeat tasking request.
-func (s *TaskingService) CreateRepeatRequest(ctx context.Context, apiKey string, req RepeatRequest) (*RepeatRequestResponse, error) {
+func (s *TaskingService) CreateRepeatRequest(ctx context.Context, req RepeatRequest) (*RepeatRequestResponse, error) {
 	if req.Type == "" {
 		req.Type = "Feature"
 	}
 
-	body, err := json.Marshal(req)
-	if err != nil {
-		return nil, fmt.Errorf("failed to marshal repeat request: %w", err)
-	}
-
-	httpReq, err := s.client.newRequest(ctx, apiKey, http.MethodPost, "/repeat-requests", body)
-	if err != nil {
-		return nil, err
-	}
-
 	var resp RepeatRequestResponse
-	if err := s.client.do(httpReq, &resp); err != nil {
+	if err := s.client.Do(ctx, http.MethodPost, "/repeat-requests", 0, req, &resp); err != nil {
 		return nil, err
 	}
-
 	return &resp, nil
 }
 
 // CancelRepeatRequest cancels a repeat tasking request.
-func (s *TaskingService) CancelRepeatRequest(ctx context.Context, apiKey, repeatRequestID string) (*RepeatRequestResponse, error) {
+func (s *TaskingService) CancelRepeatRequest(ctx context.Context, repeatRequestID string) (*RepeatRequestResponse, error) {
 	payload := struct {
 		Status TaskStatus `json:"status"`
 	}{Status: TaskCanceled}
 
-	body, err := json.Marshal(payload)
-	if err != nil {
-		return nil, err
-	}
-
-	httpReq, err := s.client.newRequest(ctx, apiKey, http.MethodPatch, "/repeat-requests/"+repeatRequestID, body)
-	if err != nil {
-		return nil, err
-	}
-
 	var resp RepeatRequestResponse
-	if err := s.client.do(httpReq, &resp); err != nil {
+	if err := s.client.Do(ctx, http.MethodPatch, "/repeat-requests/"+repeatRequestID, 0, payload, &resp); err != nil {
 		return nil, err
 	}
-
 	return &resp, nil
 }
 

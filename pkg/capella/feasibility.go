@@ -2,7 +2,6 @@ package capella
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"iter"
 	"net/http"
@@ -120,67 +119,39 @@ type AccessRequestDetailResponse struct {
 // ----------------------------------------------------------------------------
 
 // CreateAccessRequest submits a new access/feasibility request.
-func (s *FeasibilityService) CreateAccessRequest(ctx context.Context, apiKey string, req AccessRequest) (*AccessRequestResponse, error) {
+func (s *FeasibilityService) CreateAccessRequest(ctx context.Context, req AccessRequest) (*AccessRequestResponse, error) {
 	if req.Type == "" {
 		req.Type = "Feature"
 	}
 
-	body, err := json.Marshal(req)
-	if err != nil {
-		return nil, fmt.Errorf("failed to marshal access request: %w", err)
-	}
-
-	httpReq, err := s.client.newRequest(ctx, apiKey, http.MethodPost, "/ma/accessrequests", body)
-	if err != nil {
-		return nil, err
-	}
-
 	var resp AccessRequestResponse
-	if err := s.client.do(httpReq, &resp); err != nil {
+	if err := s.client.Do(ctx, http.MethodPost, "/ma/accessrequests", 0, req, &resp); err != nil {
 		return nil, err
 	}
-
 	return &resp, nil
 }
 
 // GetAccessRequest retrieves an access request by ID.
-func (s *FeasibilityService) GetAccessRequest(ctx context.Context, apiKey, accessRequestID string) (*AccessRequestResponse, error) {
-	httpReq, err := s.client.newRequest(ctx, apiKey, http.MethodGet, "/ma/accessrequests/"+accessRequestID, nil)
-	if err != nil {
-		return nil, err
-	}
-
+func (s *FeasibilityService) GetAccessRequest(ctx context.Context, accessRequestID string) (*AccessRequestResponse, error) {
 	var resp AccessRequestResponse
-	if err := s.client.do(httpReq, &resp); err != nil {
+	if err := s.client.Do(ctx, http.MethodGet, "/ma/accessrequests/"+accessRequestID, 0, nil, &resp); err != nil {
 		return nil, err
 	}
-
 	return &resp, nil
 }
 
 // GetAccessRequestDetail retrieves an access request with access windows.
-func (s *FeasibilityService) GetAccessRequestDetail(ctx context.Context, apiKey, accessRequestID string) (*AccessRequestDetailResponse, error) {
-	httpReq, err := s.client.newRequest(ctx, apiKey, http.MethodGet, "/ma/accessrequests/"+accessRequestID+"/detail", nil)
-	if err != nil {
-		return nil, err
-	}
-
+func (s *FeasibilityService) GetAccessRequestDetail(ctx context.Context, accessRequestID string) (*AccessRequestDetailResponse, error) {
 	var resp AccessRequestDetailResponse
-	if err := s.client.do(httpReq, &resp); err != nil {
+	if err := s.client.Do(ctx, http.MethodGet, "/ma/accessrequests/"+accessRequestID+"/detail", 0, nil, &resp); err != nil {
 		return nil, err
 	}
-
 	return &resp, nil
 }
 
 // DeleteAccessRequest deletes an access request.
-func (s *FeasibilityService) DeleteAccessRequest(ctx context.Context, apiKey, accessRequestID string) error {
-	httpReq, err := s.client.newRequest(ctx, apiKey, http.MethodDelete, "/ma/accessrequests/"+accessRequestID, nil)
-	if err != nil {
-		return err
-	}
-
-	return s.client.do(httpReq, nil)
+func (s *FeasibilityService) DeleteAccessRequest(ctx context.Context, accessRequestID string) error {
+	return s.client.Do(ctx, http.MethodDelete, "/ma/accessrequests/"+accessRequestID, 0, nil, nil)
 }
 
 // ----------------------------------------------------------------------------
@@ -188,7 +159,7 @@ func (s *FeasibilityService) DeleteAccessRequest(ctx context.Context, apiKey, ac
 // ----------------------------------------------------------------------------
 
 // WaitForAccessRequest polls the access request status until processing completes.
-func (s *FeasibilityService) WaitForAccessRequest(ctx context.Context, apiKey, accessRequestID string, pollInterval time.Duration) (*AccessRequestResponse, error) {
+func (s *FeasibilityService) WaitForAccessRequest(ctx context.Context, accessRequestID string, pollInterval time.Duration) (*AccessRequestResponse, error) {
 	ticker := time.NewTicker(pollInterval)
 	defer ticker.Stop()
 
@@ -197,7 +168,7 @@ func (s *FeasibilityService) WaitForAccessRequest(ctx context.Context, apiKey, a
 		case <-ctx.Done():
 			return nil, ctx.Err()
 		case <-ticker.C:
-			resp, err := s.GetAccessRequest(ctx, apiKey, accessRequestID)
+			resp, err := s.GetAccessRequest(ctx, accessRequestID)
 			if err != nil {
 				return nil, err
 			}
@@ -217,9 +188,9 @@ func (s *FeasibilityService) WaitForAccessRequest(ctx context.Context, apiKey, a
 
 // CheckFeasibility is a convenience function that creates an access request,
 // waits for processing, and returns the result.
-func (s *FeasibilityService) CheckFeasibility(ctx context.Context, apiKey string, req AccessRequest, pollInterval time.Duration) (*AccessRequestDetailResponse, error) {
+func (s *FeasibilityService) CheckFeasibility(ctx context.Context, req AccessRequest, pollInterval time.Duration) (*AccessRequestDetailResponse, error) {
 	// Create the access request
-	created, err := s.CreateAccessRequest(ctx, apiKey, req)
+	created, err := s.CreateAccessRequest(ctx, req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create access request: %w", err)
 	}
@@ -233,7 +204,7 @@ func (s *FeasibilityService) CheckFeasibility(ctx context.Context, apiKey string
 		case <-ctx.Done():
 			return nil, ctx.Err()
 		case <-ticker.C:
-			resp, err := s.GetAccessRequest(ctx, apiKey, created.Properties.AccessRequestID)
+			resp, err := s.GetAccessRequest(ctx, created.Properties.AccessRequestID)
 			if err != nil {
 				return nil, err
 			}
@@ -241,7 +212,7 @@ func (s *FeasibilityService) CheckFeasibility(ctx context.Context, apiKey string
 			switch resp.Properties.ProcessingStatus {
 			case ProcessingCompleted:
 				// Get detailed response with access windows
-				return s.GetAccessRequestDetail(ctx, apiKey, created.Properties.AccessRequestID)
+				return s.GetAccessRequestDetail(ctx, created.Properties.AccessRequestID)
 			case ProcessingError:
 				return nil, fmt.Errorf("access request processing failed: %s", resp.Properties.AccessibilityMessage)
 			}
@@ -362,7 +333,7 @@ type AccessRequestsPagedResponse struct {
 }
 
 // ListAccessRequests returns an iterator over all access requests.
-func (s *FeasibilityService) ListAccessRequests(ctx context.Context, apiKey string, params ListAccessRequestsParams) iter.Seq2[AccessRequestResponse, error] {
+func (s *FeasibilityService) ListAccessRequests(ctx context.Context, params ListAccessRequestsParams) iter.Seq2[AccessRequestResponse, error] {
 	if params.Page <= 0 {
 		params.Page = 1
 	}
@@ -374,14 +345,9 @@ func (s *FeasibilityService) ListAccessRequests(ctx context.Context, apiKey stri
 		page := params.Page
 
 		for {
-			httpReq, err := s.client.newRequest(ctx, apiKey, http.MethodGet, fmt.Sprintf("/ma/accessrequests?page=%d&limit=%d", page, params.Limit), nil)
-			if err != nil {
-				yield(AccessRequestResponse{}, err)
-				return
-			}
-
+			path := fmt.Sprintf("/ma/accessrequests?page=%d&limit=%d", page, params.Limit)
 			var resp AccessRequestsPagedResponse
-			if err := s.client.do(httpReq, &resp); err != nil {
+			if err := s.client.Do(ctx, http.MethodGet, path, 0, nil, &resp); err != nil {
 				yield(AccessRequestResponse{}, err)
 				return
 			}

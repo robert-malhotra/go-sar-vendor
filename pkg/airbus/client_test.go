@@ -523,9 +523,11 @@ func TestAPIKeyAuth(t *testing.T) {
 
 	auth := NewAPIKeyAuth("test-key", server.URL+"/token", nil)
 
-	err := auth.Authenticate(context.Background())
+	// Create a mock request to test Apply
+	req, _ := http.NewRequest(http.MethodGet, "https://example.com/api", nil)
+	err := auth.Apply(context.Background(), req)
 	if err != nil {
-		t.Fatalf("Authenticate() error = %v", err)
+		t.Fatalf("Apply() error = %v", err)
 	}
 	if !tokenCalled {
 		t.Error("token endpoint was not called")
@@ -533,8 +535,9 @@ func TestAPIKeyAuth(t *testing.T) {
 	if auth.Token() != "obtained-token" {
 		t.Errorf("expected token 'obtained-token', got %s", auth.Token())
 	}
-	if auth.AuthHeader() != "Bearer obtained-token" {
-		t.Errorf("expected header 'Bearer obtained-token', got %s", auth.AuthHeader())
+	authHeader := req.Header.Get("Authorization")
+	if authHeader != "Bearer obtained-token" {
+		t.Errorf("expected header 'Bearer obtained-token', got %s", authHeader)
 	}
 }
 
@@ -553,16 +556,18 @@ func TestAPIKeyAuth_TokenReuse(t *testing.T) {
 	auth := NewAPIKeyAuth("test-key", server.URL+"/token", nil)
 
 	// First call should get token
-	if err := auth.Authenticate(context.Background()); err != nil {
-		t.Fatalf("first Authenticate() error = %v", err)
+	req1, _ := http.NewRequest(http.MethodGet, "https://example.com/api", nil)
+	if err := auth.Apply(context.Background(), req1); err != nil {
+		t.Fatalf("first Apply() error = %v", err)
 	}
 	if callCount != 1 {
 		t.Errorf("expected 1 call, got %d", callCount)
 	}
 
 	// Second call should reuse token (not expired)
-	if err := auth.Authenticate(context.Background()); err != nil {
-		t.Fatalf("second Authenticate() error = %v", err)
+	req2, _ := http.NewRequest(http.MethodGet, "https://example.com/api", nil)
+	if err := auth.Apply(context.Background(), req2); err != nil {
+		t.Fatalf("second Apply() error = %v", err)
 	}
 	if callCount != 1 {
 		t.Errorf("expected 1 call (token reused), got %d", callCount)

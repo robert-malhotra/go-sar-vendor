@@ -50,7 +50,7 @@ func TestCatalogService_Search(t *testing.T) {
 	cli, _ := newTestClient(t, handler)
 	catalog := capella.NewCatalogService(cli)
 
-	resp, err := catalog.Search(context.Background(), "test-api-key", capella.SearchParams{
+	resp, err := catalog.Search(context.Background(), capella.SearchParams{
 		BBox:        []float64{-110, 39.5, -105, 40.5},
 		Collections: []string{"capella-geo"},
 		Limit:       10,
@@ -101,7 +101,7 @@ func TestCatalogService_SearchItems_Pagination(t *testing.T) {
 	catalog := capella.NewCatalogService(cli)
 
 	var items []capella.STACItem
-	for item, err := range catalog.SearchItems(context.Background(), "test-api-key", capella.SearchParams{Limit: 1}) {
+	for item, err := range catalog.SearchItems(context.Background(), capella.SearchParams{Limit: 1}) {
 		if err != nil {
 			t.Fatalf("iterator error: %v", err)
 		}
@@ -140,7 +140,7 @@ func TestCatalogService_ListCollections(t *testing.T) {
 	cli, _ := newTestClient(t, handler)
 	catalog := capella.NewCatalogService(cli)
 
-	collections, err := catalog.ListCollections(context.Background(), "test-api-key")
+	collections, err := catalog.ListCollections(context.Background())
 	if err != nil {
 		t.Fatalf("ListCollections failed: %v", err)
 	}
@@ -171,7 +171,7 @@ func TestCatalogService_GetCollection(t *testing.T) {
 	cli, _ := newTestClient(t, handler)
 	catalog := capella.NewCatalogService(cli)
 
-	collection, err := catalog.GetCollection(context.Background(), "test-api-key", "capella-geo")
+	collection, err := catalog.GetCollection(context.Background(), "capella-geo")
 	if err != nil {
 		t.Fatalf("GetCollection failed: %v", err)
 	}
@@ -198,7 +198,7 @@ func TestCatalogService_ListArchiveExports(t *testing.T) {
 	cli, _ := newTestClient(t, handler)
 	catalog := capella.NewCatalogService(cli)
 
-	exports, err := catalog.ListArchiveExports(context.Background(), "test-api-key")
+	exports, err := catalog.ListArchiveExports(context.Background())
 	if err != nil {
 		t.Fatalf("ListArchiveExports failed: %v", err)
 	}
@@ -222,7 +222,7 @@ func TestCatalogService_GetArchiveExportURL(t *testing.T) {
 	cli, _ := newTestClient(t, handler)
 	catalog := capella.NewCatalogService(cli)
 
-	url, err := catalog.GetArchiveExportURL(context.Background(), "test-api-key", "export-1")
+	url, err := catalog.GetArchiveExportURL(context.Background(), "export-1")
 	if err != nil {
 		t.Fatalf("GetArchiveExportURL failed: %v", err)
 	}

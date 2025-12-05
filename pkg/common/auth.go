@@ -15,11 +15,10 @@ import (
 
 // Authenticator provides authentication for API requests.
 type Authenticator interface {
-	// Authenticate performs any necessary authentication (e.g., token refresh).
-	Authenticate(ctx context.Context) error
-
-	// AuthHeader returns the Authorization header value.
-	AuthHeader() string
+	// Apply applies authentication to an HTTP request.
+	// It performs any necessary authentication (e.g., token refresh) and sets
+	// the appropriate headers on the request.
+	Apply(ctx context.Context, req *http.Request) error
 }
 
 // BearerAuth implements static bearer token authentication.
@@ -32,12 +31,9 @@ func NewBearerAuth(token string) *BearerAuth {
 	return &BearerAuth{token: token}
 }
 
-func (b *BearerAuth) Authenticate(ctx context.Context) error {
-	return nil // Static token, no refresh needed
-}
-
-func (b *BearerAuth) AuthHeader() string {
-	return "Bearer " + b.token
+func (b *BearerAuth) Apply(ctx context.Context, req *http.Request) error {
+	req.Header.Set("Authorization", "Bearer "+b.token)
+	return nil
 }
 
 // APIKeyAuth implements API key authentication.
@@ -56,15 +52,13 @@ func NewAPIKeyAuthWithPrefix(key, prefix string) *APIKeyAuth {
 	return &APIKeyAuth{key: key, prefix: prefix}
 }
 
-func (a *APIKeyAuth) Authenticate(ctx context.Context) error {
-	return nil // Static key, no refresh needed
-}
-
-func (a *APIKeyAuth) AuthHeader() string {
+func (a *APIKeyAuth) Apply(ctx context.Context, req *http.Request) error {
 	if a.prefix != "" {
-		return a.prefix + " " + a.key
+		req.Header.Set("Authorization", a.prefix+" "+a.key)
+	} else {
+		req.Header.Set("Authorization", a.key)
 	}
-	return a.key
+	return nil
 }
 
 // OAuth2Config holds configuration for OAuth2 Client Credentials flow.
@@ -93,7 +87,17 @@ func NewOAuth2Auth(cfg OAuth2Config) *OAuth2Auth {
 	return &OAuth2Auth{cfg: cfg}
 }
 
-func (o *OAuth2Auth) Authenticate(ctx context.Context) error {
+func (o *OAuth2Auth) Apply(ctx context.Context, req *http.Request) error {
+	if err := o.refreshIfNeeded(ctx); err != nil {
+		return err
+	}
+	o.mu.Lock()
+	req.Header.Set("Authorization", "Bearer "+o.token)
+	o.mu.Unlock()
+	return nil
+}
+
+func (o *OAuth2Auth) refreshIfNeeded(ctx context.Context) error {
 	o.mu.Lock()
 	if time.Until(o.exp) > 30*time.Second {
 		o.mu.Unlock()
@@ -115,7 +119,7 @@ func (o *OAuth2Auth) Authenticate(ctx context.Context) error {
 		form.Set("scope", scope)
 	}
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, o.cfg.TokenURL, bytes.NewBufferString(form.Encode()))
+	tokenReq, err := http.NewRequestWithContext(ctx, http.MethodPost, o.cfg.TokenURL, bytes.NewBufferString(form.Encode()))
 	if err != nil {
 		return fmt.Errorf("create token request: %w", err)
 	}
@@ -123,11 +127,11 @@ func (o *OAuth2Auth) Authenticate(ctx context.Context) error {
 	// Set Basic auth header
 	credentials := o.cfg.ClientID + ":" + o.cfg.ClientSecret
 	auth := base64.StdEncoding.EncodeToString([]byte(credentials))
-	req.Header.Set("Authorization", "Basic "+auth)
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	req.Header.Set("Accept", "application/json")
+	tokenReq.Header.Set("Authorization", "Basic "+auth)
+	tokenReq.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	tokenReq.Header.Set("Accept", "application/json")
 
-	resp, err := o.cfg.HTTPClient.Do(req)
+	resp, err := o.cfg.HTTPClient.Do(tokenReq)
 	if err != nil {
 		return fmt.Errorf("token request: %w", err)
 	}
@@ -159,12 +163,6 @@ func (o *OAuth2Auth) Authenticate(ctx context.Context) error {
 	return nil
 }
 
-func (o *OAuth2Auth) AuthHeader() string {
-	o.mu.Lock()
-	defer o.mu.Unlock()
-	return "Bearer " + o.token
-}
-
 // ResourceOwnerConfig holds configuration for OAuth2 Resource Owner Password flow.
 type ResourceOwnerConfig struct {
 	TokenURL   string
@@ -191,7 +189,17 @@ func NewResourceOwnerAuth(cfg ResourceOwnerConfig) *ResourceOwnerAuth {
 	return &ResourceOwnerAuth{cfg: cfg}
 }
 
-func (r *ResourceOwnerAuth) Authenticate(ctx context.Context) error {
+func (r *ResourceOwnerAuth) Apply(ctx context.Context, req *http.Request) error {
+	if err := r.refreshIfNeeded(ctx); err != nil {
+		return err
+	}
+	r.mu.Lock()
+	req.Header.Set("Authorization", "Bearer "+r.token)
+	r.mu.Unlock()
+	return nil
+}
+
+func (r *ResourceOwnerAuth) refreshIfNeeded(ctx context.Context) error {
 	r.mu.Lock()
 	if time.Until(r.exp) > 30*time.Second {
 		r.mu.Unlock()
@@ -204,16 +212,16 @@ func (r *ResourceOwnerAuth) Authenticate(ctx context.Context) error {
 	form.Set("username", r.cfg.Username)
 	form.Set("password", r.cfg.Password)
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, r.cfg.TokenURL, bytes.NewBufferString(form.Encode()))
+	tokenReq, err := http.NewRequestWithContext(ctx, http.MethodPost, r.cfg.TokenURL, bytes.NewBufferString(form.Encode()))
 	if err != nil {
 		return fmt.Errorf("create token request: %w", err)
 	}
 
-	req.Header.Set("Authorization", "Basic "+r.cfg.APIKey)
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	req.Header.Set("Accept", "application/json")
+	tokenReq.Header.Set("Authorization", "Basic "+r.cfg.APIKey)
+	tokenReq.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	tokenReq.Header.Set("Accept", "application/json")
 
-	resp, err := r.cfg.HTTPClient.Do(req)
+	resp, err := r.cfg.HTTPClient.Do(tokenReq)
 	if err != nil {
 		return fmt.Errorf("token request: %w", err)
 	}
@@ -241,10 +249,4 @@ func (r *ResourceOwnerAuth) Authenticate(ctx context.Context) error {
 	r.mu.Unlock()
 
 	return nil
-}
-
-func (r *ResourceOwnerAuth) AuthHeader() string {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-	return "Bearer " + r.token
 }

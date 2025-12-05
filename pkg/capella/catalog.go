@@ -2,7 +2,6 @@ package capella
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"iter"
 	"net/http"
@@ -181,27 +180,16 @@ type SearchContext struct {
 // ----------------------------------------------------------------------------
 
 // Search performs a STAC catalog search.
-func (s *CatalogService) Search(ctx context.Context, apiKey string, params SearchParams) (*SearchResponse, error) {
-	body, err := json.Marshal(params)
-	if err != nil {
-		return nil, fmt.Errorf("failed to marshal search params: %w", err)
-	}
-
-	req, err := s.client.newRequest(ctx, apiKey, http.MethodPost, "/catalog/search", body)
-	if err != nil {
-		return nil, err
-	}
-
+func (s *CatalogService) Search(ctx context.Context, params SearchParams) (*SearchResponse, error) {
 	var resp SearchResponse
-	if err := s.client.do(req, &resp); err != nil {
+	if err := s.client.Do(ctx, http.MethodPost, "/catalog/search", 0, params, &resp); err != nil {
 		return nil, err
 	}
-
 	return &resp, nil
 }
 
 // SearchItems returns an iterator over search results with automatic pagination.
-func (s *CatalogService) SearchItems(ctx context.Context, apiKey string, params SearchParams) iter.Seq2[STACItem, error] {
+func (s *CatalogService) SearchItems(ctx context.Context, params SearchParams) iter.Seq2[STACItem, error] {
 	if params.Limit == 0 {
 		params.Limit = 100
 	}
@@ -215,9 +203,9 @@ func (s *CatalogService) SearchItems(ctx context.Context, apiKey string, params 
 
 			if nextURL != "" {
 				// Fetch next page using the link URL
-				resp, err = s.fetchSearchURL(ctx, apiKey, nextURL)
+				resp, err = s.fetchSearchURL(ctx, nextURL)
 			} else {
-				resp, err = s.Search(ctx, apiKey, params)
+				resp, err = s.Search(ctx, params)
 			}
 
 			if err != nil {
@@ -249,23 +237,14 @@ func (s *CatalogService) SearchItems(ctx context.Context, apiKey string, params 
 }
 
 // fetchSearchURL fetches a search result page by URL.
-func (s *CatalogService) fetchSearchURL(ctx context.Context, apiKey, searchURL string) (*SearchResponse, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, searchURL, nil)
+func (s *CatalogService) fetchSearchURL(ctx context.Context, searchURL string) (*SearchResponse, error) {
+	u, err := s.client.BaseURL().Parse(searchURL)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("parse search URL: %w", err)
 	}
-
-	key := apiKey
-	if key == "" {
-		key = s.client.apiKey
-	}
-	if key != "" {
-		req.Header.Set("Authorization", "ApiKey "+key)
-	}
-	req.Header.Set("Accept", "application/json")
 
 	var resp SearchResponse
-	if err := s.client.do(req, &resp); err != nil {
+	if err := s.client.doRequest(ctx, http.MethodGet, u, nil, 0, &resp); err != nil {
 		return nil, err
 	}
 
@@ -277,34 +256,22 @@ func (s *CatalogService) fetchSearchURL(ctx context.Context, apiKey, searchURL s
 // ----------------------------------------------------------------------------
 
 // ListCollections lists available STAC collections.
-func (s *CatalogService) ListCollections(ctx context.Context, apiKey string) ([]STACCollection, error) {
-	req, err := s.client.newRequest(ctx, apiKey, http.MethodGet, "/catalog/collections", nil)
-	if err != nil {
-		return nil, err
-	}
-
+func (s *CatalogService) ListCollections(ctx context.Context) ([]STACCollection, error) {
 	var resp struct {
 		Collections []STACCollection `json:"collections"`
 	}
-	if err := s.client.do(req, &resp); err != nil {
+	if err := s.client.Do(ctx, http.MethodGet, "/catalog/collections", 0, nil, &resp); err != nil {
 		return nil, err
 	}
-
 	return resp.Collections, nil
 }
 
 // GetCollection retrieves a specific STAC collection by ID.
-func (s *CatalogService) GetCollection(ctx context.Context, apiKey, collectionID string) (*STACCollection, error) {
-	req, err := s.client.newRequest(ctx, apiKey, http.MethodGet, "/catalog/collections/"+collectionID, nil)
-	if err != nil {
-		return nil, err
-	}
-
+func (s *CatalogService) GetCollection(ctx context.Context, collectionID string) (*STACCollection, error) {
 	var resp STACCollection
-	if err := s.client.do(req, &resp); err != nil {
+	if err := s.client.Do(ctx, http.MethodGet, "/catalog/collections/"+collectionID, 0, nil, &resp); err != nil {
 		return nil, err
 	}
-
 	return &resp, nil
 }
 
@@ -330,37 +297,21 @@ type PresignedURL struct {
 }
 
 // ListArchiveExports lists available archive footprint exports.
-func (s *CatalogService) ListArchiveExports(ctx context.Context, apiKey string) ([]ArchiveExport, error) {
-	req, err := s.client.newRequest(ctx, apiKey, http.MethodGet, "/catalog/archive-export/available", nil)
-	if err != nil {
-		return nil, err
-	}
-
+func (s *CatalogService) ListArchiveExports(ctx context.Context) ([]ArchiveExport, error) {
 	var resp []ArchiveExport
-	if err := s.client.do(req, &resp); err != nil {
+	if err := s.client.Do(ctx, http.MethodGet, "/catalog/archive-export/available", 0, nil, &resp); err != nil {
 		return nil, err
 	}
-
 	return resp, nil
 }
 
 // GetArchiveExportURL gets a presigned download URL for an archive export.
-func (s *CatalogService) GetArchiveExportURL(ctx context.Context, apiKey, exportID string) (*PresignedURL, error) {
-	body, err := json.Marshal(map[string]string{"exportId": exportID})
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := s.client.newRequest(ctx, apiKey, http.MethodPost, "/catalog/archive-export/presigned", body)
-	if err != nil {
-		return nil, err
-	}
-
+func (s *CatalogService) GetArchiveExportURL(ctx context.Context, exportID string) (*PresignedURL, error) {
+	reqBody := map[string]string{"exportId": exportID}
 	var resp PresignedURL
-	if err := s.client.do(req, &resp); err != nil {
+	if err := s.client.Do(ctx, http.MethodPost, "/catalog/archive-export/presigned", 0, reqBody, &resp); err != nil {
 		return nil, err
 	}
-
 	return &resp, nil
 }
 
