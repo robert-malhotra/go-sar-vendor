@@ -32,13 +32,12 @@ func iceyeCmd() *cli.Command {
 
 /* ---------- helper ---------- */
 
-func iceyeClient(cmd *cli.Command) *iceye.Client {
-	return iceye.NewClient(iceye.Config{
-		BaseURL:      cmd.String("base-url"),
-		TokenURL:     cmd.String("token-url"),
-		ClientID:     cmd.String("client-id"),
-		ClientSecret: cmd.String("client-secret"),
-	})
+func iceyeClient(cmd *cli.Command) (*iceye.Client, error) {
+	return iceye.NewClient(
+		iceye.WithBaseURL(cmd.String("base-url")),
+		iceye.WithTokenURL(cmd.String("token-url")),
+		iceye.WithCredentials(cmd.String("client-id"), cmd.String("client-secret")),
+	)
 }
 
 func iceyePrint(v any) error {
@@ -55,7 +54,10 @@ func iceyeContractsCmd() *cli.Command {
 		Usage: "List contracts (paged iterator)",
 		Flags: []cli.Flag{&cli.IntFlag{Name: "limit", Value: 50}},
 		Action: func(ctx context.Context, cmd *cli.Command) error {
-			cli := iceyeClient(cmd)
+			cli, err := iceyeClient(cmd)
+			if err != nil {
+				return err
+			}
 			limit := int(cmd.Int("limit"))
 			seq := cli.ListContracts(ctx, limit)
 			for page, err := range seq {
@@ -131,7 +133,10 @@ func iceyeCreateTask(ctx context.Context, cmd *cli.Command) error {
 	if err := json.NewDecoder(os.Stdin).Decode(&req); err != nil {
 		return err
 	}
-	cli := iceyeClient(cmd)
+	cli, err := iceyeClient(cmd)
+	if err != nil {
+		return err
+	}
 	resp, err := cli.CreateTask(ctx, &req)
 	if err != nil {
 		return err
@@ -144,7 +149,10 @@ func iceyeGetTask(ctx context.Context, cmd *cli.Command) error {
 	if id == "" {
 		return fmt.Errorf("taskId required")
 	}
-	cli := iceyeClient(cmd)
+	cli, err := iceyeClient(cmd)
+	if err != nil {
+		return err
+	}
 	resp, err := cli.GetTask(ctx, id)
 	if err != nil {
 		return err
@@ -157,7 +165,10 @@ func iceyeCancelTask(ctx context.Context, cmd *cli.Command) error {
 	if id == "" {
 		return fmt.Errorf("taskId required")
 	}
-	cli := iceyeClient(cmd)
+	cli, err := iceyeClient(cmd)
+	if err != nil {
+		return err
+	}
 	resp, err := cli.CancelTask(ctx, id)
 	if err != nil {
 		return err
@@ -166,7 +177,10 @@ func iceyeCancelTask(ctx context.Context, cmd *cli.Command) error {
 }
 
 func iceyeListTasks(ctx context.Context, cmd *cli.Command) error {
-	cli := iceyeClient(cmd)
+	cli, err := iceyeClient(cmd)
+	if err != nil {
+		return err
+	}
 	limit := int(cmd.Int("limit"))
 	seq := cli.ListTasks(ctx, limit, nil)
 	for page, err := range seq {
@@ -187,7 +201,10 @@ func iceyeGetScene(ctx context.Context, cmd *cli.Command) error {
 	if id == "" {
 		return fmt.Errorf("taskId required")
 	}
-	cli := iceyeClient(cmd)
+	cli, err := iceyeClient(cmd)
+	if err != nil {
+		return err
+	}
 	resp, err := cli.GetTaskScene(ctx, id)
 	if err != nil {
 		return err
@@ -200,7 +217,10 @@ func iceyeGetProducts(ctx context.Context, cmd *cli.Command) error {
 	if id == "" {
 		return fmt.Errorf("taskId required")
 	}
-	cli := iceyeClient(cmd)
+	cli, err := iceyeClient(cmd)
+	if err != nil {
+		return err
+	}
 	products, err := cli.ListTaskProducts(ctx, id)
 	if err != nil {
 		return err
@@ -218,7 +238,10 @@ func iceyeGetPrice(ctx context.Context, cmd *cli.Command) error {
 	if err := json.NewDecoder(os.Stdin).Decode(&req); err != nil {
 		return err
 	}
-	cli := iceyeClient(cmd)
+	cli, err := iceyeClient(cmd)
+	if err != nil {
+		return err
+	}
 	resp, err := cli.GetTaskPrice(ctx, &req)
 	if err != nil {
 		return err

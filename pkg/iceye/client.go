@@ -9,243 +9,209 @@
 //   - Full coverage of Company, Tasking, and Catalog APIs.
 //   - Idiomatic Go types mirroring ICEYE API domains.
 //   - DRY lazy pagination helpers using Go 1.23+ `iter.Seq2`.
-//   - Zero non-std-lib runtime dependencies.
 //   - Thread-safe; safe for concurrent goroutines.
 //   - RFC 7807 errors mapped to *iceye.Error.
 //
-// Version history
-//
-//	v0.1.0  – initial skeleton (contracts, basic tasking)
-//	v1.0.0  – full Tasking API coverage
-//	v2.0.0  – full API coverage (Company, Tasking, Catalog) with unified client
-//	v3.0.0  – aligned with ICEYE v1 APIs (Company, Tasking, Catalog, Delivery)
-//
 // Docs: https://docs.iceye.com/api/ (December 2024 release)
-// ----------------------------------------------------------------------------
-// Quick example (Go 1.23+)
-// ----------------------------------------------------------------------------
-//
-//	client := iceye.NewClient(iceye.Config{
-//	    BaseURL:      "https://api.iceye.com",
-//	    TokenURL:     "https://auth.iceye.com/oauth2/token",
-//	    ClientID:     "your-client-id",
-//	    ClientSecret: "your-client-secret",
-//	})
-//
-//	// List contracts
-//	for resp, err := range client.ListContracts(ctx, 100) {
-//	    if err != nil { log.Fatal(err) }
-//	    for _, c := range resp.Data {
-//	        log.Printf("Contract: %s (%s)", c.Name, c.ID)
-//	    }
-//	}
 package iceye
 
 import (
 	"bytes"
 	"context"
-	"encoding/base64"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
-	"iter"
 	"net/http"
 	"net/url"
-	"sync"
 	"time"
+
+	"github.com/robert-malhotra/go-sar-vendor/pkg/common"
 )
 
-// ----------------------------------------------------------------------------
-// Config & Client
-// ----------------------------------------------------------------------------
+const (
+	// DefaultBaseURL is the default ICEYE API base URL.
+	DefaultBaseURL = "https://platform.iceye.com/api"
 
-// Config holds the configuration for the ICEYE API client.
-type Config struct {
-	// BaseURL is the API base URL (default: https://api.iceye.com)
-	BaseURL string
+	// DefaultTokenURL is the default ICEYE OAuth2 token endpoint.
+	DefaultTokenURL = "https://auth.iceye.com/oauth2/token"
 
-	// TokenURL is the OAuth2 token endpoint URL
-	TokenURL string
-
-	// ClientID for OAuth2 Client Credentials flow
-	ClientID string
-
-	// ClientSecret for OAuth2 Client Credentials flow
-	ClientSecret string
-
-	// ResourceOwner auth (legacy) - if set, uses password grant instead
-	ResourceOwner *ResourceOwnerAuth
-
-	// HTTPClient allows custom HTTP client (for testing, retries, etc.)
-	HTTPClient *http.Client
-
-	// UserAgent for API requests (optional)
-	UserAgent string
-
-	// Timeout for API requests (optional, defaults to 30s)
-	Timeout time.Duration
-}
-
-// ResourceOwnerAuth contains credentials for the legacy password grant flow.
-type ResourceOwnerAuth struct {
-	APIKey   string // Base64-encoded client credentials
-	Username string
-	Password string
-}
+	defaultTimeout   = 30 * time.Second
+	defaultUserAgent = "go-sar-vendor/iceye"
+)
 
 // Client is the ICEYE API client. It is thread-safe.
 type Client struct {
-	cfg   Config
-	mu    sync.Mutex // guards token+exp
-	token string
-	exp   time.Time
+	*common.Client
+	userAgent string
 }
 
-// NewClient creates a new ICEYE API client with the given configuration.
-func NewClient(cfg Config) *Client {
-	if cfg.HTTPClient == nil {
-		timeout := cfg.Timeout
-		if timeout == 0 {
-			timeout = 30 * time.Second
-		}
-		cfg.HTTPClient = &http.Client{Timeout: timeout}
-	}
-	if cfg.BaseURL == "" {
-		cfg.BaseURL = "https://platform.iceye.com/api"
-	}
-	return &Client{cfg: cfg}
+// Option configures a Client.
+type Option func(*clientConfig)
+
+type clientConfig struct {
+	baseURL    string
+	tokenURL   string
+	httpClient *http.Client
+	timeout    time.Duration
+	userAgent  string
+	auth       common.Authenticator
 }
 
-// ----------------------------------------------------------------------------
-// Token management (OAuth2 Client-Credentials / Resource Owner Password)
-// ----------------------------------------------------------------------------
-
-func (c *Client) authenticate(ctx context.Context) error {
-	c.mu.Lock()
-	if time.Until(c.exp) > 30*time.Second {
-		c.mu.Unlock()
-		return nil // still valid
+// WithBaseURL sets a custom base URL.
+func WithBaseURL(baseURL string) Option {
+	return func(c *clientConfig) {
+		c.baseURL = baseURL
 	}
-	c.mu.Unlock()
+}
 
-	var body []byte
-	var authHeader string
+// WithTokenURL sets a custom OAuth2 token URL.
+func WithTokenURL(tokenURL string) Option {
+	return func(c *clientConfig) {
+		c.tokenURL = tokenURL
+	}
+}
 
-	if c.cfg.ResourceOwner != nil {
-		// Resource Owner Password flow (legacy)
-		body = []byte(fmt.Sprintf("grant_type=password&username=%s&password=%s",
-			url.QueryEscape(c.cfg.ResourceOwner.Username),
-			url.QueryEscape(c.cfg.ResourceOwner.Password)))
-		authHeader = "Basic " + c.cfg.ResourceOwner.APIKey
-	} else {
-		// Client Credentials flow (recommended)
-		body = []byte("grant_type=client_credentials")
-		b64 := base64.StdEncoding.EncodeToString([]byte(c.cfg.ClientID + ":" + c.cfg.ClientSecret))
-		authHeader = "Basic " + b64
+// WithHTTPClient sets a custom HTTP client.
+func WithHTTPClient(client *http.Client) Option {
+	return func(c *clientConfig) {
+		c.httpClient = client
+	}
+}
+
+// WithTimeout sets the HTTP client timeout.
+func WithTimeout(timeout time.Duration) Option {
+	return func(c *clientConfig) {
+		c.timeout = timeout
+	}
+}
+
+// WithUserAgent sets a custom User-Agent header.
+func WithUserAgent(userAgent string) Option {
+	return func(c *clientConfig) {
+		c.userAgent = userAgent
+	}
+}
+
+// WithCredentials sets OAuth2 client credentials for authentication.
+func WithCredentials(clientID, clientSecret string) Option {
+	return func(c *clientConfig) {
+		c.auth = NewOAuth2Auth(c.tokenURL, clientID, clientSecret, c.httpClient)
+	}
+}
+
+// WithResourceOwner sets legacy Resource Owner Password credentials.
+func WithResourceOwner(apiKey, username, password string) Option {
+	return func(c *clientConfig) {
+		c.auth = NewResourceOwnerAuth(c.tokenURL, apiKey, username, password, c.httpClient)
+	}
+}
+
+// WithAuth sets a custom authenticator.
+func WithAuth(auth common.Authenticator) Option {
+	return func(c *clientConfig) {
+		c.auth = auth
+	}
+}
+
+// NewClient creates a new ICEYE API client.
+// Credentials must be provided via WithCredentials or WithResourceOwner options.
+func NewClient(opts ...Option) (*Client, error) {
+	cfg := &clientConfig{
+		baseURL:   DefaultBaseURL,
+		tokenURL:  DefaultTokenURL,
+		timeout:   defaultTimeout,
+		userAgent: defaultUserAgent,
 	}
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.cfg.TokenURL, bytes.NewReader(body))
+	// First pass: set base config values
+	for _, opt := range opts {
+		opt(cfg)
+	}
+
+	httpClient := common.EnsureHTTPClient(cfg.httpClient, cfg.timeout)
+	cfg.httpClient = httpClient
+
+	// Second pass: apply auth options that depend on tokenURL and httpClient
+	for _, opt := range opts {
+		opt(cfg)
+	}
+
+	if cfg.auth == nil {
+		return nil, fmt.Errorf("iceye: credentials required (use WithCredentials or WithResourceOwner)")
+	}
+
+	c, err := common.NewClient(common.ClientConfig{
+		BaseURL:    cfg.baseURL,
+		HTTPClient: httpClient,
+		Auth:       cfg.auth,
+		UserAgent:  cfg.userAgent,
+	})
 	if err != nil {
-		return err
-	}
-	req.Header.Set("Authorization", authHeader)
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	req.Header.Set("Accept", "application/json, application/problem+json")
-	if c.cfg.UserAgent != "" {
-		req.Header.Set("User-Agent", c.cfg.UserAgent)
+		return nil, err
 	}
 
-	resp, err := c.cfg.HTTPClient.Do(req)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		return parseError(resp)
-	}
-
-	var tok struct {
-		AccessToken string `json:"access_token"`
-		TokenType   string `json:"token_type"`
-		ExpiresIn   int    `json:"expires_in"`
-		Scope       string `json:"scope"`
-	}
-	if err := json.NewDecoder(resp.Body).Decode(&tok); err != nil {
-		return err
-	}
-	if tok.AccessToken == "" {
-		return errors.New("iceye: empty access_token")
-	}
-
-	c.mu.Lock()
-	c.token = tok.AccessToken
-	c.exp = time.Now().Add(time.Duration(tok.ExpiresIn) * time.Second)
-	c.mu.Unlock()
-	return nil
+	return &Client{
+		Client:    c,
+		userAgent: cfg.userAgent,
+	}, nil
 }
 
-// do wraps HTTP with auth + JSON encode/decode.
-func (c *Client) do(ctx context.Context, method, path string, in any, out any) error {
-	if err := c.authenticate(ctx); err != nil {
-		return err
+// do performs an HTTP request with JSON encode/decode and ICEYE-specific error handling.
+func (c *Client) do(ctx context.Context, method, urlStr string, in any, out any) error {
+	// Parse the path as a URL (may contain query string)
+	pathURL, err := url.Parse(urlStr)
+	if err != nil {
+		return fmt.Errorf("parse URL path: %w", err)
 	}
+
+	// Resolve against base URL
+	fullURL := c.BaseURL().ResolveReference(pathURL)
 
 	var body io.Reader
 	if in != nil {
 		b, err := json.Marshal(in)
 		if err != nil {
-			return err
+			return fmt.Errorf("marshal request body: %w", err)
 		}
 		body = bytes.NewReader(b)
 	}
 
-	req, err := http.NewRequestWithContext(ctx, method, c.cfg.BaseURL+path, body)
+	req, err := http.NewRequestWithContext(ctx, method, fullURL.String(), body)
 	if err != nil {
-		return err
-	}
-	req.Header.Set("Authorization", "Bearer "+c.token)
-	req.Header.Set("Accept", "application/json, application/problem+json")
-	if in != nil {
-		req.Header.Set("Content-Type", "application/json")
-	}
-	if c.cfg.UserAgent != "" {
-		req.Header.Set("User-Agent", c.cfg.UserAgent)
+		return fmt.Errorf("create request: %w", err)
 	}
 
-	resp, err := c.cfg.HTTPClient.Do(req)
-	if err != nil {
+	// Set headers
+	req.Header.Set("Accept", "application/json, application/problem+json")
+	if body != nil {
+		req.Header.Set("Content-Type", "application/json")
+	}
+	if c.userAgent != "" {
+		req.Header.Set("User-Agent", c.userAgent)
+	}
+
+	// Apply auth
+	if err := c.Client.ApplyAuth(ctx, req); err != nil {
 		return err
 	}
+
+	resp, err := c.HTTPClient().Do(req)
+	if err != nil {
+		return fmt.Errorf("do request: %w", err)
+	}
 	defer resp.Body.Close()
-	if resp.StatusCode >= 300 {
+
+	// Check for error status
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		return parseError(resp)
 	}
 
+	// Decode response
 	if out != nil {
-		return json.NewDecoder(resp.Body).Decode(out)
-	}
-	return nil
-}
-
-// ----------------------------------------------------------------------------
-// Generic pagination helper
-// ----------------------------------------------------------------------------
-
-// paginate generates an `iter.Seq2` for endpoints following ICEYE's common
-// `{ "data": [...], "cursor": "..." }` pattern.
-func paginate[T any](fetch func(cur *string) ([]T, *string, error)) iter.Seq2[[]T, error] {
-	return func(yield func([]T, error) bool) {
-		var cur *string
-		for {
-			data, next, err := fetch(cur)
-			if !yield(data, err) {
-				return
-			}
-			if err != nil || next == nil || *next == "" {
-				return
-			}
-			cur = next
+		if err := json.NewDecoder(resp.Body).Decode(out); err != nil {
+			return fmt.Errorf("decode response: %w", err)
 		}
 	}
+
+	return nil
 }

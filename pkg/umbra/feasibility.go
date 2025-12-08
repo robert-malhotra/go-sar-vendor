@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"net/http"
 	"time"
+
+	"github.com/robert-malhotra/go-sar-vendor/pkg/common"
 )
 
 // FeasibilityStatus represents the status of a feasibility request.
@@ -68,12 +70,12 @@ type FeasibilityListResponse struct {
 // CreateFeasibility submits a new feasibility request.
 // POST /tasking/feasibilities
 func (c *Client) CreateFeasibility(ctx context.Context, req *CreateFeasibilityRequest) (*Feasibility, error) {
-	body, err := marshalBody(req)
+	body, err := common.MarshalBody(req)
 	if err != nil {
 		return nil, err
 	}
 	var out Feasibility
-	err = c.doRequest(ctx, http.MethodPost, c.BaseURL().JoinPath("tasking", "feasibilities"), body, http.StatusCreated, &out)
+	err = c.DoRaw(ctx, http.MethodPost, c.BaseURL().JoinPath("tasking", "feasibilities"), body, http.StatusCreated, &out)
 	return &out, err
 }
 
@@ -81,7 +83,7 @@ func (c *Client) CreateFeasibility(ctx context.Context, req *CreateFeasibilityRe
 // GET /tasking/feasibilities/{id}
 func (c *Client) GetFeasibility(ctx context.Context, id string) (*Feasibility, error) {
 	var out Feasibility
-	err := c.doRequest(ctx, http.MethodGet, c.BaseURL().JoinPath("tasking", "feasibilities", id), nil, http.StatusOK, &out)
+	err := c.DoRaw(ctx, http.MethodGet, c.BaseURL().JoinPath("tasking", "feasibilities", id), nil, http.StatusOK, &out)
 	return &out, err
 }
 
@@ -100,7 +102,7 @@ func (c *Client) ListFeasibilities(ctx context.Context, opts *ListOptions) (*Fea
 		u.RawQuery = q.Encode()
 	}
 	var resp FeasibilityListResponse
-	err := c.doRequest(ctx, http.MethodGet, u, nil, http.StatusOK, &resp)
+	err := c.DoRaw(ctx, http.MethodGet, u, nil, http.StatusOK, &resp)
 	return &resp, err
 }
 

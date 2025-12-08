@@ -8,6 +8,8 @@ import (
 	"path"
 	"strconv"
 	"time"
+
+	"github.com/robert-malhotra/go-sar-vendor/pkg/common"
 )
 
 // ----------------------------------------------------------------------------
@@ -216,7 +218,7 @@ func (c *Client) GetTask(ctx context.Context, taskID string) (*Task, error) {
 //
 // GET /tasking/v1/tasks
 func (c *Client) ListTasks(ctx context.Context, pageSize int, opts *ListTasksOptions) iter.Seq2[[]Task, error] {
-	return paginate[Task](func(cur *string) ([]Task, *string, error) {
+	return common.Paginate(func(cur *string) ([]Task, *string, error) {
 		u := &url.URL{Path: path.Join(taskingBasePath, "tasks")}
 		q := u.Query()
 

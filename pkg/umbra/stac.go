@@ -5,6 +5,8 @@ import (
 	"iter"
 	"net/http"
 	"time"
+
+	"github.com/robert-malhotra/go-sar-vendor/pkg/common"
 )
 
 // STACItem represents a STAC catalog item.
@@ -114,7 +116,7 @@ type STACProvider struct {
 // GET /stac/collections/{collectionId}/items/{itemId}
 func (c *Client) GetSTACItem(ctx context.Context, collectionID, itemID string) (*STACItem, error) {
 	var item STACItem
-	err := c.doRequest(ctx, http.MethodGet, c.BaseURL().JoinPath("stac", "collections", collectionID, "items", itemID), nil, http.StatusOK, &item)
+	err := c.DoRaw(ctx, http.MethodGet, c.BaseURL().JoinPath("stac", "collections", collectionID, "items", itemID), nil, http.StatusOK, &item)
 	return &item, err
 }
 
@@ -122,7 +124,7 @@ func (c *Client) GetSTACItem(ctx context.Context, collectionID, itemID string) (
 // GET /v2/stac/collections/{collectionId}/items/{itemId}
 func (c *Client) GetSTACItemV2(ctx context.Context, collectionID, itemID string) (*STACItem, error) {
 	var item STACItem
-	err := c.doRequest(ctx, http.MethodGet, c.BaseURL().JoinPath("v2", "stac", "collections", collectionID, "items", itemID), nil, http.StatusOK, &item)
+	err := c.DoRaw(ctx, http.MethodGet, c.BaseURL().JoinPath("v2", "stac", "collections", collectionID, "items", itemID), nil, http.StatusOK, &item)
 	return &item, err
 }
 
@@ -135,7 +137,7 @@ func (c *Client) SearchSTAC(ctx context.Context, req STACSearchRequest) iter.Seq
 
 	return func(yield func(STACItem, error) bool) {
 		for {
-			body, err := marshalBody(req)
+			body, err := common.MarshalBody(req)
 			if err != nil {
 				var zero STACItem
 				yield(zero, err)
@@ -143,7 +145,7 @@ func (c *Client) SearchSTAC(ctx context.Context, req STACSearchRequest) iter.Seq
 			}
 
 			var resp STACSearchResponse
-			err = c.doRequest(ctx, http.MethodPost, c.BaseURL().JoinPath("stac", "search"), body, http.StatusOK, &resp)
+			err = c.DoRaw(ctx, http.MethodPost, c.BaseURL().JoinPath("stac", "search"), body, http.StatusOK, &resp)
 			if err != nil {
 				var zero STACItem
 				yield(zero, err)
@@ -187,7 +189,7 @@ func (c *Client) SearchSTACV2(ctx context.Context, req STACSearchRequest) iter.S
 
 	return func(yield func(STACItem, error) bool) {
 		for {
-			body, err := marshalBody(req)
+			body, err := common.MarshalBody(req)
 			if err != nil {
 				var zero STACItem
 				yield(zero, err)
@@ -195,7 +197,7 @@ func (c *Client) SearchSTACV2(ctx context.Context, req STACSearchRequest) iter.S
 			}
 
 			var resp STACSearchResponse
-			err = c.doRequest(ctx, http.MethodPost, c.BaseURL().JoinPath("v2", "stac", "search"), body, http.StatusOK, &resp)
+			err = c.DoRaw(ctx, http.MethodPost, c.BaseURL().JoinPath("v2", "stac", "search"), body, http.StatusOK, &resp)
 			if err != nil {
 				var zero STACItem
 				yield(zero, err)
@@ -234,7 +236,7 @@ func (c *Client) SearchSTACV2(ctx context.Context, req STACSearchRequest) iter.S
 // GET /stac/collections/{collectionId}
 func (c *Client) GetSTACCollection(ctx context.Context, collectionID string) (*STACCollection, error) {
 	var col STACCollection
-	err := c.doRequest(ctx, http.MethodGet, c.BaseURL().JoinPath("stac", "collections", collectionID), nil, http.StatusOK, &col)
+	err := c.DoRaw(ctx, http.MethodGet, c.BaseURL().JoinPath("stac", "collections", collectionID), nil, http.StatusOK, &col)
 	return &col, err
 }
 
@@ -244,6 +246,6 @@ func (c *Client) ListSTACCollections(ctx context.Context) ([]STACCollection, err
 	var response struct {
 		Collections []STACCollection `json:"collections"`
 	}
-	err := c.doRequest(ctx, http.MethodGet, c.BaseURL().JoinPath("stac", "collections"), nil, http.StatusOK, &response)
+	err := c.DoRaw(ctx, http.MethodGet, c.BaseURL().JoinPath("stac", "collections"), nil, http.StatusOK, &response)
 	return response.Collections, err
 }

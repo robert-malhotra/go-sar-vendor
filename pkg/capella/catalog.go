@@ -244,7 +244,7 @@ func (s *CatalogService) fetchSearchURL(ctx context.Context, searchURL string) (
 	}
 
 	var resp SearchResponse
-	if err := s.client.doRequest(ctx, http.MethodGet, u, nil, 0, &resp); err != nil {
+	if err := s.client.DoRaw(ctx, http.MethodGet, u, nil, 0, &resp); err != nil {
 		return nil, err
 	}
 

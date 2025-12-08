@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"iter"
 	"net/http"
+
+	"github.com/robert-malhotra/go-sar-vendor/pkg/common"
 )
 
 // ArchiveSearchRequest contains archive search parameters.
@@ -28,7 +30,7 @@ func (c *Client) SearchArchive(ctx context.Context, req ArchiveSearchRequest) it
 
 	return func(yield func(STACItem, error) bool) {
 		for {
-			body, err := marshalBody(req)
+			body, err := common.MarshalBody(req)
 			if err != nil {
 				var zero STACItem
 				yield(zero, err)
@@ -36,7 +38,7 @@ func (c *Client) SearchArchive(ctx context.Context, req ArchiveSearchRequest) it
 			}
 
 			var resp STACSearchResponse
-			err = c.doRequest(ctx, http.MethodPost, c.BaseURL().JoinPath("archive", "search"), body, http.StatusOK, &resp)
+			err = c.DoRaw(ctx, http.MethodPost, c.BaseURL().JoinPath("archive", "search"), body, http.StatusOK, &resp)
 			if err != nil {
 				var zero STACItem
 				yield(zero, err)
@@ -75,7 +77,7 @@ func (c *Client) SearchArchive(ctx context.Context, req ArchiveSearchRequest) it
 // GET /archive/thumbnail/{archiveId}
 func (c *Client) GetArchiveThumbnail(ctx context.Context, archiveID string) ([]byte, error) {
 	u := c.BaseURL().JoinPath("archive", "thumbnail", archiveID)
-	return c.doRequestRaw(ctx, http.MethodGet, u, nil, http.StatusOK)
+	return c.DoRawResponse(ctx, http.MethodGet, u, nil, http.StatusOK)
 }
 
 // GetArchiveCollectionItems lists items in a collection.
@@ -92,7 +94,7 @@ func (c *Client) GetArchiveCollectionItems(ctx context.Context, collectionID str
 	u.RawQuery = q.Encode()
 
 	var resp STACSearchResponse
-	err := c.doRequest(ctx, http.MethodGet, u, nil, http.StatusOK, &resp)
+	err := c.DoRaw(ctx, http.MethodGet, u, nil, http.StatusOK, &resp)
 	return &resp, err
 }
 
@@ -100,6 +102,6 @@ func (c *Client) GetArchiveCollectionItems(ctx context.Context, collectionID str
 // GET /archive/items/{itemId}
 func (c *Client) GetArchiveItem(ctx context.Context, itemID string) (*STACItem, error) {
 	var item STACItem
-	err := c.doRequest(ctx, http.MethodGet, c.BaseURL().JoinPath("archive", "items", itemID), nil, http.StatusOK, &item)
+	err := c.DoRaw(ctx, http.MethodGet, c.BaseURL().JoinPath("archive", "items", itemID), nil, http.StatusOK, &item)
 	return &item, err
 }

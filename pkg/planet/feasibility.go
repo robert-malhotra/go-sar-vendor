@@ -5,17 +5,19 @@ import (
 	"fmt"
 	"net/http"
 	"time"
+
+	"github.com/robert-malhotra/go-sar-vendor/pkg/common"
 )
 
 // CreateImagingWindowSearch creates an async imaging window search.
 // POST /tasking/v2/imaging-windows/search/
 func (c *Client) CreateImagingWindowSearch(ctx context.Context, req *ImagingWindowSearchRequest) (*ImagingWindowSearch, error) {
-	body, err := marshalBody(req)
+	body, err := common.MarshalBody(req)
 	if err != nil {
 		return nil, err
 	}
 	var search ImagingWindowSearch
-	err = c.doRequest(ctx, http.MethodPost, c.TaskingURL("imaging-windows", "search", ""), body, http.StatusCreated, &search)
+	err = c.DoRaw(ctx, http.MethodPost, c.TaskingURL("imaging-windows", "search", ""), body, http.StatusCreated, &search)
 	return &search, err
 }
 
@@ -23,7 +25,7 @@ func (c *Client) CreateImagingWindowSearch(ctx context.Context, req *ImagingWind
 // GET /tasking/v2/imaging-windows/search/{id}
 func (c *Client) GetImagingWindowSearch(ctx context.Context, id string) (*ImagingWindowSearch, error) {
 	var search ImagingWindowSearch
-	err := c.doRequest(ctx, http.MethodGet, c.TaskingURL("imaging-windows", "search", id), nil, http.StatusOK, &search)
+	err := c.DoRaw(ctx, http.MethodGet, c.TaskingURL("imaging-windows", "search", id), nil, http.StatusOK, &search)
 	return &search, err
 }
 

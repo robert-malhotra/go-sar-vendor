@@ -121,7 +121,7 @@ func collectsCmd() *cli.Command {
 
 /*──────────────── helpers ───────────────────────────────────────────────────*/
 
-func umbraClientFromCmd(cmd *cli.Command) *umbra.Client {
+func umbraClientFromCmd(cmd *cli.Command) (*umbra.Client, error) {
 	return umbra.NewClient(
 		cmd.String("api-key"),
 		umbra.WithBaseURL(cmd.String("vendor-base-url")),
@@ -136,7 +136,10 @@ func umbraCreateFeasAction(ctx context.Context, cmd *cli.Command) error {
 		return fmt.Errorf("decode JSON: %w", err)
 	}
 
-	cli := umbraClientFromCmd(cmd)
+	cli, err := umbraClientFromCmd(cmd)
+	if err != nil {
+		return err
+	}
 	resp, err := cli.CreateFeasibility(ctx, &req)
 	if err != nil {
 		return err
@@ -150,7 +153,10 @@ func umbraGetFeasAction(ctx context.Context, cmd *cli.Command) error {
 		return fmt.Errorf("feasibilityId required")
 	}
 
-	cli := umbraClientFromCmd(cmd)
+	cli, err := umbraClientFromCmd(cmd)
+	if err != nil {
+		return err
+	}
 	resp, err := cli.GetFeasibility(ctx, id)
 	if err != nil {
 		return err
@@ -166,7 +172,10 @@ func umbraCreateTaskAction(ctx context.Context, cmd *cli.Command) error {
 		return fmt.Errorf("decode JSON: %w", err)
 	}
 
-	cli := umbraClientFromCmd(cmd)
+	cli, err := umbraClientFromCmd(cmd)
+	if err != nil {
+		return err
+	}
 	resp, err := cli.CreateTask(ctx, &req)
 	if err != nil {
 		return err
@@ -180,7 +189,10 @@ func umbraGetTaskAction(ctx context.Context, cmd *cli.Command) error {
 		return fmt.Errorf("taskId required")
 	}
 
-	cli := umbraClientFromCmd(cmd)
+	cli, err := umbraClientFromCmd(cmd)
+	if err != nil {
+		return err
+	}
 	resp, err := cli.GetTask(ctx, id)
 	if err != nil {
 		return err
@@ -194,7 +206,10 @@ func umbraCancelTaskAction(ctx context.Context, cmd *cli.Command) error {
 		return fmt.Errorf("taskId required")
 	}
 
-	cli := umbraClientFromCmd(cmd)
+	cli, err := umbraClientFromCmd(cmd)
+	if err != nil {
+		return err
+	}
 	resp, err := cli.CancelTask(ctx, id)
 	if err != nil {
 		return err
@@ -208,7 +223,10 @@ func umbraSearchTaskAction(ctx context.Context, cmd *cli.Command) error {
 		return fmt.Errorf("decode JSON: %w", err)
 	}
 
-	cli := umbraClientFromCmd(cmd)
+	cli, err := umbraClientFromCmd(cmd)
+	if err != nil {
+		return err
+	}
 	seq := cli.SearchTasks(ctx, req)
 	for task, err := range seq {
 		if err != nil {
@@ -229,7 +247,10 @@ func umbraGetCollectAction(ctx context.Context, cmd *cli.Command) error {
 		return fmt.Errorf("collectId required")
 	}
 
-	cli := umbraClientFromCmd(cmd)
+	cli, err := umbraClientFromCmd(cmd)
+	if err != nil {
+		return err
+	}
 	resp, err := cli.GetCollect(ctx, id)
 	if err != nil {
 		return err
@@ -243,7 +264,10 @@ func umbraSearchCollectAction(ctx context.Context, cmd *cli.Command) error {
 		return fmt.Errorf("decode JSON: %w", err)
 	}
 
-	cli := umbraClientFromCmd(cmd)
+	cli, err := umbraClientFromCmd(cmd)
+	if err != nil {
+		return err
+	}
 	seq := cli.SearchCollects(ctx, req)
 	for col, err := range seq {
 		if err != nil {

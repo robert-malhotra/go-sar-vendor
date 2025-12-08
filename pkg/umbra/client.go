@@ -17,10 +17,7 @@
 package umbra
 
 import (
-	"context"
-	"io"
 	"net/http"
-	"net/url"
 	"time"
 
 	"github.com/robert-malhotra/go-sar-vendor/pkg/common"
@@ -71,7 +68,7 @@ func WithTimeout(timeout time.Duration) Option {
 }
 
 // NewClient creates a new Canopy API client configured for production.
-func NewClient(accessToken string, opts ...Option) *Client {
+func NewClient(accessToken string, opts ...Option) (*Client, error) {
 	cfg := &clientConfig{
 		baseURL: ProductionBaseURL,
 		timeout: defaultTimeout,
@@ -80,22 +77,22 @@ func NewClient(accessToken string, opts ...Option) *Client {
 		opt(cfg)
 	}
 
-	httpClient := cfg.httpClient
-	if httpClient == nil {
-		httpClient = &http.Client{Timeout: cfg.timeout}
-	}
+	httpClient := common.EnsureHTTPClient(cfg.httpClient, cfg.timeout)
 
-	c, _ := common.NewClient(common.ClientConfig{
+	c, err := common.NewClient(common.ClientConfig{
 		BaseURL:    cfg.baseURL,
 		HTTPClient: httpClient,
 		Auth:       common.NewBearerAuth(accessToken),
 	})
+	if err != nil {
+		return nil, err
+	}
 
-	return &Client{Client: c}
+	return &Client{Client: c}, nil
 }
 
 // NewSandboxClient creates a new Canopy API client configured for the sandbox environment.
-func NewSandboxClient(accessToken string, opts ...Option) *Client {
+func NewSandboxClient(accessToken string, opts ...Option) (*Client, error) {
 	cfg := &clientConfig{
 		baseURL: SandboxBaseURL,
 		timeout: defaultTimeout,
@@ -104,29 +101,17 @@ func NewSandboxClient(accessToken string, opts ...Option) *Client {
 		opt(cfg)
 	}
 
-	httpClient := cfg.httpClient
-	if httpClient == nil {
-		httpClient = &http.Client{Timeout: cfg.timeout}
-	}
+	httpClient := common.EnsureHTTPClient(cfg.httpClient, cfg.timeout)
 
-	c, _ := common.NewClient(common.ClientConfig{
+	c, err := common.NewClient(common.ClientConfig{
 		BaseURL:    cfg.baseURL,
 		HTTPClient: httpClient,
 		Auth:       common.NewBearerAuth(accessToken),
 	})
+	if err != nil {
+		return nil, err
+	}
 
-	return &Client{Client: c}
+	return &Client{Client: c}, nil
 }
 
-// doRequest performs an HTTP request and decodes the response.
-func (c *Client) doRequest(ctx context.Context, method string, u *url.URL, body io.Reader, want int, out any) error {
-	return c.Client.DoRaw(ctx, method, u, body, want, out)
-}
-
-// doRequestRaw performs an HTTP request and returns the raw response body.
-func (c *Client) doRequestRaw(ctx context.Context, method string, u *url.URL, body io.Reader, want int) ([]byte, error) {
-	return c.Client.DoRawResponse(ctx, method, u, body, want)
-}
-
-// marshalBody marshals v to JSON and returns a bytes.Buffer.
-var marshalBody = common.MarshalBody

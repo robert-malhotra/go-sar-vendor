@@ -20,13 +20,15 @@ func newTestClient(t *testing.T, handler func(mux *http.ServeMux, authHits *atom
 	srv := httptest.NewServer(mux)
 	t.Cleanup(srv.Close)
 
-	cli := iceye.NewClient(iceye.Config{
-		BaseURL:      srv.URL,
-		TokenURL:     srv.URL + "/oauth2/token",
-		ClientID:     "test",
-		ClientSecret: "secret",
-		HTTPClient:   srv.Client(),
-	})
+	cli, err := iceye.NewClient(
+		iceye.WithBaseURL(srv.URL),
+		iceye.WithTokenURL(srv.URL+"/oauth2/token"),
+		iceye.WithHTTPClient(srv.Client()),
+		iceye.WithCredentials("test", "secret"),
+	)
+	if err != nil {
+		t.Fatalf("failed to create client: %v", err)
+	}
 	return cli, srv, authHits
 }
 

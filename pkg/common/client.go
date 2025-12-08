@@ -14,7 +14,23 @@ import (
 const (
 	// DefaultTimeout is the default HTTP client timeout.
 	DefaultTimeout = 30 * time.Second
+
+	// StatusAny2xx indicates any 2xx status code is acceptable.
+	// Pass this as expectedStatus to accept any successful response.
+	StatusAny2xx = 0
 )
+
+// EnsureHTTPClient returns the provided client if non-nil,
+// otherwise creates a new client with the given timeout.
+func EnsureHTTPClient(client *http.Client, timeout time.Duration) *http.Client {
+	if client != nil {
+		return client
+	}
+	if timeout == 0 {
+		timeout = DefaultTimeout
+	}
+	return &http.Client{Timeout: timeout}
+}
 
 // ClientConfig holds configuration for the HTTP client.
 type ClientConfig struct {
@@ -70,6 +86,14 @@ func (c *Client) HTTPClient() *http.Client {
 // SetAuth sets the authenticator.
 func (c *Client) SetAuth(auth Authenticator) {
 	c.auth = auth
+}
+
+// ApplyAuth applies the authenticator to the request.
+func (c *Client) ApplyAuth(ctx context.Context, req *http.Request) error {
+	if c.auth != nil {
+		return c.auth.Apply(ctx, req)
+	}
+	return nil
 }
 
 // BuildURL constructs a URL from the base URL and path.

@@ -17,7 +17,7 @@ type RestrictedAccessArea struct {
 // GET /tasking/restricted-access-areas
 func (c *Client) GetRestrictedAccessAreas(ctx context.Context) ([]RestrictedAccessArea, error) {
 	var areas []RestrictedAccessArea
-	err := c.doRequest(ctx, http.MethodGet, c.BaseURL().JoinPath("tasking", "restricted-access-areas"), nil, http.StatusOK, &areas)
+	err := c.DoRaw(ctx, http.MethodGet, c.BaseURL().JoinPath("tasking", "restricted-access-areas"), nil, http.StatusOK, &areas)
 	return areas, err
 }
 
@@ -32,7 +32,7 @@ type OrganizationSettings struct {
 // GET /admin/organization-settings
 func (c *Client) GetOrganizationSettings(ctx context.Context) (*OrganizationSettings, error) {
 	var settings OrganizationSettings
-	err := c.doRequest(ctx, http.MethodGet, c.BaseURL().JoinPath("admin", "organization-settings"), nil, http.StatusOK, &settings)
+	err := c.DoRaw(ctx, http.MethodGet, c.BaseURL().JoinPath("admin", "organization-settings"), nil, http.StatusOK, &settings)
 	return &settings, err
 }
 
@@ -40,6 +40,6 @@ func (c *Client) GetOrganizationSettings(ctx context.Context) (*OrganizationSett
 // GET /admin/product-constraints
 func (c *Client) ListProductConstraintsAdmin(ctx context.Context) ([]ProductConstraint, error) {
 	var constraints []ProductConstraint
-	err := c.doRequest(ctx, http.MethodGet, c.BaseURL().JoinPath("admin", "product-constraints"), nil, http.StatusOK, &constraints)
+	err := c.DoRaw(ctx, http.MethodGet, c.BaseURL().JoinPath("admin", "product-constraints"), nil, http.StatusOK, &constraints)
 	return constraints, err
 }

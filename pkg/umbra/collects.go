@@ -6,6 +6,8 @@ import (
 	"iter"
 	"net/http"
 	"time"
+
+	"github.com/robert-malhotra/go-sar-vendor/pkg/common"
 )
 
 // CollectStatus represents the lifecycle status of a collect.
@@ -90,7 +92,7 @@ type CollectListResponse struct {
 // GET /tasking/collects/{id}
 func (c *Client) GetCollect(ctx context.Context, id string) (*Collect, error) {
 	var col Collect
-	err := c.doRequest(ctx, http.MethodGet, c.BaseURL().JoinPath("tasking", "collects", id), nil, http.StatusOK, &col)
+	err := c.DoRaw(ctx, http.MethodGet, c.BaseURL().JoinPath("tasking", "collects", id), nil, http.StatusOK, &col)
 	return &col, err
 }
 
@@ -115,7 +117,7 @@ func (c *Client) ListCollects(ctx context.Context, opts *ListCollectsOptions) (*
 		u.RawQuery = q.Encode()
 	}
 	var resp CollectListResponse
-	err := c.doRequest(ctx, http.MethodGet, u, nil, http.StatusOK, &resp)
+	err := c.DoRaw(ctx, http.MethodGet, u, nil, http.StatusOK, &resp)
 	return &resp, err
 }
 
@@ -123,7 +125,7 @@ func (c *Client) ListCollects(ctx context.Context, opts *ListCollectsOptions) (*
 // GET /tasking/products/{mode}/constraints
 func (c *Client) GetProductConstraints(ctx context.Context, mode ImagingMode) ([]ProductConstraint, error) {
 	var pc []ProductConstraint
-	err := c.doRequest(ctx, http.MethodGet, c.BaseURL().JoinPath("tasking", "products", string(mode), "constraints"), nil, http.StatusOK, &pc)
+	err := c.DoRaw(ctx, http.MethodGet, c.BaseURL().JoinPath("tasking", "products", string(mode), "constraints"), nil, http.StatusOK, &pc)
 	return pc, err
 }
 
@@ -150,7 +152,7 @@ func (c *Client) SearchCollects(ctx context.Context, req CollectSearchRequest) i
 
 	return func(yield func(Collect, error) bool) {
 		for {
-			body, err := marshalBody(req)
+			body, err := common.MarshalBody(req)
 			if err != nil {
 				var zero Collect
 				yield(zero, err)
@@ -158,7 +160,7 @@ func (c *Client) SearchCollects(ctx context.Context, req CollectSearchRequest) i
 			}
 
 			var collects []Collect
-			err = c.doRequest(ctx, http.MethodPost, c.BaseURL().JoinPath("tasking", "collects", "search"), body, http.StatusOK, &collects)
+			err = c.DoRaw(ctx, http.MethodPost, c.BaseURL().JoinPath("tasking", "collects", "search"), body, http.StatusOK, &collects)
 			if err != nil {
 				var zero Collect
 				yield(zero, err)

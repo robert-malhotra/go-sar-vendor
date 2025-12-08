@@ -268,7 +268,7 @@ func (s *TaskingService) fetchTasksPage(ctx context.Context, params ListTasksPar
 	u.RawQuery = v.Encode()
 
 	var resp TaskingRequestsPagedResponse
-	if err := s.client.doRequest(ctx, http.MethodGet, u, nil, 0, &resp); err != nil {
+	if err := s.client.DoRaw(ctx, http.MethodGet, u, nil, 0, &resp); err != nil {
 		return nil, err
 	}
 

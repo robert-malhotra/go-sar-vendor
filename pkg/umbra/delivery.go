@@ -4,6 +4,8 @@ import (
 	"context"
 	"net/http"
 	"time"
+
+	"github.com/robert-malhotra/go-sar-vendor/pkg/common"
 )
 
 // DeliveryType represents the type of delivery destination.
@@ -80,12 +82,12 @@ type CreateDeliveryConfigRequest struct {
 // CreateDeliveryConfig creates a new delivery configuration.
 // POST /delivery/delivery-config/
 func (c *Client) CreateDeliveryConfig(ctx context.Context, req *CreateDeliveryConfigRequest) (*DeliveryConfig, error) {
-	body, err := marshalBody(req)
+	body, err := common.MarshalBody(req)
 	if err != nil {
 		return nil, err
 	}
 	var dc DeliveryConfig
-	err = c.doRequest(ctx, http.MethodPost, c.BaseURL().JoinPath("delivery", "delivery-config"), body, http.StatusCreated, &dc)
+	err = c.DoRaw(ctx, http.MethodPost, c.BaseURL().JoinPath("delivery", "delivery-config"), body, http.StatusCreated, &dc)
 	return &dc, err
 }
 
@@ -93,7 +95,7 @@ func (c *Client) CreateDeliveryConfig(ctx context.Context, req *CreateDeliveryCo
 // GET /delivery/delivery-config/{id}
 func (c *Client) GetDeliveryConfig(ctx context.Context, id string) (*DeliveryConfig, error) {
 	var dc DeliveryConfig
-	err := c.doRequest(ctx, http.MethodGet, c.BaseURL().JoinPath("delivery", "delivery-config", id), nil, http.StatusOK, &dc)
+	err := c.DoRaw(ctx, http.MethodGet, c.BaseURL().JoinPath("delivery", "delivery-config", id), nil, http.StatusOK, &dc)
 	return &dc, err
 }
 
@@ -101,32 +103,32 @@ func (c *Client) GetDeliveryConfig(ctx context.Context, id string) (*DeliveryCon
 // GET /delivery/delivery-configs
 func (c *Client) ListDeliveryConfigs(ctx context.Context) ([]DeliveryConfig, error) {
 	var configs []DeliveryConfig
-	err := c.doRequest(ctx, http.MethodGet, c.BaseURL().JoinPath("delivery", "delivery-configs"), nil, http.StatusOK, &configs)
+	err := c.DoRaw(ctx, http.MethodGet, c.BaseURL().JoinPath("delivery", "delivery-configs"), nil, http.StatusOK, &configs)
 	return configs, err
 }
 
 // VerifyDeliveryConfig triggers verification of a delivery configuration.
 // POST /delivery/delivery-config/verify
 func (c *Client) VerifyDeliveryConfig(ctx context.Context, id string) (*DeliveryConfig, error) {
-	body, err := marshalBody(map[string]string{"deliveryConfigId": id})
+	body, err := common.MarshalBody(map[string]string{"deliveryConfigId": id})
 	if err != nil {
 		return nil, err
 	}
 	var dc DeliveryConfig
-	err = c.doRequest(ctx, http.MethodPost, c.BaseURL().JoinPath("delivery", "delivery-config", "verify"), body, http.StatusOK, &dc)
+	err = c.DoRaw(ctx, http.MethodPost, c.BaseURL().JoinPath("delivery", "delivery-config", "verify"), body, http.StatusOK, &dc)
 	return &dc, err
 }
 
 // DeleteDeliveryConfig deletes a delivery configuration.
 // DELETE /delivery/delivery-config/{id}
 func (c *Client) DeleteDeliveryConfig(ctx context.Context, id string) error {
-	return c.doRequest(ctx, http.MethodDelete, c.BaseURL().JoinPath("delivery", "delivery-config", id), nil, http.StatusNoContent, nil)
+	return c.DoRaw(ctx, http.MethodDelete, c.BaseURL().JoinPath("delivery", "delivery-config", id), nil, http.StatusNoContent, nil)
 }
 
 // GetCollectMetadataSchema retrieves the schema for collect metadata.
 // GET /delivery/collect-metadata/schema
 func (c *Client) GetCollectMetadataSchema(ctx context.Context) (map[string]interface{}, error) {
 	var schema map[string]interface{}
-	err := c.doRequest(ctx, http.MethodGet, c.BaseURL().JoinPath("delivery", "collect-metadata", "schema"), nil, http.StatusOK, &schema)
+	err := c.DoRaw(ctx, http.MethodGet, c.BaseURL().JoinPath("delivery", "collect-metadata", "schema"), nil, http.StatusOK, &schema)
 	return schema, err
 }

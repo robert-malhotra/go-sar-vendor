@@ -10,6 +10,8 @@ import (
 	"net/url"
 	"sync"
 	"time"
+
+	"github.com/robert-malhotra/go-sar-vendor/pkg/common"
 )
 
 // APIKeyAuth implements common.Authenticator for Airbus API key authentication.
@@ -53,8 +55,7 @@ func (a *APIKeyAuth) Apply(ctx context.Context, req *http.Request) error {
 // refreshIfNeeded obtains or refreshes the bearer token if needed.
 func (a *APIKeyAuth) refreshIfNeeded(ctx context.Context) error {
 	a.mu.Lock()
-	// Check if token is still valid (with 5 minute buffer)
-	if time.Until(a.exp) > 5*time.Minute {
+	if time.Until(a.exp) > common.TokenExpiryBuffer {
 		a.mu.Unlock()
 		return nil
 	}

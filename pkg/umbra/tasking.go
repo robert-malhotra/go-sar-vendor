@@ -6,6 +6,8 @@ import (
 	"iter"
 	"net/http"
 	"time"
+
+	"github.com/robert-malhotra/go-sar-vendor/pkg/common"
 )
 
 // TaskStatus represents the lifecycle status of a task.
@@ -108,12 +110,12 @@ type TaskListResponse struct {
 // CreateTask creates a new task.
 // POST /tasking/tasks
 func (c *Client) CreateTask(ctx context.Context, req *CreateTaskRequest) (*Task, error) {
-	body, err := marshalBody(req)
+	body, err := common.MarshalBody(req)
 	if err != nil {
 		return nil, err
 	}
 	var t Task
-	err = c.doRequest(ctx, http.MethodPost, c.BaseURL().JoinPath("tasking", "tasks"), body, http.StatusCreated, &t)
+	err = c.DoRaw(ctx, http.MethodPost, c.BaseURL().JoinPath("tasking", "tasks"), body, http.StatusCreated, &t)
 	return &t, err
 }
 
@@ -121,7 +123,7 @@ func (c *Client) CreateTask(ctx context.Context, req *CreateTaskRequest) (*Task,
 // GET /tasking/tasks/{id}
 func (c *Client) GetTask(ctx context.Context, id string) (*Task, error) {
 	var t Task
-	err := c.doRequest(ctx, http.MethodGet, c.BaseURL().JoinPath("tasking", "tasks", id), nil, http.StatusOK, &t)
+	err := c.DoRaw(ctx, http.MethodGet, c.BaseURL().JoinPath("tasking", "tasks", id), nil, http.StatusOK, &t)
 	return &t, err
 }
 
@@ -149,7 +151,7 @@ func (c *Client) ListTasks(ctx context.Context, opts *ListTasksOptions) (*TaskLi
 		u.RawQuery = q.Encode()
 	}
 	var resp TaskListResponse
-	err := c.doRequest(ctx, http.MethodGet, u, nil, http.StatusOK, &resp)
+	err := c.DoRaw(ctx, http.MethodGet, u, nil, http.StatusOK, &resp)
 	return &resp, err
 }
 
@@ -157,7 +159,7 @@ func (c *Client) ListTasks(ctx context.Context, opts *ListTasksOptions) (*TaskLi
 // PATCH /tasking/tasks/{id}/cancel
 func (c *Client) CancelTask(ctx context.Context, id string) (*Task, error) {
 	var t Task
-	err := c.doRequest(ctx, http.MethodPatch, c.BaseURL().JoinPath("tasking", "tasks", id, "cancel"), nil, http.StatusOK, &t)
+	err := c.DoRaw(ctx, http.MethodPatch, c.BaseURL().JoinPath("tasking", "tasks", id, "cancel"), nil, http.StatusOK, &t)
 	return &t, err
 }
 
@@ -184,7 +186,7 @@ func (c *Client) SearchTasks(ctx context.Context, req TaskSearchRequest) iter.Se
 
 	return func(yield func(Task, error) bool) {
 		for {
-			body, err := marshalBody(req)
+			body, err := common.MarshalBody(req)
 			if err != nil {
 				var zero Task
 				yield(zero, err)
@@ -192,7 +194,7 @@ func (c *Client) SearchTasks(ctx context.Context, req TaskSearchRequest) iter.Se
 			}
 
 			var tasks []Task
-			err = c.doRequest(ctx, http.MethodPost, c.BaseURL().JoinPath("tasking", "tasks", "search"), body, http.StatusOK, &tasks)
+			err = c.DoRaw(ctx, http.MethodPost, c.BaseURL().JoinPath("tasking", "tasks", "search"), body, http.StatusOK, &tasks)
 			if err != nil {
 				var zero Task
 				yield(zero, err)

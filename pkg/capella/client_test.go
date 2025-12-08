@@ -9,7 +9,10 @@ import (
 )
 
 func TestNewClient_Defaults(t *testing.T) {
-	cli := capella.NewClient()
+	cli, err := capella.NewClient()
+	if err != nil {
+		t.Fatalf("NewClient returned error: %v", err)
+	}
 	if cli == nil {
 		t.Fatal("NewClient returned nil")
 	}
@@ -18,12 +21,15 @@ func TestNewClient_Defaults(t *testing.T) {
 func TestNewClient_WithOptions(t *testing.T) {
 	customHTTPClient := &http.Client{Timeout: 60 * time.Second}
 
-	cli := capella.NewClient(
+	cli, err := capella.NewClient(
 		capella.WithBaseURL("https://custom.api.com"),
 		capella.WithAPIKey("my-api-key"),
 		capella.WithHTTPClient(customHTTPClient),
 		capella.WithUserAgent("test-agent/1.0"),
 	)
+	if err != nil {
+		t.Fatalf("NewClient returned error: %v", err)
+	}
 
 	if cli == nil {
 		t.Fatal("NewClient returned nil")
