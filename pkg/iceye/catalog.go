@@ -9,6 +9,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/robert-malhotra/go-sar-vendor/pkg/common"
 )
 
 // ----------------------------------------------------------------------------
@@ -172,7 +174,7 @@ const catalogBasePath = "/catalog/v1"
 // GET /catalog/v1/items
 func (c *Client) ListCatalogItems(ctx context.Context, pageSize int, opts *ListItemsOptions) iter.Seq2[CatalogResponse, error] {
 	return func(yield func(CatalogResponse, error) bool) {
-		seq := paginate[STACItem](func(cur *string) ([]STACItem, *string, error) {
+		seq := common.Paginate(func(cur *string) ([]STACItem, *string, error) {
 			u := &url.URL{Path: path.Join(catalogBasePath, "items")}
 			q := u.Query()
 
@@ -283,7 +285,7 @@ func (c *Client) GetPurchase(ctx context.Context, purchaseID string) (*Purchase,
 // GET /catalog/v1/purchases
 func (c *Client) ListPurchases(ctx context.Context, pageSize int) iter.Seq2[PurchasesResponse, error] {
 	return func(yield func(PurchasesResponse, error) bool) {
-		seq := paginate[Purchase](func(cur *string) ([]Purchase, *string, error) {
+		seq := common.Paginate(func(cur *string) ([]Purchase, *string, error) {
 			u := &url.URL{Path: path.Join(catalogBasePath, "purchases")}
 			q := u.Query()
 

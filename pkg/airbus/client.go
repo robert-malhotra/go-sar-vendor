@@ -1,10 +1,7 @@
 package airbus
 
 import (
-	"context"
-	"io"
 	"net/http"
-	"net/url"
 	"time"
 
 	"github.com/robert-malhotra/go-sar-vendor/pkg/common"
@@ -92,10 +89,7 @@ func NewClient(apiKey string, opts ...Option) (*Client, error) {
 		opt(cfg)
 	}
 
-	httpClient := cfg.httpClient
-	if httpClient == nil {
-		httpClient = &http.Client{Timeout: cfg.timeout}
-	}
+	httpClient := common.EnsureHTTPClient(cfg.httpClient, cfg.timeout)
 
 	auth := NewAPIKeyAuth(apiKey, cfg.tokenURL, httpClient)
 
@@ -137,15 +131,3 @@ func NewLegacyDevClient(apiKey string, opts ...Option) (*Client, error) {
 	return NewClient(apiKey, append(legacyOpts, opts...)...)
 }
 
-// doRequest performs an HTTP request and decodes the response.
-func (c *Client) doRequest(ctx context.Context, method string, u *url.URL, body io.Reader, expectedStatus int, out any) error {
-	return c.Client.DoRaw(ctx, method, u, body, expectedStatus, out)
-}
-
-// doRequestRaw performs an HTTP request and returns the raw response body.
-func (c *Client) doRequestRaw(ctx context.Context, method string, u *url.URL, body io.Reader, expectedStatus int) ([]byte, error) {
-	return c.Client.DoRawResponse(ctx, method, u, body, expectedStatus)
-}
-
-// marshalBody marshals v to JSON and returns a bytes.Buffer.
-var marshalBody = common.MarshalBody

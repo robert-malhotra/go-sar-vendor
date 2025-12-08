@@ -3,6 +3,8 @@ package airbus
 import (
 	"context"
 	"net/http"
+
+	"github.com/robert-malhotra/go-sar-vendor/pkg/common"
 )
 
 // SearchFeasibility searches for possible future acquisitions (tasking).
@@ -10,12 +12,12 @@ import (
 // area of interest and time window before placing a tasking order.
 // POST /sar/feasibility
 func (c *Client) SearchFeasibility(ctx context.Context, req *FeasibilityRequest) (*FeatureCollection, error) {
-	body, err := marshalBody(req)
+	body, err := common.MarshalBody(req)
 	if err != nil {
 		return nil, err
 	}
 	var out FeatureCollection
-	err = c.doRequest(ctx, http.MethodPost, c.BaseURL().JoinPath("sar", "feasibility"), body, http.StatusOK, &out)
+	err = c.DoRaw(ctx, http.MethodPost, c.BaseURL().JoinPath("sar", "feasibility"), body, http.StatusOK, &out)
 	return &out, err
 }
 
@@ -23,12 +25,12 @@ func (c *Client) SearchFeasibility(ctx context.Context, req *FeasibilityRequest)
 // Conflicts can occur when items have overlapping acquisition windows.
 // POST /sar/conflicts
 func (c *Client) GetConflicts(ctx context.Context, req *ConflictsRequest) (*ConflictsResponse, error) {
-	body, err := marshalBody(req)
+	body, err := common.MarshalBody(req)
 	if err != nil {
 		return nil, err
 	}
 	var out ConflictsResponse
-	err = c.doRequest(ctx, http.MethodPost, c.BaseURL().JoinPath("sar", "conflicts"), body, http.StatusOK, &out)
+	err = c.DoRaw(ctx, http.MethodPost, c.BaseURL().JoinPath("sar", "conflicts"), body, http.StatusOK, &out)
 	return &out, err
 }
 
@@ -36,12 +38,12 @@ func (c *Client) GetConflicts(ctx context.Context, req *ConflictsRequest) (*Conf
 // This shows the editable geometry bounds for acquisitions.
 // POST /sar/swathedit
 func (c *Client) GetSwathEditInfo(ctx context.Context, req *SwathEditRequest) (*SwathEditResponse, error) {
-	body, err := marshalBody(req)
+	body, err := common.MarshalBody(req)
 	if err != nil {
 		return nil, err
 	}
 	var out SwathEditResponse
-	err = c.doRequest(ctx, http.MethodPost, c.BaseURL().JoinPath("sar", "swathedit"), body, http.StatusOK, &out)
+	err = c.DoRaw(ctx, http.MethodPost, c.BaseURL().JoinPath("sar", "swathedit"), body, http.StatusOK, &out)
 	return &out, err
 }
 
@@ -49,12 +51,12 @@ func (c *Client) GetSwathEditInfo(ctx context.Context, req *SwathEditRequest) (*
 // This allows customizing the acquisition footprint within allowed bounds.
 // PATCH /sar/swathedit
 func (c *Client) UpdateSwathEdit(ctx context.Context, req *UpdateSwathRequest) (*SwathEditResponse, error) {
-	body, err := marshalBody(req)
+	body, err := common.MarshalBody(req)
 	if err != nil {
 		return nil, err
 	}
 	var out SwathEditResponse
-	err = c.doRequest(ctx, http.MethodPatch, c.BaseURL().JoinPath("sar", "swathedit"), body, http.StatusOK, &out)
+	err = c.DoRaw(ctx, http.MethodPatch, c.BaseURL().JoinPath("sar", "swathedit"), body, http.StatusOK, &out)
 	return &out, err
 }
 
@@ -62,11 +64,11 @@ func (c *Client) UpdateSwathEdit(ctx context.Context, req *UpdateSwathRequest) (
 // A datastack is a series of acquisitions over the same area at regular intervals.
 // POST /sar/stacks
 func (c *Client) CreateStacks(ctx context.Context, req *CreateStacksRequest) (*StacksResponse, error) {
-	body, err := marshalBody(req)
+	body, err := common.MarshalBody(req)
 	if err != nil {
 		return nil, err
 	}
 	var out StacksResponse
-	err = c.doRequest(ctx, http.MethodPost, c.BaseURL().JoinPath("sar", "stacks"), body, http.StatusOK, &out)
+	err = c.DoRaw(ctx, http.MethodPost, c.BaseURL().JoinPath("sar", "stacks"), body, http.StatusOK, &out)
 	return &out, err
 }

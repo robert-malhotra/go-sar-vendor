@@ -7,6 +7,8 @@ import (
 	"net/url"
 	"path"
 	"strconv"
+
+	"github.com/robert-malhotra/go-sar-vendor/pkg/common"
 )
 
 // ----------------------------------------------------------------------------
@@ -109,7 +111,7 @@ func (c *Client) ListDeliveryLocationConfigs(ctx context.Context) ([]DeliveryLoc
 // GET /delivery/v1/deliveries
 func (c *Client) ListDeliveries(ctx context.Context, pageSize int, opts *ListDeliveriesOptions) iter.Seq2[DeliveriesResponse, error] {
 	return func(yield func(DeliveriesResponse, error) bool) {
-		seq := paginate(func(cur *string) ([]Delivery, *string, error) {
+		seq := common.Paginate(func(cur *string) ([]Delivery, *string, error) {
 			u := &url.URL{Path: path.Join(deliveryBasePath, "deliveries")}
 			q := u.Query()
 

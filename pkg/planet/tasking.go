@@ -7,17 +7,19 @@ import (
 	"net/http"
 	"net/url"
 	"time"
+
+	"github.com/robert-malhotra/go-sar-vendor/pkg/common"
 )
 
 // CreateTaskingOrder creates a new tasking order.
 // POST /tasking/v2/orders/
 func (c *Client) CreateTaskingOrder(ctx context.Context, req *CreateTaskingOrderRequest) (*TaskingOrder, error) {
-	body, err := marshalBody(req)
+	body, err := common.MarshalBody(req)
 	if err != nil {
 		return nil, err
 	}
 	var order TaskingOrder
-	err = c.doRequest(ctx, http.MethodPost, c.TaskingURL("orders", ""), body, http.StatusCreated, &order)
+	err = c.DoRaw(ctx, http.MethodPost, c.TaskingURL("orders", ""), body, http.StatusCreated, &order)
 	return &order, err
 }
 
@@ -25,26 +27,26 @@ func (c *Client) CreateTaskingOrder(ctx context.Context, req *CreateTaskingOrder
 // GET /tasking/v2/orders/{id}
 func (c *Client) GetTaskingOrder(ctx context.Context, id string) (*TaskingOrder, error) {
 	var order TaskingOrder
-	err := c.doRequest(ctx, http.MethodGet, c.TaskingURL("orders", id), nil, http.StatusOK, &order)
+	err := c.DoRaw(ctx, http.MethodGet, c.TaskingURL("orders", id), nil, http.StatusOK, &order)
 	return &order, err
 }
 
 // UpdateTaskingOrder updates an existing tasking order.
 // PUT /tasking/v2/orders/{id}
 func (c *Client) UpdateTaskingOrder(ctx context.Context, id string, req *UpdateTaskingOrderRequest) (*TaskingOrder, error) {
-	body, err := marshalBody(req)
+	body, err := common.MarshalBody(req)
 	if err != nil {
 		return nil, err
 	}
 	var order TaskingOrder
-	err = c.doRequest(ctx, http.MethodPut, c.TaskingURL("orders", id), body, http.StatusOK, &order)
+	err = c.DoRaw(ctx, http.MethodPut, c.TaskingURL("orders", id), body, http.StatusOK, &order)
 	return &order, err
 }
 
 // CancelTaskingOrder cancels a tasking order.
 // DELETE /tasking/v2/orders/{id}
 func (c *Client) CancelTaskingOrder(ctx context.Context, id string) error {
-	return c.doRequest(ctx, http.MethodDelete, c.TaskingURL("orders", id), nil, http.StatusNoContent, nil)
+	return c.DoRaw(ctx, http.MethodDelete, c.TaskingURL("orders", id), nil, http.StatusNoContent, nil)
 }
 
 // ListTaskingOrders retrieves all tasking orders with optional filtering.
@@ -105,7 +107,7 @@ func (c *Client) ListTaskingOrders(ctx context.Context, opts *ListTaskingOrdersO
 			u.RawQuery = q.Encode()
 
 			var resp paginatedResponse[TaskingOrder]
-			if err := c.doRequest(ctx, http.MethodGet, u, nil, http.StatusOK, &resp); err != nil {
+			if err := c.DoRaw(ctx, http.MethodGet, u, nil, http.StatusOK, &resp); err != nil {
 				var zero TaskingOrder
 				yield(zero, err)
 				return
@@ -139,19 +141,19 @@ func (c *Client) ListTaskingOrders(ctx context.Context, opts *ListTaskingOrdersO
 // GET /tasking/v2/orders/{id}/pricing
 func (c *Client) GetTaskingOrderPricing(ctx context.Context, id string) (*TaskingOrderPricing, error) {
 	var pricing TaskingOrderPricing
-	err := c.doRequest(ctx, http.MethodGet, c.TaskingURL("orders", id, "pricing"), nil, http.StatusOK, &pricing)
+	err := c.DoRaw(ctx, http.MethodGet, c.TaskingURL("orders", id, "pricing"), nil, http.StatusOK, &pricing)
 	return &pricing, err
 }
 
 // PreviewPricing previews pricing for a potential order.
 // POST /tasking/v2/pricing/
 func (c *Client) PreviewPricing(ctx context.Context, req *CreateTaskingOrderRequest) (*TaskingOrderPricing, error) {
-	body, err := marshalBody(req)
+	body, err := common.MarshalBody(req)
 	if err != nil {
 		return nil, err
 	}
 	var pricing TaskingOrderPricing
-	err = c.doRequest(ctx, http.MethodPost, c.TaskingURL("pricing", ""), body, http.StatusOK, &pricing)
+	err = c.DoRaw(ctx, http.MethodPost, c.TaskingURL("pricing", ""), body, http.StatusOK, &pricing)
 	return &pricing, err
 }
 
@@ -159,7 +161,7 @@ func (c *Client) PreviewPricing(ctx context.Context, req *CreateTaskingOrderRequ
 // GET /tasking/v2/captures/{id}
 func (c *Client) GetCapture(ctx context.Context, id string) (*Capture, error) {
 	var capture Capture
-	err := c.doRequest(ctx, http.MethodGet, c.TaskingURL("captures", id), nil, http.StatusOK, &capture)
+	err := c.DoRaw(ctx, http.MethodGet, c.TaskingURL("captures", id), nil, http.StatusOK, &capture)
 	return &capture, err
 }
 
@@ -199,7 +201,7 @@ func (c *Client) ListCaptures(ctx context.Context, opts *ListCapturesOptions) it
 			u.RawQuery = q.Encode()
 
 			var resp paginatedResponse[Capture]
-			if err := c.doRequest(ctx, http.MethodGet, u, nil, http.StatusOK, &resp); err != nil {
+			if err := c.DoRaw(ctx, http.MethodGet, u, nil, http.StatusOK, &resp); err != nil {
 				var zero Capture
 				yield(zero, err)
 				return

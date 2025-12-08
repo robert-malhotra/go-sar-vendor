@@ -10,14 +10,20 @@ import (
 )
 
 func TestNewClient(t *testing.T) {
-	cli := umbra.NewClient("test-token")
+	cli, err := umbra.NewClient("test-token")
+	if err != nil {
+		t.Fatalf("NewClient returned error: %v", err)
+	}
 	if cli == nil {
 		t.Fatal("expected non-nil client")
 	}
 }
 
 func TestNewSandboxClient(t *testing.T) {
-	cli := umbra.NewSandboxClient("test-token")
+	cli, err := umbra.NewSandboxClient("test-token")
+	if err != nil {
+		t.Fatalf("NewSandboxClient returned error: %v", err)
+	}
 	if cli == nil {
 		t.Fatal("expected non-nil client")
 	}
@@ -26,11 +32,14 @@ func TestNewSandboxClient(t *testing.T) {
 func TestClientWithOptions(t *testing.T) {
 	httpClient := &http.Client{Timeout: 60 * time.Second}
 
-	cli := umbra.NewClient("test-token",
+	cli, err := umbra.NewClient("test-token",
 		umbra.WithHTTPClient(httpClient),
 		umbra.WithBaseURL("https://custom.api.example.com"),
 		umbra.WithTimeout(90*time.Second),
 	)
+	if err != nil {
+		t.Fatalf("NewClient returned error: %v", err)
+	}
 
 	if cli == nil {
 		t.Fatal("expected non-nil client")

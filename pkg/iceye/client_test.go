@@ -35,13 +35,13 @@ func TestAuthenticateSuccess(t *testing.T) {
 	srv := httptest.NewServer(mux)
 	t.Cleanup(srv.Close)
 
-	cli := iceye.NewClient(iceye.Config{
-		BaseURL:      srv.URL,
-		TokenURL:     srv.URL + "/oauth2/token",
-		ClientID:     "test",
-		ClientSecret: "secret",
-		HTTPClient:   srv.Client(),
-	})
+	cli, err := iceye.NewClient(
+		iceye.WithBaseURL(srv.URL),
+		iceye.WithTokenURL(srv.URL+"/oauth2/token"),
+		iceye.WithHTTPClient(srv.Client()),
+		iceye.WithCredentials("test", "secret"),
+	)
+	require.NoError(t, err)
 
 	// First request should trigger auth
 	ctx := context.Background()
@@ -79,16 +79,13 @@ func TestAuthenticateResourceOwner(t *testing.T) {
 	srv := httptest.NewServer(mux)
 	t.Cleanup(srv.Close)
 
-	cli := iceye.NewClient(iceye.Config{
-		BaseURL:  srv.URL,
-		TokenURL: srv.URL + "/oauth2/token",
-		ResourceOwner: &iceye.ResourceOwnerAuth{
-			APIKey:   "dGVzdDpzZWNyZXQ=", // base64("test:secret")
-			Username: "testuser",
-			Password: "testpass",
-		},
-		HTTPClient: srv.Client(),
-	})
+	cli, err := iceye.NewClient(
+		iceye.WithBaseURL(srv.URL),
+		iceye.WithTokenURL(srv.URL+"/oauth2/token"),
+		iceye.WithHTTPClient(srv.Client()),
+		iceye.WithResourceOwner("dGVzdDpzZWNyZXQ=", "testuser", "testpass"), // base64("test:secret")
+	)
+	require.NoError(t, err)
 
 	ctx := context.Background()
 	for range cli.ListContracts(ctx, 1) {
@@ -131,13 +128,13 @@ func TestTokenRefreshAfterExpiry(t *testing.T) {
 	srv := httptest.NewServer(mux)
 	t.Cleanup(srv.Close)
 
-	cli := iceye.NewClient(iceye.Config{
-		BaseURL:      srv.URL,
-		TokenURL:     srv.URL + "/oauth2/token",
-		ClientID:     "test",
-		ClientSecret: "secret",
-		HTTPClient:   srv.Client(),
-	})
+	cli, err := iceye.NewClient(
+		iceye.WithBaseURL(srv.URL),
+		iceye.WithTokenURL(srv.URL+"/oauth2/token"),
+		iceye.WithHTTPClient(srv.Client()),
+		iceye.WithCredentials("test", "secret"),
+	)
+	require.NoError(t, err)
 
 	ctx := context.Background()
 

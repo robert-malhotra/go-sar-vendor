@@ -7,17 +7,19 @@ import (
 	"net/http"
 	"net/url"
 	"time"
+
+	"github.com/robert-malhotra/go-sar-vendor/pkg/common"
 )
 
 // CreateOrder creates a new order for downloading imagery.
 // POST /compute/ops/orders/v2
 func (c *Client) CreateOrder(ctx context.Context, req *CreateOrderRequest) (*Order, error) {
-	body, err := marshalBody(req)
+	body, err := common.MarshalBody(req)
 	if err != nil {
 		return nil, err
 	}
 	var order Order
-	err = c.doRequest(ctx, http.MethodPost, c.ordersBaseURL, body, http.StatusAccepted, &order)
+	err = c.DoRaw(ctx, http.MethodPost, c.ordersBaseURL, body, http.StatusAccepted, &order)
 	return &order, err
 }
 
@@ -25,7 +27,7 @@ func (c *Client) CreateOrder(ctx context.Context, req *CreateOrderRequest) (*Ord
 // GET /compute/ops/orders/v2/{id}
 func (c *Client) GetOrder(ctx context.Context, id string) (*Order, error) {
 	var order Order
-	err := c.doRequest(ctx, http.MethodGet, c.OrdersURL(id), nil, http.StatusOK, &order)
+	err := c.DoRaw(ctx, http.MethodGet, c.OrdersURL(id), nil, http.StatusOK, &order)
 	return &order, err
 }
 
@@ -33,7 +35,7 @@ func (c *Client) GetOrder(ctx context.Context, id string) (*Order, error) {
 // PUT /compute/ops/orders/v2/{id}
 func (c *Client) CancelOrder(ctx context.Context, id string) error {
 	// Cancellation is done by sending a PUT request with an empty body
-	return c.doRequest(ctx, http.MethodPut, c.OrdersURL(id), nil, http.StatusOK, nil)
+	return c.DoRaw(ctx, http.MethodPut, c.OrdersURL(id), nil, http.StatusOK, nil)
 }
 
 // ListOrders retrieves all orders with optional filtering.
@@ -72,7 +74,7 @@ func (c *Client) ListOrders(ctx context.Context, opts *ListOrdersOptions) iter.S
 			u.RawQuery = q.Encode()
 
 			var resp ordersListResponse
-			if err := c.doRequest(ctx, http.MethodGet, u, nil, http.StatusOK, &resp); err != nil {
+			if err := c.DoRaw(ctx, http.MethodGet, u, nil, http.StatusOK, &resp); err != nil {
 				var zero Order
 				yield(zero, err)
 				return

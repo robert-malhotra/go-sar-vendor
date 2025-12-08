@@ -16,10 +16,7 @@
 package capella
 
 import (
-	"context"
-	"io"
 	"net/http"
-	"net/url"
 	"time"
 
 	"github.com/robert-malhotra/go-sar-vendor/pkg/common"
@@ -44,46 +41,46 @@ type clientConfig struct {
 	timeout    time.Duration
 }
 
-// ClientOption is a function that configures a Client.
-type ClientOption func(*clientConfig)
+// Option is a function that configures a Client.
+type Option func(*clientConfig)
 
 // WithBaseURL sets the base URL for API requests.
-func WithBaseURL(baseURL string) ClientOption {
+func WithBaseURL(baseURL string) Option {
 	return func(c *clientConfig) {
 		c.baseURL = baseURL
 	}
 }
 
 // WithHTTPClient sets a custom HTTP client.
-func WithHTTPClient(httpClient *http.Client) ClientOption {
+func WithHTTPClient(httpClient *http.Client) Option {
 	return func(c *clientConfig) {
 		c.httpClient = httpClient
 	}
 }
 
 // WithAPIKey sets the API key for authentication.
-func WithAPIKey(key string) ClientOption {
+func WithAPIKey(key string) Option {
 	return func(c *clientConfig) {
 		c.auth = common.NewAPIKeyAuth(key)
 	}
 }
 
 // WithAuth sets a custom authenticator.
-func WithAuth(auth common.Authenticator) ClientOption {
+func WithAuth(auth common.Authenticator) Option {
 	return func(c *clientConfig) {
 		c.auth = auth
 	}
 }
 
 // WithUserAgent sets the User-Agent header for API requests.
-func WithUserAgent(userAgent string) ClientOption {
+func WithUserAgent(userAgent string) Option {
 	return func(c *clientConfig) {
 		c.userAgent = userAgent
 	}
 }
 
 // WithTimeout sets the HTTP client timeout.
-func WithTimeout(timeout time.Duration) ClientOption {
+func WithTimeout(timeout time.Duration) Option {
 	return func(c *clientConfig) {
 		c.timeout = timeout
 	}
@@ -91,7 +88,7 @@ func WithTimeout(timeout time.Duration) ClientOption {
 
 // NewClient creates a new Capella Space API client.
 // It uses sensible defaults which can be overridden with functional options.
-func NewClient(opts ...ClientOption) *Client {
+func NewClient(opts ...Option) (*Client, error) {
 	cfg := &clientConfig{
 		baseURL: defaultBaseURL,
 		timeout: defaultTimeout,
@@ -100,30 +97,18 @@ func NewClient(opts ...ClientOption) *Client {
 		opt(cfg)
 	}
 
-	httpClient := cfg.httpClient
-	if httpClient == nil {
-		httpClient = &http.Client{Timeout: cfg.timeout}
-	}
+	httpClient := common.EnsureHTTPClient(cfg.httpClient, cfg.timeout)
 
-	c, _ := common.NewClient(common.ClientConfig{
+	c, err := common.NewClient(common.ClientConfig{
 		BaseURL:    cfg.baseURL,
 		HTTPClient: httpClient,
 		Auth:       cfg.auth,
 		UserAgent:  cfg.userAgent,
 	})
+	if err != nil {
+		return nil, err
+	}
 
-	return &Client{Client: c}
+	return &Client{Client: c}, nil
 }
 
-// doRequest performs an HTTP request and decodes the response.
-func (c *Client) doRequest(ctx context.Context, method string, u *url.URL, body io.Reader, want int, out any) error {
-	return c.Client.DoRaw(ctx, method, u, body, want, out)
-}
-
-// doRequestRaw performs an HTTP request and returns the raw response body.
-func (c *Client) doRequestRaw(ctx context.Context, method string, u *url.URL, body io.Reader, want int) ([]byte, error) {
-	return c.Client.DoRawResponse(ctx, method, u, body, want)
-}
-
-// marshalBody marshals v to JSON and returns a bytes.Buffer.
-var marshalBody = common.MarshalBody

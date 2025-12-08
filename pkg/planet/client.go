@@ -16,7 +16,6 @@ package planet
 
 import (
 	"context"
-	"io"
 	"net/http"
 	"net/url"
 	"time"
@@ -94,10 +93,7 @@ func NewClient(apiKey string, opts ...Option) (*Client, error) {
 		opt(cfg)
 	}
 
-	httpClient := cfg.httpClient
-	if httpClient == nil {
-		httpClient = &http.Client{Timeout: cfg.timeout}
-	}
+	httpClient := common.EnsureHTTPClient(cfg.httpClient, cfg.timeout)
 
 	baseURL, err := url.Parse(cfg.baseURL)
 	if err != nil {
@@ -134,11 +130,6 @@ func (c *Client) OrdersURL(path ...string) *url.URL {
 	return c.ordersBaseURL.JoinPath(path...)
 }
 
-// doRequest performs an HTTP request and decodes the response.
-func (c *Client) doRequest(ctx context.Context, method string, u *url.URL, body io.Reader, want int, out any) error {
-	return c.Client.DoRaw(ctx, method, u, body, want, out)
-}
-
 // apiKeyAuth implements the common.Authenticator interface for Planet API key authentication.
 type apiKeyAuth struct {
 	apiKey string
@@ -154,5 +145,3 @@ func (a *apiKeyAuth) Apply(ctx context.Context, req *http.Request) error {
 	return nil
 }
 
-// marshalBody marshals v to JSON and returns a bytes.Buffer.
-var marshalBody = common.MarshalBody

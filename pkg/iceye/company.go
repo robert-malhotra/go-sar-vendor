@@ -8,6 +8,8 @@ import (
 	"path"
 	"strconv"
 	"time"
+
+	"github.com/robert-malhotra/go-sar-vendor/pkg/common"
 )
 
 // ----------------------------------------------------------------------------
@@ -63,7 +65,7 @@ const companyBasePath = "/company/v1"
 // GET /company/v1/contracts
 func (c *Client) ListContracts(ctx context.Context, pageSize int) iter.Seq2[ContractsResponse, error] {
 	return func(yield func(ContractsResponse, error) bool) {
-		seq := paginate[Contract](func(cur *string) ([]Contract, *string, error) {
+		seq := common.Paginate(func(cur *string) ([]Contract, *string, error) {
 			u := &url.URL{Path: path.Join(companyBasePath, "contracts")}
 			q := u.Query()
 			if pageSize > 0 {

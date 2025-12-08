@@ -13,6 +13,12 @@ import (
 	"time"
 )
 
+const (
+	// TokenExpiryBuffer is the time before token expiration when a refresh is triggered.
+	// Using 30 seconds provides safety margin while avoiding unnecessary refreshes.
+	TokenExpiryBuffer = 30 * time.Second
+)
+
 // Authenticator provides authentication for API requests.
 type Authenticator interface {
 	// Apply applies authentication to an HTTP request.
@@ -99,7 +105,7 @@ func (o *OAuth2Auth) Apply(ctx context.Context, req *http.Request) error {
 
 func (o *OAuth2Auth) refreshIfNeeded(ctx context.Context) error {
 	o.mu.Lock()
-	if time.Until(o.exp) > 30*time.Second {
+	if time.Until(o.exp) > TokenExpiryBuffer {
 		o.mu.Unlock()
 		return nil // Token still valid
 	}
@@ -155,9 +161,14 @@ func (o *OAuth2Auth) refreshIfNeeded(ctx context.Context) error {
 		return errors.New("empty access_token in response")
 	}
 
+	expiresIn := tokenResp.ExpiresIn
+	if expiresIn <= 0 {
+		expiresIn = 3600 // Default to 1 hour if not provided
+	}
+
 	o.mu.Lock()
 	o.token = tokenResp.AccessToken
-	o.exp = time.Now().Add(time.Duration(tokenResp.ExpiresIn) * time.Second)
+	o.exp = time.Now().Add(time.Duration(expiresIn) * time.Second)
 	o.mu.Unlock()
 
 	return nil
@@ -201,7 +212,7 @@ func (r *ResourceOwnerAuth) Apply(ctx context.Context, req *http.Request) error 
 
 func (r *ResourceOwnerAuth) refreshIfNeeded(ctx context.Context) error {
 	r.mu.Lock()
-	if time.Until(r.exp) > 30*time.Second {
+	if time.Until(r.exp) > TokenExpiryBuffer {
 		r.mu.Unlock()
 		return nil
 	}
@@ -243,9 +254,14 @@ func (r *ResourceOwnerAuth) refreshIfNeeded(ctx context.Context) error {
 		return errors.New("empty access_token in response")
 	}
 
+	expiresIn := tokenResp.ExpiresIn
+	if expiresIn <= 0 {
+		expiresIn = 3600 // Default to 1 hour if not provided
+	}
+
 	r.mu.Lock()
 	r.token = tokenResp.AccessToken
-	r.exp = time.Now().Add(time.Duration(tokenResp.ExpiresIn) * time.Second)
+	r.exp = time.Now().Add(time.Duration(expiresIn) * time.Second)
 	r.mu.Unlock()
 
 	return nil

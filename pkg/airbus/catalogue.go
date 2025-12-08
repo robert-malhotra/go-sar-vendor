@@ -4,17 +4,19 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+
+	"github.com/robert-malhotra/go-sar-vendor/pkg/common"
 )
 
 // SearchCatalogue searches for existing acquisitions in the archive.
 // POST /sar/catalogue
 func (c *Client) SearchCatalogue(ctx context.Context, req *CatalogueRequest) (*FeatureCollection, error) {
-	body, err := marshalBody(req)
+	body, err := common.MarshalBody(req)
 	if err != nil {
 		return nil, err
 	}
 	var out FeatureCollection
-	err = c.doRequest(ctx, http.MethodPost, c.BaseURL().JoinPath("sar", "catalogue"), body, http.StatusOK, &out)
+	err = c.DoRaw(ctx, http.MethodPost, c.BaseURL().JoinPath("sar", "catalogue"), body, http.StatusOK, &out)
 	return &out, err
 }
 
@@ -34,7 +36,7 @@ func (c *Client) ReplicateCatalogue(ctx context.Context, opts *ReplicationOption
 		u.RawQuery = q.Encode()
 	}
 	var out FeatureCollection
-	err := c.doRequest(ctx, http.MethodGet, u, nil, http.StatusOK, &out)
+	err := c.DoRaw(ctx, http.MethodGet, u, nil, http.StatusOK, &out)
 	return &out, err
 }
 
@@ -54,7 +56,7 @@ func (c *Client) GetCatalogueRevocations(ctx context.Context, opts *RevocationOp
 		u.RawQuery = q.Encode()
 	}
 	var out RevocationResponse
-	err := c.doRequest(ctx, http.MethodGet, u, nil, http.StatusOK, &out)
+	err := c.DoRaw(ctx, http.MethodGet, u, nil, http.StatusOK, &out)
 	return &out, err
 }
 
@@ -62,11 +64,11 @@ func (c *Client) GetCatalogueRevocations(ctx context.Context, opts *RevocationOp
 // This returns the updated state of previously ordered items.
 // POST /sar/catalogue/retrieve
 func (c *Client) RetrieveCatalogueItems(ctx context.Context, req *RetrieveRequest) (*FeatureCollection, error) {
-	body, err := marshalBody(req)
+	body, err := common.MarshalBody(req)
 	if err != nil {
 		return nil, err
 	}
 	var out FeatureCollection
-	err = c.doRequest(ctx, http.MethodPost, c.BaseURL().JoinPath("sar", "catalogue", "retrieve"), body, http.StatusOK, &out)
+	err = c.DoRaw(ctx, http.MethodPost, c.BaseURL().JoinPath("sar", "catalogue", "retrieve"), body, http.StatusOK, &out)
 	return &out, err
 }

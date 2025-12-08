@@ -15,7 +15,10 @@ func newTestClient(t *testing.T, handler http.HandlerFunc) (*umbra.Client, *http
 	srv := httptest.NewServer(handler)
 	t.Cleanup(srv.Close)
 
-	cli := umbra.NewClient("test-token", umbra.WithBaseURL(srv.URL))
+	cli, err := umbra.NewClient("test-token", umbra.WithBaseURL(srv.URL))
+	if err != nil {
+		t.Fatalf("failed to create client: %v", err)
+	}
 	return cli, srv
 }
 

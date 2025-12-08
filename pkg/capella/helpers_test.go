@@ -15,10 +15,13 @@ func newTestClient(t *testing.T, handler http.HandlerFunc) (*capella.Client, *ht
 	srv := httptest.NewServer(handler)
 	t.Cleanup(srv.Close)
 
-	cli := capella.NewClient(
+	cli, err := capella.NewClient(
 		capella.WithBaseURL(srv.URL),
 		capella.WithAPIKey("test-api-key"),
 	)
+	if err != nil {
+		t.Fatalf("failed to create client: %v", err)
+	}
 	return cli, srv
 }
 
