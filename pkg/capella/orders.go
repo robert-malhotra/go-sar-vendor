@@ -10,15 +10,6 @@ import (
 	"time"
 )
 
-// OrderService provides order management operations.
-type OrderService struct {
-	client *Client
-}
-
-// NewOrderService creates a new order service.
-func NewOrderService(client *Client) *OrderService {
-	return &OrderService{client: client}
-}
 
 // ----------------------------------------------------------------------------
 // Order Models
@@ -94,45 +85,45 @@ type DownloadURLsResponse struct {
 // ----------------------------------------------------------------------------
 
 // ReviewOrder reviews an order to get cost information before submission.
-func (s *OrderService) ReviewOrder(ctx context.Context, req OrderReviewRequest) (*OrderReviewResponse, error) {
+func (c *Client) ReviewOrder(ctx context.Context, req OrderReviewRequest) (*OrderReviewResponse, error) {
 	var resp OrderReviewResponse
-	if err := s.client.Do(ctx, http.MethodPost, "/orders/review", 0, req, &resp); err != nil {
+	if err := c.Do(ctx, http.MethodPost, "/orders/review", 0, req, &resp); err != nil {
 		return nil, err
 	}
 	return &resp, nil
 }
 
 // SubmitOrder submits an order for processing.
-func (s *OrderService) SubmitOrder(ctx context.Context, req OrderRequest) (*Order, error) {
+func (c *Client) SubmitOrder(ctx context.Context, req OrderRequest) (*Order, error) {
 	var resp Order
-	if err := s.client.Do(ctx, http.MethodPost, "/orders", 0, req, &resp); err != nil {
+	if err := c.Do(ctx, http.MethodPost, "/orders", 0, req, &resp); err != nil {
 		return nil, err
 	}
 	return &resp, nil
 }
 
 // GetOrder retrieves an order by ID.
-func (s *OrderService) GetOrder(ctx context.Context, orderID string) (*Order, error) {
+func (c *Client) GetOrder(ctx context.Context, orderID string) (*Order, error) {
 	var resp Order
-	if err := s.client.Do(ctx, http.MethodGet, "/orders/"+orderID, 0, nil, &resp); err != nil {
+	if err := c.Do(ctx, http.MethodGet, "/orders/"+orderID, 0, nil, &resp); err != nil {
 		return nil, err
 	}
 	return &resp, nil
 }
 
 // GetDownloadURLs retrieves presigned download URLs for an order.
-func (s *OrderService) GetDownloadURLs(ctx context.Context, orderID string) (*DownloadURLsResponse, error) {
+func (c *Client) GetDownloadURLs(ctx context.Context, orderID string) (*DownloadURLsResponse, error) {
 	var resp DownloadURLsResponse
-	if err := s.client.Do(ctx, http.MethodGet, "/orders/"+orderID+"/download", 0, nil, &resp); err != nil {
+	if err := c.Do(ctx, http.MethodGet, "/orders/"+orderID+"/download", 0, nil, &resp); err != nil {
 		return nil, err
 	}
 	return &resp, nil
 }
 
 // OrderTaskingRequest orders all assets for a tasking request.
-func (s *OrderService) OrderTaskingRequest(ctx context.Context, taskingRequestID string) (*Order, error) {
+func (c *Client) OrderTaskingRequest(ctx context.Context, taskingRequestID string) (*Order, error) {
 	var resp Order
-	if err := s.client.Do(ctx, http.MethodPost, "/orders/task/"+taskingRequestID, 0, nil, &resp); err != nil {
+	if err := c.Do(ctx, http.MethodPost, "/orders/task/"+taskingRequestID, 0, nil, &resp); err != nil {
 		return nil, err
 	}
 	return &resp, nil
@@ -142,15 +133,6 @@ func (s *OrderService) OrderTaskingRequest(ctx context.Context, taskingRequestID
 // Download Service
 // ----------------------------------------------------------------------------
 
-// DownloadService provides asset download operations.
-type DownloadService struct {
-	client *Client
-}
-
-// NewDownloadService creates a new download service.
-func NewDownloadService(client *Client) *DownloadService {
-	return &DownloadService{client: client}
-}
 
 // DownloadProgress represents download progress information.
 type DownloadProgress struct {
@@ -169,8 +151,8 @@ type DownloadOptions struct {
 	Overwrite bool
 }
 
-// ToFile downloads an asset from a URL to a local file.
-func (s *DownloadService) ToFile(ctx context.Context, downloadURL, destPath string, opts *DownloadOptions) error {
+// DownloadToFile downloads an asset from a URL to a local file.
+func (c *Client) DownloadToFile(ctx context.Context, downloadURL, destPath string, opts *DownloadOptions) error {
 	if opts == nil {
 		opts = &DownloadOptions{}
 	}
@@ -195,7 +177,7 @@ func (s *DownloadService) ToFile(ctx context.Context, downloadURL, destPath stri
 	}
 
 	// Execute request
-	resp, err := s.client.HTTPClient().Do(req)
+	resp, err := c.HTTPClient().Do(req)
 	if err != nil {
 		return fmt.Errorf("failed to execute download request: %w", err)
 	}
@@ -256,8 +238,8 @@ func (s *DownloadService) ToFile(ctx context.Context, downloadURL, destPath stri
 	return nil
 }
 
-// ToDirectory downloads an asset to a directory, preserving the filename from the URL.
-func (s *DownloadService) ToDirectory(ctx context.Context, downloadURL, destDir string, opts *DownloadOptions) (string, error) {
+// DownloadToDirectory downloads an asset to a directory, preserving the filename from the URL.
+func (c *Client) DownloadToDirectory(ctx context.Context, downloadURL, destDir string, opts *DownloadOptions) (string, error) {
 	// Extract filename from URL
 	filename := filepath.Base(downloadURL)
 	if filename == "" || filename == "." || filename == "/" {
@@ -265,7 +247,7 @@ func (s *DownloadService) ToDirectory(ctx context.Context, downloadURL, destDir 
 	}
 
 	destPath := filepath.Join(destDir, filename)
-	if err := s.ToFile(ctx, downloadURL, destPath, opts); err != nil {
+	if err := c.DownloadToFile(ctx, downloadURL, destPath, opts); err != nil {
 		return "", err
 	}
 
@@ -277,9 +259,9 @@ func (s *DownloadService) ToDirectory(ctx context.Context, downloadURL, destDir 
 // ----------------------------------------------------------------------------
 
 // QuickOrder is a convenience method that reviews and submits an order in one call.
-func (s *OrderService) QuickOrder(ctx context.Context, items []OrderItem) (*Order, error) {
+func (c *Client) QuickOrder(ctx context.Context, items []OrderItem) (*Order, error) {
 	// First review the order
-	review, err := s.ReviewOrder(ctx, OrderReviewRequest{Items: items})
+	review, err := c.ReviewOrder(ctx, OrderReviewRequest{Items: items})
 	if err != nil {
 		return nil, fmt.Errorf("order review failed: %w", err)
 	}
@@ -290,11 +272,11 @@ func (s *OrderService) QuickOrder(ctx context.Context, items []OrderItem) (*Orde
 	}
 
 	// Submit the order
-	return s.SubmitOrder(ctx, OrderRequest{Items: items})
+	return c.SubmitOrder(ctx, OrderRequest{Items: items})
 }
 
 // WaitForOrder polls the order status until it completes or times out.
-func (s *OrderService) WaitForOrder(ctx context.Context, orderID string, pollInterval time.Duration) (*Order, error) {
+func (c *Client) WaitForOrder(ctx context.Context, orderID string, pollInterval time.Duration) (*Order, error) {
 	ticker := time.NewTicker(pollInterval)
 	defer ticker.Stop()
 
@@ -303,7 +285,7 @@ func (s *OrderService) WaitForOrder(ctx context.Context, orderID string, pollInt
 		case <-ctx.Done():
 			return nil, ctx.Err()
 		case <-ticker.C:
-			order, err := s.GetOrder(ctx, orderID)
+			order, err := c.GetOrder(ctx, orderID)
 			if err != nil {
 				return nil, err
 			}

@@ -10,15 +10,6 @@ import (
 	"github.com/paulmach/orb/geojson"
 )
 
-// CatalogService provides STAC-compliant catalog search operations.
-type CatalogService struct {
-	client *Client
-}
-
-// NewCatalogService creates a new catalog service.
-func NewCatalogService(client *Client) *CatalogService {
-	return &CatalogService{client: client}
-}
 
 // ----------------------------------------------------------------------------
 // STAC Item Models
@@ -179,17 +170,17 @@ type SearchContext struct {
 // Search Methods
 // ----------------------------------------------------------------------------
 
-// Search performs a STAC catalog search.
-func (s *CatalogService) Search(ctx context.Context, params SearchParams) (*SearchResponse, error) {
+// CatalogSearch performs a STAC catalog search.
+func (c *Client) CatalogSearch(ctx context.Context, params SearchParams) (*SearchResponse, error) {
 	var resp SearchResponse
-	if err := s.client.Do(ctx, http.MethodPost, "/catalog/search", 0, params, &resp); err != nil {
+	if err := c.Do(ctx, http.MethodPost, "/catalog/search", 0, params, &resp); err != nil {
 		return nil, err
 	}
 	return &resp, nil
 }
 
-// SearchItems returns an iterator over search results with automatic pagination.
-func (s *CatalogService) SearchItems(ctx context.Context, params SearchParams) iter.Seq2[STACItem, error] {
+// CatalogSearchItems returns an iterator over search results with automatic pagination.
+func (c *Client) CatalogSearchItems(ctx context.Context, params SearchParams) iter.Seq2[STACItem, error] {
 	if params.Limit == 0 {
 		params.Limit = 100
 	}
@@ -203,9 +194,9 @@ func (s *CatalogService) SearchItems(ctx context.Context, params SearchParams) i
 
 			if nextURL != "" {
 				// Fetch next page using the link URL
-				resp, err = s.fetchSearchURL(ctx, nextURL)
+				resp, err = c.fetchSearchURL(ctx, nextURL)
 			} else {
-				resp, err = s.Search(ctx, params)
+				resp, err = c.CatalogSearch(ctx, params)
 			}
 
 			if err != nil {
@@ -237,14 +228,14 @@ func (s *CatalogService) SearchItems(ctx context.Context, params SearchParams) i
 }
 
 // fetchSearchURL fetches a search result page by URL.
-func (s *CatalogService) fetchSearchURL(ctx context.Context, searchURL string) (*SearchResponse, error) {
-	u, err := s.client.BaseURL().Parse(searchURL)
+func (c *Client) fetchSearchURL(ctx context.Context, searchURL string) (*SearchResponse, error) {
+	u, err := c.BaseURL().Parse(searchURL)
 	if err != nil {
 		return nil, fmt.Errorf("parse search URL: %w", err)
 	}
 
 	var resp SearchResponse
-	if err := s.client.DoRaw(ctx, http.MethodGet, u, nil, 0, &resp); err != nil {
+	if err := c.DoRaw(ctx, http.MethodGet, u, nil, 0, &resp); err != nil {
 		return nil, err
 	}
 
@@ -256,20 +247,20 @@ func (s *CatalogService) fetchSearchURL(ctx context.Context, searchURL string) (
 // ----------------------------------------------------------------------------
 
 // ListCollections lists available STAC collections.
-func (s *CatalogService) ListCollections(ctx context.Context) ([]STACCollection, error) {
+func (c *Client) ListCollections(ctx context.Context) ([]STACCollection, error) {
 	var resp struct {
 		Collections []STACCollection `json:"collections"`
 	}
-	if err := s.client.Do(ctx, http.MethodGet, "/catalog/collections", 0, nil, &resp); err != nil {
+	if err := c.Do(ctx, http.MethodGet, "/catalog/collections", 0, nil, &resp); err != nil {
 		return nil, err
 	}
 	return resp.Collections, nil
 }
 
 // GetCollection retrieves a specific STAC collection by ID.
-func (s *CatalogService) GetCollection(ctx context.Context, collectionID string) (*STACCollection, error) {
+func (c *Client) GetCollection(ctx context.Context, collectionID string) (*STACCollection, error) {
 	var resp STACCollection
-	if err := s.client.Do(ctx, http.MethodGet, "/catalog/collections/"+collectionID, 0, nil, &resp); err != nil {
+	if err := c.Do(ctx, http.MethodGet, "/catalog/collections/"+collectionID, 0, nil, &resp); err != nil {
 		return nil, err
 	}
 	return &resp, nil
@@ -297,19 +288,19 @@ type PresignedURL struct {
 }
 
 // ListArchiveExports lists available archive footprint exports.
-func (s *CatalogService) ListArchiveExports(ctx context.Context) ([]ArchiveExport, error) {
+func (c *Client) ListArchiveExports(ctx context.Context) ([]ArchiveExport, error) {
 	var resp []ArchiveExport
-	if err := s.client.Do(ctx, http.MethodGet, "/catalog/archive-export/available", 0, nil, &resp); err != nil {
+	if err := c.Do(ctx, http.MethodGet, "/catalog/archive-export/available", 0, nil, &resp); err != nil {
 		return nil, err
 	}
 	return resp, nil
 }
 
 // GetArchiveExportURL gets a presigned download URL for an archive export.
-func (s *CatalogService) GetArchiveExportURL(ctx context.Context, exportID string) (*PresignedURL, error) {
+func (c *Client) GetArchiveExportURL(ctx context.Context, exportID string) (*PresignedURL, error) {
 	reqBody := map[string]string{"exportId": exportID}
 	var resp PresignedURL
-	if err := s.client.Do(ctx, http.MethodPost, "/catalog/archive-export/presigned", 0, reqBody, &resp); err != nil {
+	if err := c.Do(ctx, http.MethodPost, "/catalog/archive-export/presigned", 0, reqBody, &resp); err != nil {
 		return nil, err
 	}
 	return &resp, nil

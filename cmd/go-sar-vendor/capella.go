@@ -86,8 +86,7 @@ func accessCreateAction(ctx context.Context, cmd *cli.Command) error {
 	if err != nil {
 		return err
 	}
-	feasibility := capella.NewFeasibilityService(cli)
-	resp, err := feasibility.CreateAccessRequest(ctx, req)
+	resp, err := cli.CreateAccessRequest(ctx, req)
 	if err != nil {
 		return err
 	}
@@ -103,8 +102,7 @@ func accessGetAction(ctx context.Context, cmd *cli.Command) error {
 	if err != nil {
 		return err
 	}
-	feasibility := capella.NewFeasibilityService(cli)
-	resp, err := feasibility.GetAccessRequest(ctx, id)
+	resp, err := cli.GetAccessRequest(ctx, id)
 	if err != nil {
 		return err
 	}
@@ -165,8 +163,7 @@ func tasksCreateAction(ctx context.Context, cmd *cli.Command) error {
 	if err != nil {
 		return err
 	}
-	tasking := capella.NewTaskingService(cli)
-	resp, err := tasking.CreateTask(ctx, req)
+	resp, err := cli.CreateTask(ctx, req)
 	if err != nil {
 		return err
 	}
@@ -182,8 +179,7 @@ func tasksGetAction(ctx context.Context, cmd *cli.Command) error {
 	if err != nil {
 		return err
 	}
-	tasking := capella.NewTaskingService(cli)
-	resp, err := tasking.GetTask(ctx, id)
+	resp, err := cli.GetTask(ctx, id)
 	if err != nil {
 		return err
 	}
@@ -199,8 +195,7 @@ func tasksApproveAction(ctx context.Context, cmd *cli.Command) error {
 	if err != nil {
 		return err
 	}
-	tasking := capella.NewTaskingService(cli)
-	resp, err := tasking.ApproveTask(ctx, id)
+	resp, err := cli.ApproveTask(ctx, id)
 	if err != nil {
 		return err
 	}
@@ -217,8 +212,7 @@ func tasksListAction(ctx context.Context, cmd *cli.Command) error {
 	if err != nil {
 		return err
 	}
-	tasking := capella.NewTaskingService(cli)
-	for t, err := range tasking.ListTasks(ctx, params) {
+	for t, err := range cli.ListTasks(ctx, params) {
 		if err != nil {
 			return err
 		}
@@ -240,8 +234,7 @@ func tasksSearchAction(ctx context.Context, cmd *cli.Command) error {
 	if err != nil {
 		return err
 	}
-	tasking := capella.NewTaskingService(cli)
-	resp, err := tasking.SearchTasks(ctx, req)
+	resp, err := cli.SearchTasks(ctx, req)
 	if err != nil {
 		return err
 	}

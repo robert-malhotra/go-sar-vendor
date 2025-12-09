@@ -44,8 +44,7 @@ func TestFeasibilityService_CreateAccessRequest(t *testing.T) {
 	}
 
 	cli, _ := newTestClient(t, handler)
-	feasibility := capella.NewFeasibilityService(cli)
-
+	
 	req := capella.AccessRequest{
 		Type:     "Feature",
 		Geometry: capella.Point(10.0, 20.0),
@@ -57,7 +56,7 @@ func TestFeasibilityService_CreateAccessRequest(t *testing.T) {
 		},
 	}
 
-	resp, err := feasibility.CreateAccessRequest(context.Background(), req)
+	resp, err := cli.CreateAccessRequest(context.Background(), req)
 	if err != nil {
 		t.Fatalf("CreateAccessRequest failed: %v", err)
 	}
@@ -77,9 +76,8 @@ func TestFeasibilityService_CreateAccessRequest_ValidationError(t *testing.T) {
 	}
 
 	cli, _ := newTestClient(t, handler)
-	feasibility := capella.NewFeasibilityService(cli)
-
-	_, err := feasibility.CreateAccessRequest(context.Background(), capella.AccessRequest{})
+	
+	_, err := cli.CreateAccessRequest(context.Background(), capella.AccessRequest{})
 	if err == nil {
 		t.Fatal("expected error, got nil")
 	}
@@ -120,9 +118,8 @@ func TestFeasibilityService_GetAccessRequest(t *testing.T) {
 	}
 
 	cli, _ := newTestClient(t, handler)
-	feasibility := capella.NewFeasibilityService(cli)
-
-	resp, err := feasibility.GetAccessRequest(context.Background(), "ar-123")
+	
+	resp, err := cli.GetAccessRequest(context.Background(), "ar-123")
 	if err != nil {
 		t.Fatalf("GetAccessRequest failed: %v", err)
 	}
@@ -175,9 +172,8 @@ func TestFeasibilityService_GetAccessRequestDetail(t *testing.T) {
 	}
 
 	cli, _ := newTestClient(t, handler)
-	feasibility := capella.NewFeasibilityService(cli)
-
-	resp, err := feasibility.GetAccessRequestDetail(context.Background(), "ar-123")
+	
+	resp, err := cli.GetAccessRequestDetail(context.Background(), "ar-123")
 	if err != nil {
 		t.Fatalf("GetAccessRequestDetail failed: %v", err)
 	}
@@ -201,9 +197,8 @@ func TestFeasibilityService_DeleteAccessRequest(t *testing.T) {
 	}
 
 	cli, _ := newTestClient(t, handler)
-	feasibility := capella.NewFeasibilityService(cli)
-
-	err := feasibility.DeleteAccessRequest(context.Background(), "ar-123")
+	
+	err := cli.DeleteAccessRequest(context.Background(), "ar-123")
 	if err != nil {
 		t.Fatalf("DeleteAccessRequest failed: %v", err)
 	}
@@ -228,12 +223,11 @@ func TestFeasibilityService_WaitForAccessRequest(t *testing.T) {
 	}
 
 	cli, _ := newTestClient(t, handler)
-	feasibility := capella.NewFeasibilityService(cli)
-
+	
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	resp, err := feasibility.WaitForAccessRequest(ctx, "ar-123", 10*time.Millisecond)
+	resp, err := cli.WaitForAccessRequest(ctx, "ar-123", 10*time.Millisecond)
 	if err != nil {
 		t.Fatalf("WaitForAccessRequest failed: %v", err)
 	}
@@ -276,10 +270,9 @@ func TestFeasibilityService_ListAccessRequests(t *testing.T) {
 	}
 
 	cli, _ := newTestClient(t, handler)
-	feasibility := capella.NewFeasibilityService(cli)
-
+	
 	var requests []capella.AccessRequestResponse
-	for req, err := range feasibility.ListAccessRequests(context.Background(), capella.ListAccessRequestsParams{}) {
+	for req, err := range cli.ListAccessRequests(context.Background(), capella.ListAccessRequestsParams{}) {
 		if err != nil {
 			t.Fatalf("iterator error: %v", err)
 		}

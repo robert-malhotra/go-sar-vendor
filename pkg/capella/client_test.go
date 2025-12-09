@@ -51,8 +51,7 @@ func TestClient_RequestHeaders(t *testing.T) {
 	cli, _ := newTestClient(t, handler)
 
 	// Make a request to verify headers
-	catalog := capella.NewCatalogService(cli)
-	_, err := catalog.ListCollections(t.Context())
+		_, err := cli.ListCollections(t.Context())
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -94,9 +93,8 @@ func TestClient_ErrorHandling(t *testing.T) {
 			}
 
 			cli, _ := newTestClient(t, handler)
-			catalog := capella.NewCatalogService(cli)
-
-			_, err := catalog.ListCollections(t.Context())
+			
+			_, err := cli.ListCollections(t.Context())
 			if err == nil {
 				t.Fatal("expected error, got nil")
 			}
@@ -119,9 +117,8 @@ func TestClient_ValidationError(t *testing.T) {
 	}
 
 	cli, _ := newTestClient(t, handler)
-	tasking := capella.NewTaskingService(cli)
-
-	_, err := tasking.CreateTask(t.Context(), capella.TaskingRequest{})
+	
+	_, err := cli.CreateTask(t.Context(), capella.TaskingRequest{})
 	if err == nil {
 		t.Fatal("expected error, got nil")
 	}
