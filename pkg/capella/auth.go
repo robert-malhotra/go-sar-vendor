@@ -115,15 +115,6 @@ func (a *AuthClient) refreshToken(ctx context.Context) (string, error) {
 	return a.token, nil
 }
 
-// APIKeyService provides API key management operations.
-type APIKeyService struct {
-	client *Client
-}
-
-// NewAPIKeyService creates a new API key service.
-func NewAPIKeyService(client *Client) *APIKeyService {
-	return &APIKeyService{client: client}
-}
 
 // APIKey represents an API key.
 type APIKey struct {
@@ -148,25 +139,25 @@ type APIKeyCreateResponse struct {
 	Key string `json:"key"` // Only returned on creation
 }
 
-// Create creates a new API key.
-func (s *APIKeyService) Create(ctx context.Context, req APIKeyCreateRequest) (*APIKeyCreateResponse, error) {
+// CreateAPIKey creates a new API key.
+func (c *Client) CreateAPIKey(ctx context.Context, req APIKeyCreateRequest) (*APIKeyCreateResponse, error) {
 	var resp APIKeyCreateResponse
-	if err := s.client.Do(ctx, http.MethodPost, "/keys", 0, req, &resp); err != nil {
+	if err := c.Do(ctx, http.MethodPost, "/keys", 0, req, &resp); err != nil {
 		return nil, err
 	}
 	return &resp, nil
 }
 
-// List lists all API keys.
-func (s *APIKeyService) List(ctx context.Context) ([]APIKey, error) {
+// ListAPIKeys lists all API keys.
+func (c *Client) ListAPIKeys(ctx context.Context) ([]APIKey, error) {
 	var resp []APIKey
-	if err := s.client.Do(ctx, http.MethodGet, "/keys", 0, nil, &resp); err != nil {
+	if err := c.Do(ctx, http.MethodGet, "/keys", 0, nil, &resp); err != nil {
 		return nil, err
 	}
 	return resp, nil
 }
 
-// Delete deletes an API key by ID.
-func (s *APIKeyService) Delete(ctx context.Context, keyID string) error {
-	return s.client.Do(ctx, http.MethodDelete, "/keys/"+keyID, 0, nil, nil)
+// DeleteAPIKey deletes an API key by ID.
+func (c *Client) DeleteAPIKey(ctx context.Context, keyID string) error {
+	return c.Do(ctx, http.MethodDelete, "/keys/"+keyID, 0, nil, nil)
 }
